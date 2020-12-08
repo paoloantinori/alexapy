@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.17.0 (2020-12-05)
+### Feature
+* Add custom command ([`fd56f3b`](https://gitlab.com/keatontaylor/alexapy/-/commit/fd56f3b8011ae3353d2a62f1d0443b85216585df))
+
 ## v1.16.0 (2020-11-27)
 ### Feature
 * Add stats collection ([`dd4a8cb`](https://gitlab.com/keatontaylor/alexapy/-/commit/dd4a8cbc186af00caab1da214c7dcbcf8a8ee51c))
