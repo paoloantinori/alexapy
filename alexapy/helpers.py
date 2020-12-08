@@ -66,7 +66,11 @@ def hide_serial(item: Optional[Union[dict, str, list]]) -> Union[dict, str, list
             ):
                 response[key] = hide_serial(value)
     elif isinstance(item, str):
-        response = "{}{}{}".format(item[0], "*" * (len(item) - 4), item[-3:])
+        response = (
+            "{}{}{}".format(item[0], "*" * (len(item) - 4), item[-3:])
+            if len(item) > 6
+            else f"{'*' * len(item)}"
+        )
     elif isinstance(item, list):
         response = []
         for list_item in item:
