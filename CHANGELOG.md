@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.17.1 (2020-12-11)
+### Fix
+* Add routine search on name field ([`650f19b`](https://gitlab.com/keatontaylor/alexapy/-/commit/650f19bfba6a215c49da4e590fb22638643232d2))
+* Add error checking for 2fa key token ([`60131f4`](https://gitlab.com/keatontaylor/alexapy/-/commit/60131f465370067eef6c44403f40db5c18cd5168))
+* Properly handle obfuscation of short serials ([`de641be`](https://gitlab.com/keatontaylor/alexapy/-/commit/de641bea20575eea07a04f3aeeeed27a42bfcf47))
+
 ## v1.17.0 (2020-12-05)
 ### Feature
 * Add custom command ([`fd56f3b`](https://gitlab.com/keatontaylor/alexapy/-/commit/fd56f3b8011ae3353d2a62f1d0443b85216585df))
