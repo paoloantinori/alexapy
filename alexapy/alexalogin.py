@@ -14,6 +14,7 @@ import datetime
 import os
 import pickle
 import re
+from binascii import Error
 from typing import Callable, List, Optional, Text, Tuple, Union
 from typing import Dict  # noqa pylint: disable=unused-import
 from urllib.parse import urlencode, urlparse
@@ -28,6 +29,7 @@ from alexapy import aiohttp
 from alexapy.aiohttp.client_exceptions import ContentTypeError
 
 from .const import EXCEPTION_TEMPLATE
+from .errors import AlexapyPyotpInvalidKey
 from .helpers import _catch_all_exceptions, delete_cookie, hide_serial, obfuscate
 
 _LOGGER = logging.getLogger(__name__)
@@ -147,7 +149,15 @@ class AlexaLogin:
         """
         if otp_secret:
             _LOGGER.debug("Creating TOTP for %s", hide_serial(otp_secret))
-            self._totp = pyotp.TOTP(otp_secret)
+            try:
+                self._totp = pyotp.TOTP(otp_secret)
+                self.get_totp_token()
+            except Error as ex:
+                self._totp = None
+                _LOGGER.warning(
+                    "Error creating TOTP; %s likely invalid", hide_serial(otp_secret)
+                )
+                raise AlexapyPyotpInvalidKey(ex) from ex
         else:
             self._totp = None
         return self._totp
@@ -163,6 +173,7 @@ class AlexaLogin:
             token: Text = self._totp.now()
             _LOGGER.debug("Generating OTP %s", token)
             return token
+        _LOGGER.debug("Unable to generate OTP; 2FA app key not configured")
         return ""
 
     async def load_cookie(self, cookies_txt: Text = "") -> Optional[Dict[Text, Text]]:

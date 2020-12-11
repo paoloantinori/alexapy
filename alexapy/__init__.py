@@ -18,6 +18,7 @@ from .errors import (
     AlexapyConnectionError,
     AlexapyLoginCloseRequested,
     AlexapyLoginError,
+    AlexapyPyotpInvalidKey,
 )
 from .helpers import hide_email, hide_serial, obfuscate
 
@@ -29,6 +30,7 @@ __all__ = [
     "AlexapyConnectionError",
     "AlexapyLoginCloseRequested",
     "AlexapyLoginError",
+    "AlexapyPyotpInvalidKey",
     "WebsocketEchoClient",
     "hide_email",
     "hide_serial",

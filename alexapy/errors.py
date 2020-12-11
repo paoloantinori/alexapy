@@ -29,3 +29,7 @@ class AlexapyTooManyRequestsError(AlexapyError):
 
 class AlexapyLoginCloseRequested(AlexapyError):
     """Define an error related to requesting access to API after requested close."""
+
+
+class AlexapyPyotpInvalidKey(AlexapyError):
+    """Define an error related to invalid 2FA key."""
