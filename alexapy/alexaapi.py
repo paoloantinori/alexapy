@@ -514,7 +514,10 @@ class AlexaAPI:
             if "utterance" not in automation["triggers"][0]["payload"]:
                 continue
             a_utterance = automation["triggers"][0]["payload"]["utterance"]
-            if a_utterance is not None and a_utterance.lower() == utterance.lower():
+            a_name = automation.get("name")
+            if (
+                a_utterance is not None and a_utterance.lower() == utterance.lower()
+            ) or (a_name and a_name.lower() == utterance.lower()):
                 automation_id = automation["automationId"]
                 sequence = automation["sequence"]
         if automation_id is None or sequence is None:
