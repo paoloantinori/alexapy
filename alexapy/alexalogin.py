@@ -885,6 +885,8 @@ class AlexaLogin:
         captcha: Optional[Text] = data.get("captcha")
         if not data.get("securitycode") and self._totp:
             _LOGGER.debug("No 2FA code supplied but will generate.")
+        if data.get("otp_secret"):
+            self.set_totp(data.get("otp_secret"))
         securitycode: Optional[Text] = data.get("securitycode", self.get_totp_token())
         claimsoption: Optional[Text] = data.get("claimsoption")
         authopt: Optional[Text] = data.get("authselectoption")

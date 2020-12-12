@@ -128,6 +128,15 @@ class AlexaAPI:
                 query,
             )
             raise AlexapyLoginCloseRequested()
+        if not self._login.status.get("login_successful"):
+            _LOGGER.debug(
+                "Login error detected; ignoring %s request to %s with %s %s",
+                method,
+                uri,
+                data,
+                query,
+            )
+            raise AlexapyLoginError("Login error detected; not contacting API")
         if self._session.closed:
             raise AlexapyLoginError("Session is closed")
         response = await getattr(self._session, method)(
@@ -147,6 +156,7 @@ class AlexaAPI:
         )
         self._login.stats["api_calls"] += 1
         if response.status == 401:
+            self._login.status["login_successful"] = False
             raise AlexapyLoginError(response.reason)
         if response.status == 429:
             raise AlexapyTooManyRequestsError(response.reason)
@@ -204,6 +214,15 @@ class AlexaAPI:
                 query,
             )
             raise AlexapyLoginCloseRequested()
+        if not login.status.get("login_successful"):
+            _LOGGER.debug(
+                "Login error detected; ignoring %s request to %s with %s %s",
+                method,
+                uri,
+                data,
+                query,
+            )
+            raise AlexapyLoginError("Login error detected; not contacting API")
         if session.closed:
             raise AlexapyLoginError("Session is closed")
         response = await getattr(session, method)(
@@ -222,6 +241,7 @@ class AlexaAPI:
             response.content_type,
         )
         if response.status == 401:
+            login.status["login_successful"] = False
             raise AlexapyLoginError(response.reason)
         if response.status == 429:
             raise AlexapyTooManyRequestsError(response.reason)
