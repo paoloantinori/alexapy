@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v1.17.2 (2020-12-12)
+### Fix
+* Prevent api connections when login invalid ([`65a6b58`](https://gitlab.com/keatontaylor/alexapy/-/commit/65a6b58ac7c31c101b3c6b2a91d3f45ebc68b610))
+* Suppress unnecessary token errors ([`4f64940`](https://gitlab.com/keatontaylor/alexapy/-/commit/4f6494007d27efe92979a9e0cba6edb12a9147b9))
+
 ## v1.17.1 (2020-12-11)
 ### Fix
 * Add routine search on name field ([`650f19b`](https://gitlab.com/keatontaylor/alexapy/-/commit/650f19bfba6a215c49da4e590fb22638643232d2))
