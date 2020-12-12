@@ -87,13 +87,14 @@ class AlexaAPI:
                 csrf = self._login._cookies["csrf"]
                 self._login._headers["csrf"] = csrf
             except KeyError as ex:
-                _LOGGER.warning(
-                    (
-                        "AlexaLogin session is missing required token: %s "
-                        "This may result in authorization errors, please report"
-                    ),
-                    ex,
-                )
+                if login.status.get("login_successful"):
+                    _LOGGER.warning(
+                        (
+                            "AlexaLogin session is missing required token: %s "
+                            "This may result in authorization errors, please report"
+                        ),
+                        ex,
+                    )
             return True
         return False
 
