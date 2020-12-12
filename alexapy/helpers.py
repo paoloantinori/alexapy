@@ -20,6 +20,7 @@ from typing import Optional, Text, Union
 import aiofiles.os as aioos
 
 from alexapy.aiohttp import ClientConnectionError, ContentTypeError
+import alexapy.alexalogin
 
 from .const import EXCEPTION_TEMPLATE
 from .errors import (
@@ -127,6 +128,11 @@ def _catch_all_exceptions(func):
 
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
+        login: Optional["alexapy.alexalogin.AlexaLogin"] = None
+        for arg in args:
+            if isinstance(arg, alexapy.alexalogin.AlexaLogin):
+                login = arg
+                break
         try:
             return await func(*args, **kwargs)
         except (ClientConnectionError, KeyError) as ex:
@@ -148,6 +154,7 @@ def _catch_all_exceptions(func):
                 obfuscate(kwargs),
                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
             )
+            login.status["login_successful"] = False
             raise AlexapyLoginError from ex
         except (ContentTypeError) as ex:
             _LOGGER.warning(
@@ -158,6 +165,7 @@ def _catch_all_exceptions(func):
                 obfuscate(kwargs),
                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
             )
+            login.status["login_successful"] = False
             raise AlexapyLoginError from ex
         except CancelledError as ex:
             _LOGGER.warning(
