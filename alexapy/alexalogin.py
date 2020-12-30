@@ -453,13 +453,7 @@ class AlexaLogin:
         if not self._session.cookie_jar:
             result = "Session cookie jar is empty."
         for cookie in self._session.cookie_jar:
-            result += "{}: expires:{} max-age:{} {}={}\n".format(
-                cookie["domain"],
-                cookie["expires"],
-                cookie["max-age"],
-                cookie.key,
-                cookie.value,
-            )
+            result += f"{cookie}\n"
         return result
 
     @_catch_all_exceptions
