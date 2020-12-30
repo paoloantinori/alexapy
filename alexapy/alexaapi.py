@@ -10,8 +10,9 @@ https://gitlab.com/keatontaylor/alexapy
 import asyncio
 import json
 import logging
-from typing import Any, Dict, Optional, Text
-from typing import List  # noqa pylint: disable=unused-import
+import math
+import time
+from typing import Any, Dict, List, Optional, Text
 
 import backoff
 from yarl import URL
@@ -112,6 +113,11 @@ class AlexaAPI:
         data: Optional[Dict[Text, Text]] = None,
         query: Optional[Dict[Text, Text]] = None,
     ) -> ClientResponse:
+        if method == "get":
+            if query and not query.get("_"):
+                query["_"] = math.floor(time.time() * 1000)
+            elif query is None:
+                query = {"_": math.floor(time.time() * 1000)}
         url: URL = URL(self._url + uri).update_query(query)
         # _LOGGER.debug("Trying %s: %s : with uri: %s data %s query %s",
         #               method,
@@ -1417,3 +1423,17 @@ class AlexaAPI:
 
         """
         raise AlexapyLoginError("Forced Logout")
+
+    @staticmethod
+    @_catch_all_exceptions
+    async def ping(login: AlexaLogin) -> Optional[Dict[Text, Any]]:
+        """Ping.
+
+        Args:
+        login (AlexaLogin): Successfully logged in AlexaLogin
+
+        Returns json
+
+        """
+        response = await AlexaAPI._static_request("get", login, "/api/ping",)
+        return await response if response else None
