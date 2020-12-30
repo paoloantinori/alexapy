@@ -880,20 +880,21 @@ class AlexaLogin:
 
     def _populate_data(self, site: Text, data: Dict[str, Optional[str]]) -> bool:
         """Populate self._data with info from data."""
-        # pull data from configurator
-        password: Optional[Text] = data.get("password")
-        captcha: Optional[Text] = data.get("captcha")
-        if not data.get("securitycode") and self._totp:
-            _LOGGER.debug("No 2FA code supplied but will generate.")
-        if data.get("otp_secret"):
-            self.set_totp(data.get("otp_secret"))
-        securitycode: Optional[Text] = data.get("securitycode", self.get_totp_token())
-        claimsoption: Optional[Text] = data.get("claimsoption")
-        authopt: Optional[Text] = data.get("authselectoption")
-        verificationcode: Optional[Text] = data.get("verificationcode")
         _LOGGER.debug(
             "Preparing form submission to %s with input data: %s", site, obfuscate(data)
         )
+        # pull data from configurator
+        password: Optional[Text] = data.get("password")
+        captcha: Optional[Text] = data.get("captcha")
+        if data.get("otp_secret"):
+            self.set_totp(data.get("otp_secret"))
+        securitycode: Optional[Text] = data.get("securitycode")
+        if not securitycode and self._totp:
+            _LOGGER.debug("No 2FA code supplied but will generate.")
+            securitycode = self.get_totp_token()
+        claimsoption: Optional[Text] = data.get("claimsoption")
+        authopt: Optional[Text] = data.get("authselectoption")
+        verificationcode: Optional[Text] = data.get("verificationcode")
 
         #  add username and password to self._data for post request
         #  self._data is scraped from the form page in _process_page
@@ -901,15 +902,14 @@ class AlexaLogin:
         if self._data:
             if "email" in self._data and self._data["email"] == "":
                 self._data["email"] = self._email
-            if "password" in self._data and self._data["password"] == "":
                 # add the otp to the password if available
-                self._data["password"] = (
-                    self._password + securitycode
-                    if not password
-                    else password + securitycode
-                    if securitycode
-                    else password
-                )
+            self._data["password"] = (
+                self._password + securitycode
+                if not password
+                else password + securitycode
+                if securitycode
+                else password
+            )
             if "rememberMe" in self._data:
                 self._data["rememberMe"] = "true"
             if captcha is not None and "guess" in self._data:
