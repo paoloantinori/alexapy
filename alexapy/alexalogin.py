@@ -562,7 +562,7 @@ class AlexaLogin:
             if cookiefile == self._cookiefile[0]:
                 cookie_jar = self._session.cookie_jar
                 assert isinstance(cookie_jar, aiohttp.CookieJar)
-                cookie_jar.update_cookies(self._cookies)
+                cookie_jar.update_cookies(self._cookies, URL(self._url))
                 self._prepare_cookies_from_session(self._url)
                 if self._debug:
                     _LOGGER.debug("Saving cookie to %s", cookiefile)
