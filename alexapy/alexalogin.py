@@ -50,6 +50,7 @@ class AlexaLogin:
     outputpath (function): Local path with write access for storing files
     debug (boolean): Enable additional debugging including debug file creation
     otp_secret (string): TOTP Secret key for automatic 2FA filling
+    uuid: (string): Unique 32 char hex to serve as app serial number for registration
 
     """
 
@@ -62,6 +63,7 @@ class AlexaLogin:
         debug: bool = False,
         otp_secret: Text = "",
         oauth: Optional[Dict[Any, Any]] = None,
+        uuid: Optional[Text] = None,
     ) -> None:
         # pylint: disable=too-many-arguments,import-outside-toplevel
         """Set up initial connection and log in."""
@@ -108,6 +110,7 @@ class AlexaLogin:
         self.refresh_token: Optional[Text] = oauth.get("refresh_token")
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
+        self.uuid = uuid  # needed to be unique but repeateable for device registration
 
     @property
     def email(self) -> Text:
@@ -652,9 +655,9 @@ class AlexaLogin:
                 "device_type": "A2IVLV5VM2W81",
                 "device_name": f"%FIRST_NAME%'s%DUPE_STRATEGY_1ST%{APP_NAME}",
                 "os_version": "11.4.1",
-                "device_serial": "2cf947a5a093d686a30c33cb07a703fd",
-                # may need to be replaced with random 16 bytes; leaving static for now
-                # https://github.com/Apollon77/alexa-cookie/blob/master/lib/proxy.js#L102-L106
+                "device_serial": "2cf947a5a093d686a30c33cb07a703fd"
+                if not self.uuid
+                else self.uuid,
                 "device_model": "iPhone",
                 "app_name": APP_NAME,
                 "software_version": "1",
