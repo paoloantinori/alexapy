@@ -9,3 +9,6 @@ https://gitlab.com/keatontaylor/alexapy
 """
 
 EXCEPTION_TEMPLATE = "An exception of type {0} occurred. Arguments:\n{1!r}"
+
+APP_NAME = "Amazon Media Player"
+USER_AGENT = f"AmazonWebView/{APP_NAME}/2.2.223830.0/iOS/11.4.1/iPhone"
