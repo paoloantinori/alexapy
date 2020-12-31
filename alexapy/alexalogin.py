@@ -50,6 +50,7 @@ class AlexaLogin:
     outputpath (function): Local path with write access for storing files
     debug (boolean): Enable additional debugging including debug file creation
     otp_secret (string): TOTP Secret key for automatic 2FA filling
+    uuid: (string): Unique 32 char hex to serve as app serial number for registration
 
     """
 
@@ -62,6 +63,7 @@ class AlexaLogin:
         debug: bool = False,
         otp_secret: Text = "",
         oauth: Optional[Dict[Any, Any]] = None,
+        uuid: Optional[Text] = None,
     ) -> None:
         # pylint: disable=too-many-arguments,import-outside-toplevel
         """Set up initial connection and log in."""
@@ -108,6 +110,7 @@ class AlexaLogin:
         self.refresh_token: Optional[Text] = oauth.get("refresh_token")
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
+        self.uuid = uuid  # needed to be unique but repeateable for device registration
 
     @property
     def email(self) -> Text:
@@ -480,6 +483,9 @@ class AlexaLogin:
                 self.status["login_successful"] = True
                 _LOGGER.debug("Log in successful with cookies")
                 await self.get_tokens()
+                # await self.refresh_access_token()
+                # await self.exchange_token_for_cookies()
+                await self.get_csrf()
                 await self.save_cookiefile()
                 return
             await self.reset()
@@ -649,9 +655,9 @@ class AlexaLogin:
                 "device_type": "A2IVLV5VM2W81",
                 "device_name": f"%FIRST_NAME%'s%DUPE_STRATEGY_1ST%{APP_NAME}",
                 "os_version": "11.4.1",
-                "device_serial": "2cf947a5a093d686a30c33cb07a703fd",
-                # may need to be replaced with random 16 bytes; leaving static for now
-                # https://github.com/Apollon77/alexa-cookie/blob/master/lib/proxy.js#L102-L106
+                "device_serial": "2cf947a5a093d686a30c33cb07a703fd"
+                if not self.uuid
+                else self.uuid,
                 "device_model": "iPhone",
                 "app_name": APP_NAME,
                 "software_version": "1",
@@ -669,7 +675,10 @@ class AlexaLogin:
         response = (await response.json()).get("response")
         # _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
         if response.get("success"):
-            _LOGGER.debug("Successfully registered device with Amazon")
+            _LOGGER.debug(
+                "Successfully registered %s device with Amazon",
+                response["success"]["extensions"]["device_info"]["device_name"],
+            )
             if self._debug:
                 _LOGGER.debug("Received registration data:\n%s", dumps(response))
             self.refresh_token = response["success"]["tokens"]["bearer"][
@@ -729,11 +738,15 @@ class AlexaLogin:
         response = await self._session.post(
             "https://api." + self._url + "/auth/token", data=data, headers=headers,
         )
-        # _LOGGER.debug("refresh token response %s with \n%s", response, dumps(data))
         if response.status != 200:
+            if self._debug:
+                _LOGGER.debug("Failed to refresh access token: %s", response)
+            else:
+                _LOGGER.debug("Failed to refresh access token")
             return False
         response = await response.json()
-        # _LOGGER.debug("refresh token json %s ", response)
+        if self._debug:
+            _LOGGER.debug("Refresh token json:\n%s ", response)
         if response.get("access_token"):
             self.access_token = response.get("access_token")
             self.expires_in = datetime.datetime.now().timestamp() + int(
@@ -786,11 +799,17 @@ class AlexaLogin:
             data=data,
             headers=headers,
         )
-        # _LOGGER.debug("exchange token response %s with \n%s", response, dumps(data))
         if response.status != 200:
+            if self._debug:
+                _LOGGER.debug(
+                    "Failed to exchange cookies for refresh token: %s", response
+                )
+            else:
+                _LOGGER.debug("Failed to exchange cookies for refresh token")
             return False
         response = (await response.json()).get("response")
-        # _LOGGER.debug("exchange token json %s ", response)
+        if self._debug:
+            _LOGGER.debug("Exchange cookie json %s ", response)
         for domain, cookies in response["tokens"]["cookies"].items():
             # _LOGGER.debug("updating %s with %s", domain, cookies)
             for item in cookies:
@@ -810,10 +829,44 @@ class AlexaLogin:
                     raw_cookie[cookie_name][name] = value
                 # _LOGGER.debug("updating jar with cookie %s", raw_cookie)
                 self._session.cookie_jar.update_cookies(raw_cookie, URL(domain))
-        _LOGGER.debug(
-            "Cookies successfully exchanged for refresh token for domain %s",
-            response["tokens"]["cookies"].keys(),
-        )
+        for domain, cookies in response["tokens"]["cookies"].items():
+            _LOGGER.debug(
+                "%s cookies successfully exchanged for refresh token for domain %s",
+                len(cookies),
+                domain,
+            )
+
+    async def get_csrf(self) -> bool:
+        """Generate csrf if missing.
+
+        Returns
+            bool: True if csrf is found
+
+        """
+        if self._cookies.get("csrf"):
+            _LOGGER.debug("CSRF already exists; no need to discover")
+            return True
+        _LOGGER.debug("Attemping to discover CSRF token")
+        csrf_urls = [
+            "/spa/index.html",
+            "/api/language",
+            "/api/devices-v2/device?cached=false",
+            "/templates/oobe/d-device-pick.handlebars",
+            "/api/strings",
+        ]
+        for url in csrf_urls:
+            response = await self._session.get(f"{self._prefix}{self._url}{url}")
+            if response.status != 200:
+                if self._debug:
+                    _LOGGER.debug("Unable to load page for csrf: %s", response)
+                continue
+            self._prepare_cookies_from_session(self._url)
+            if self._cookies.get("csrf"):
+                _LOGGER.debug("CSRF token found from %s", url)
+                return True
+            _LOGGER.debug("CSRF token not found from %s", url)
+        _LOGGER.debug("No csrf token found")
+        return False
 
     async def _process_resp(self, resp) -> Text:
         if resp.history:
@@ -1064,6 +1117,7 @@ class AlexaLogin:
                 )
                 status["login_successful"] = True
                 await self.get_tokens()
+                await self.get_csrf()
                 await self.save_cookiefile()
                 #  remove extraneous Content-Type to avoid 500 errors
                 self._headers.pop("Content-Type", None)
