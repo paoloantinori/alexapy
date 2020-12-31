@@ -62,6 +62,8 @@ def hide_serial(item: Optional[Union[dict, str, list]]) -> Union[dict, str, list
                     "serialNumber",
                     "destinationUserId",
                     "customerId",
+                    "access_token",
+                    "refresh_token",
                 ]
                 or "secret" in key
             ):
@@ -102,6 +104,8 @@ def obfuscate(item):
                     "serialNumber",
                     "destinationUserId",
                     "customerId",
+                    "access_token",
+                    "refresh_token",
                 ]
                 or "secret" in key
             ):
