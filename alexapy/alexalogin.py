@@ -669,7 +669,10 @@ class AlexaLogin:
         response = (await response.json()).get("response")
         # _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
         if response.get("success"):
-            _LOGGER.debug("Successfully registered device with Amazon")
+            _LOGGER.debug(
+                "Successfully registered %s device with Amazon",
+                response["success"]["extensions"]["device_info"]["device_name"],
+            )
             if self._debug:
                 _LOGGER.debug("Received registration data:\n%s", dumps(response))
             self.refresh_token = response["success"]["tokens"]["bearer"][
@@ -729,11 +732,15 @@ class AlexaLogin:
         response = await self._session.post(
             "https://api." + self._url + "/auth/token", data=data, headers=headers,
         )
-        # _LOGGER.debug("refresh token response %s with \n%s", response, dumps(data))
         if response.status != 200:
+            if self._debug:
+                _LOGGER.debug("Failed to refresh access token: %s", response)
+            else:
+                _LOGGER.debug("Failed to refresh access token")
             return False
         response = await response.json()
-        # _LOGGER.debug("refresh token json %s ", response)
+        if self._debug:
+            _LOGGER.debug("Refresh token json:\n%s ", response)
         if response.get("access_token"):
             self.access_token = response.get("access_token")
             self.expires_in = datetime.datetime.now().timestamp() + int(
@@ -786,11 +793,17 @@ class AlexaLogin:
             data=data,
             headers=headers,
         )
-        # _LOGGER.debug("exchange token response %s with \n%s", response, dumps(data))
         if response.status != 200:
+            if self._debug:
+                _LOGGER.debug(
+                    "Failed to exchange cookies for refresh token: %s", response
+                )
+            else:
+                _LOGGER.debug("Failed to exchange cookies for refresh token")
             return False
         response = (await response.json()).get("response")
-        # _LOGGER.debug("exchange token json %s ", response)
+        if self._debug:
+            _LOGGER.debug("Exchange cookie json %s ", response)
         for domain, cookies in response["tokens"]["cookies"].items():
             # _LOGGER.debug("updating %s with %s", domain, cookies)
             for item in cookies:
@@ -810,10 +823,12 @@ class AlexaLogin:
                     raw_cookie[cookie_name][name] = value
                 # _LOGGER.debug("updating jar with cookie %s", raw_cookie)
                 self._session.cookie_jar.update_cookies(raw_cookie, URL(domain))
-        _LOGGER.debug(
-            "Cookies successfully exchanged for refresh token for domain %s",
-            response["tokens"]["cookies"].keys(),
-        )
+        for domain, cookies in response["tokens"]["cookies"].items():
+            _LOGGER.debug(
+                "%s cookies successfully exchanged for refresh token for domain %s",
+                len(cookies),
+                domain,
+            )
 
     async def _process_resp(self, resp) -> Text:
         if resp.history:

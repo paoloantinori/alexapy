@@ -62,7 +62,7 @@ class AlexaAPI:
             _LOGGER.warning(
                 (
                     "AlexaLogin session is missing required token: %s "
-                    "This may result in authorization errors, please report"
+                    "This may result in authorization errors, please report if unable to login"
                 ),
                 ex,
             )
