@@ -116,9 +116,14 @@ class AlexaAPI:
         async with self._login._oauth_lock:
             if self._login.expires_in and (self._login.expires_in - time.time() < 0):
                 _LOGGER.debug("Detected access token expiration; refreshing")
-                await self._login.refresh_access_token()
-                await self._login.exchange_token_for_cookies()
-                await self._login.save_cookiefile()
+                if (
+                    # await self._login.get_tokens()
+                    # and
+                    await self._login.refresh_access_token()
+                    and await self._login.exchange_token_for_cookies()
+                    and await self._login.get_csrf()
+                ):
+                    await self._login.save_cookiefile()
         if method == "get":
             if query and not query.get("_"):
                 query["_"] = math.floor(time.time() * 1000)
@@ -212,9 +217,14 @@ class AlexaAPI:
         async with login._oauth_lock:
             if login.expires_in and (login.expires_in - time.time() < 0):
                 _LOGGER.debug("Detected access token expiration; refreshing")
-                await login.refresh_access_token()
-                await login.exchange_token_for_cookies()
-                await login.save_cookiefile()
+                if (
+                    # await login.get_tokens()
+                    # and
+                    await login.refresh_access_token()
+                    and await login.exchange_token_for_cookies()
+                    and await login.get_csrf()
+                ):
+                    await login.save_cookiefile()
         session = login.session
         url: URL = URL("https://alexa." + login.url + uri).update_query(query)
         # _LOGGER.debug("Trying static %s: %s : with uri: %s data %s query %s",

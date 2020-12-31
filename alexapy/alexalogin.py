@@ -480,6 +480,9 @@ class AlexaLogin:
                 self.status["login_successful"] = True
                 _LOGGER.debug("Log in successful with cookies")
                 await self.get_tokens()
+                # await self.refresh_access_token()
+                # await self.exchange_token_for_cookies()
+                await self.get_csrf()
                 await self.save_cookiefile()
                 return
             await self.reset()
@@ -830,6 +833,38 @@ class AlexaLogin:
                 domain,
             )
 
+    async def get_csrf(self) -> bool:
+        """Generate csrf if missing.
+
+        Returns
+            bool: True if csrf is found
+
+        """
+        if self._cookies.get("csrf"):
+            _LOGGER.debug("CSRF already exists; no need to discover")
+            return True
+        _LOGGER.debug("Attemping to discover CSRF token")
+        csrf_urls = [
+            "/spa/index.html",
+            "/api/language",
+            "/api/devices-v2/device?cached=false",
+            "/templates/oobe/d-device-pick.handlebars",
+            "/api/strings",
+        ]
+        for url in csrf_urls:
+            response = await self._session.get(f"{self._prefix}{self._url}{url}")
+            if response.status != 200:
+                if self._debug:
+                    _LOGGER.debug("Unable to load page for csrf: %s", response)
+                continue
+            self._prepare_cookies_from_session(self._url)
+            if self._cookies.get("csrf"):
+                _LOGGER.debug("CSRF token found from %s", url)
+                return True
+            _LOGGER.debug("CSRF token not found from %s", url)
+        _LOGGER.debug("No csrf token found")
+        return False
+
     async def _process_resp(self, resp) -> Text:
         if resp.history:
             for item in resp.history:
@@ -1079,6 +1114,7 @@ class AlexaLogin:
                 )
                 status["login_successful"] = True
                 await self.get_tokens()
+                await self.get_csrf()
                 await self.save_cookiefile()
                 #  remove extraneous Content-Type to avoid 500 errors
                 self._headers.pop("Content-Type", None)
