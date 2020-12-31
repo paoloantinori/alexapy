@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.18.0 (2020-12-31)
+### Feature
+* Add oauth token refresh ([`7bf192e`](https://gitlab.com/keatontaylor/alexapy/-/commit/7bf192eb497834323efb49f9a6b5b7a3217b8691))
+
+### Fix
+* Save cookie with user provided domain ([`6f380a3`](https://gitlab.com/keatontaylor/alexapy/-/commit/6f380a323c60ee3937af146fdb43e5127b250eb2))
+* Fix handling of auto 2fa submission ([`3ee08dc`](https://gitlab.com/keatontaylor/alexapy/-/commit/3ee08dc2be35baeca0f52bbcd9ee5d7416e474fc))
+* Add timestamp to get requests ([`0483ced`](https://gitlab.com/keatontaylor/alexapy/-/commit/0483ced938680d24b15ff0311027afa148782e76))
+
 ## v1.17.2 (2020-12-12)
 ### Fix
 * Prevent api connections when login invalid ([`65a6b58`](https://gitlab.com/keatontaylor/alexapy/-/commit/65a6b58ac7c31c101b3c6b2a91d3f45ebc68b610))
