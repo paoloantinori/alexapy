@@ -8,15 +8,18 @@ For more details about this api, please refer to the documentation at
 https://gitlab.com/keatontaylor/alexapy
 """
 
-from json import JSONDecodeError
+import asyncio
+from http.cookies import SimpleCookie
+from json import JSONDecodeError, dumps
+import base64
+import secrets
 import logging
 import datetime
 import os
 import pickle
 import re
 from binascii import Error
-from typing import Callable, List, Optional, Text, Tuple, Union
-from typing import Dict  # noqa pylint: disable=unused-import
+from typing import Any, Callable, Dict, List, Optional, Text, Tuple, Union
 from urllib.parse import urlencode, urlparse
 
 import aiofiles
@@ -24,11 +27,12 @@ from aiofiles import os as aioos
 from bs4 import BeautifulSoup
 import pyotp
 from simplejson import JSONDecodeError as SimpleJSONDecodeError
+from yarl import URL
 
 from alexapy import aiohttp
 from alexapy.aiohttp.client_exceptions import ContentTypeError
 
-from .const import EXCEPTION_TEMPLATE
+from .const import EXCEPTION_TEMPLATE, APP_NAME, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey
 from .helpers import _catch_all_exceptions, delete_cookie, hide_serial, obfuscate
 
@@ -57,6 +61,7 @@ class AlexaLogin:
         outputpath: Callable[[Text], Text],
         debug: bool = False,
         otp_secret: Text = "",
+        oauth: Optional[Dict[Any, Any]] = None,
     ) -> None:
         # pylint: disable=too-many-arguments,import-outside-toplevel
         """Set up initial connection and log in."""
@@ -64,6 +69,7 @@ class AlexaLogin:
 
         import certifi
 
+        oauth = oauth or {}
         prefix: Text = "alexa_media"
         self._prefix = "https://alexa."
         self._url: Text = url
@@ -98,6 +104,10 @@ class AlexaLogin:
         self._customer_id: Optional[Text] = None
         self._totp: Optional[pyotp.TOTP] = None
         self.set_totp(otp_secret.replace(" ", ""))
+        self.access_token: Optional[Text] = oauth.get("access_token")
+        self.refresh_token: Optional[Text] = oauth.get("refresh_token")
+        self.expires_in: Optional[float] = oauth.get("expires_in")
+        self._oauth_lock: asyncio.Lock = asyncio.Lock()
 
     @property
     def email(self) -> Text:
@@ -363,8 +373,6 @@ class AlexaLogin:
         Returns false if no csrf found; necessary to issue commands
         """
         if self._debug:
-            from json import dumps
-
             _LOGGER.debug("Testing whether logged in to alexa.%s", self._url)
             _LOGGER.debug("Cookies: %s", cookies)
             _LOGGER.debug("Session Cookies:\n%s", self._print_session_cookies())
@@ -405,16 +413,15 @@ class AlexaLogin:
         if not self._session or force:
             #  define session headers
             self._headers = {
-                "User-Agent": (
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/84.0.4147.135 Safari/537.36"
-                ),
-                "Accept": (
-                    "text/html,application/xhtml+xml, "
-                    "application/xml;q=0.9,*/*;q=0.8"
-                ),
+                "User-Agent": USER_AGENT,
+                # "User-Agent": (
+                #     "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PitanguiBridge/2.2.345247.0-[HARDWARE=iPhone10_4][SOFTWARE=13.5.1]"
+                # ),
+                "Accept": ("*/*"),
                 "Accept-Language": "*",
+                "DNT": "1",
+                "Upgrade-Insecure-Requests": "1",
+                "authority": f"www.{self._url}",
             }
 
             #  initiate session
@@ -453,13 +460,7 @@ class AlexaLogin:
         if not self._session.cookie_jar:
             result = "Session cookie jar is empty."
         for cookie in self._session.cookie_jar:
-            result += "{}: expires:{} max-age:{} {}={}\n".format(
-                cookie["domain"],
-                cookie["expires"],
-                cookie["max-age"],
-                cookie.key,
-                cookie.value,
-            )
+            result += f"{cookie}\n"
         return result
 
     @_catch_all_exceptions
@@ -478,14 +479,33 @@ class AlexaLogin:
                 self.status = {}
                 self.status["login_successful"] = True
                 _LOGGER.debug("Log in successful with cookies")
+                await self.get_tokens()
                 await self.save_cookiefile()
                 return
             await self.reset()
-        _LOGGER.debug("No valid cookies for log in; using credentials")
-        #  site = 'https://www.' + self._url + '/gp/sign-in.html'
-        #  use alexa site instead
+        _LOGGER.debug("Using credentials to log in")
         if not self._site:
-            site: Text = self._prefix + self._url
+            site: URL = URL(f"https://www.{self._url}/ap/signin")
+            deviceid: Text = "453535333833343639344134304445313832303944354342344141414342453123413249564c5635564d32573831"
+            query = {
+                "openid.return_to": f"https://www.{self._url}/ap/maplanding",
+                "openid.assoc_handle": "amzn_dp_project_dee_ios",
+                "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
+                "pageId": "amzn_dp_project_dee_ios",
+                "accountStatusPolicy": "P1",
+                "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
+                "openid.mode": "checkid_setup",
+                "openid.ns.oa2": f"http://www.{self._url}/ap/ext/oauth/2",
+                "openid.oa2.client_id": f"device:{deviceid}",
+                "openid.ns.pape": "http://specs.openid.net/extensions/pape/1.0",
+                "openid.oa2.response_type": "token",
+                "openid.ns": "http://specs.openid.net/auth/2.0",
+                "openid.pape.max_auth_age": "0",
+                "openid.oa2.scope": "device_auth_access",
+                "language": "en_US",
+            }
+            site = site.update_query(query)
+            _LOGGER.debug("Attempting oauth login to %s", site)
         else:
             site = self._site
         if not self._session:
@@ -533,8 +553,6 @@ class AlexaLogin:
         if not self.status.get("ap_error"):
             missing_params = self._populate_data(site, data)
             if self._debug:
-                from json import dumps  # pylint: disable=import-outside-toplevel
-
                 if missing_params:
                     _LOGGER.debug(
                         "WARNING: Detected missing params: %s",
@@ -568,7 +586,7 @@ class AlexaLogin:
             if cookiefile == self._cookiefile[0]:
                 cookie_jar = self._session.cookie_jar
                 assert isinstance(cookie_jar, aiohttp.CookieJar)
-                cookie_jar.update_cookies(self._cookies)
+                cookie_jar.update_cookies(self._cookies, URL(self._url))
                 self._prepare_cookies_from_session(self._url)
                 if self._debug:
                     _LOGGER.debug("Saving cookie to %s", cookiefile)
@@ -583,6 +601,219 @@ class AlexaLogin:
             elif (cookiefile) and os.path.exists(cookiefile):
                 _LOGGER.debug("Removing outdated cookiefile %s", cookiefile)
                 await delete_cookie(cookiefile)
+
+    async def get_tokens(self) -> bool:
+        """Get access and refresh tokens after registering device using cookies.
+
+        Returns
+            bool: True if successful.
+
+        """
+
+        if not self.access_token:
+            _LOGGER.warning(
+                "No access token found; falling back to credential login instead of oauth."
+            )
+            return False
+        frc = base64.b64encode(secrets.token_bytes(313)).decode("ascii")
+        map_md = base64.b64encode(
+            '{"device_user_dictionary":[],"device_registration_data":{"software_version":"1"},"app_identifier":{"app_version":"2.2.223830","bundle_id":"com.amazon.echo"}}'.encode(
+                "utf8"
+            )
+        ).decode("utf8")
+        self._cookies["frc"] = frc
+        self._cookies["map-md"] = map_md
+        headers = {
+            "Content-Type": "application/json",
+            "Accept-Charset": "utf-8",
+            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "Connection": "keep-alive",
+            "Accept": "*/*",
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "en-US",
+            # "Cookie": "; ".join(
+            #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
+            # ),
+        }
+        cookies = []
+        for k, value in self._cookies.items():
+            # if k == "csrf":
+            #     continue
+            cookies.append({"Value": value, "Name": k})
+        data = {
+            "requested_extensions": ["device_info", "customer_info"],
+            "cookies": {"website_cookies": cookies, "domain": f".{self._url}"},
+            "registration_data": {
+                "domain": "Device",
+                "app_version": "2.2.223830.0",
+                "device_type": "A2IVLV5VM2W81",
+                "device_name": f"%FIRST_NAME%'s%DUPE_STRATEGY_1ST%{APP_NAME}",
+                "os_version": "11.4.1",
+                "device_serial": "2cf947a5a093d686a30c33cb07a703fd",
+                # may need to be replaced with random 16 bytes; leaving static for now
+                # https://github.com/Apollon77/alexa-cookie/blob/master/lib/proxy.js#L102-L106
+                "device_model": "iPhone",
+                "app_name": APP_NAME,
+                "software_version": "1",
+            },
+            "auth_data": {"access_token": self.access_token},
+            "user_context_map": {"frc": frc},
+            "requested_token_type": ["bearer", "mac_dms", "website_cookies"],
+        }
+
+        response = await self._session.post(
+            "https://api." + self._url + "/auth/register", json=data, headers=headers,
+        )
+        if response.status != 200:
+            return False
+        response = (await response.json()).get("response")
+        # _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
+        if response.get("success"):
+            _LOGGER.debug("Successfully registered device with Amazon")
+            if self._debug:
+                _LOGGER.debug("Received registration data:\n%s", dumps(response))
+            self.refresh_token = response["success"]["tokens"]["bearer"][
+                "refresh_token"
+            ]
+            old = self.access_token
+            self.access_token = response["success"]["tokens"]["bearer"]["access_token"]
+            self.expires_in = datetime.datetime.now().timestamp() + int(
+                response["success"]["tokens"]["bearer"]["expires_in"]
+            )
+            if old != self.access_token:
+                _LOGGER.debug(
+                    "New access token received which expires at %s in %s",
+                    datetime.datetime.fromtimestamp(self.expires_in),
+                    datetime.datetime.fromtimestamp(self.expires_in)
+                    - datetime.datetime.now(),
+                )
+            return True
+        return False
+
+    async def refresh_access_token(self) -> bool:
+        """Refresh access token and expires in using refresh token.
+
+        Returns
+            bool: Return true if successful.
+
+        """
+        if not self.refresh_token:
+            _LOGGER.debug("No refresh token found to get access_token")
+            return False
+        data = {
+            "app_name": APP_NAME,
+            "app_version": "2.2.223830.0",
+            "di.sdk.version": "6.10.0",
+            "source_token": self.refresh_token,
+            "package_name": "com.amazon.echo",
+            "di.hw.version": "iPhone",
+            "platform": "iOS",
+            "requested_token_type": "access_token",
+            "source_token_type": "refresh_token",
+            "di.os.name": "iOS",
+            "di.os.version": "11.4.1",
+            "current_version": "6.10.0",
+        }
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept-Charset": "utf-8",
+            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "Connection": "keep-alive",
+            "Accept": "*/*",
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "en-US",
+            "Cookie": "; ".join(
+                [str(x) + "=" + str(y) for x, y in self._cookies.items()]
+            ),
+        }
+        response = await self._session.post(
+            "https://api." + self._url + "/auth/token", data=data, headers=headers,
+        )
+        # _LOGGER.debug("refresh token response %s with \n%s", response, dumps(data))
+        if response.status != 200:
+            return False
+        response = await response.json()
+        # _LOGGER.debug("refresh token json %s ", response)
+        if response.get("access_token"):
+            self.access_token = response.get("access_token")
+            self.expires_in = datetime.datetime.now().timestamp() + int(
+                response.get("expires_in")
+            )
+            _LOGGER.debug(
+                "Successfully updated access_token which expires at %s in %s",
+                datetime.datetime.fromtimestamp(self.expires_in),
+                datetime.datetime.fromtimestamp(self.expires_in)
+                - datetime.datetime.now(),
+            )
+
+    async def exchange_token_for_cookies(self) -> bool:
+        """Generate new session cookies using refresh token.
+
+        Returns
+            bool: True if succesful
+
+        """
+        if not self.refresh_token:
+            _LOGGER.debug("No refresh token found to get access token")
+            return False
+        data = {
+            "di.os.name": "iOS",
+            "app_version": "2.2.223830.0",
+            "domain": f".{self.url}",
+            "source_token": self.refresh_token,
+            "requested_token_type": "auth_cookies",
+            "source_token_type": "refresh_token",
+            "di.hw.version": "iPhone",
+            "di.sdk.version": "6.10.0",
+            "cookies": {},
+            "app_name": APP_NAME,
+            "di.os.version": "11.4.1",
+        }
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept-Charset": "utf-8",
+            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "Connection": "keep-alive",
+            "Accept": "*/*",
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "en-US",
+            # "Cookie": "; ".join(
+            #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
+            # ),
+        }
+        response = await self._session.post(
+            "https://api." + self._url + "/ap/exchangetoken/cookies",
+            data=data,
+            headers=headers,
+        )
+        # _LOGGER.debug("exchange token response %s with \n%s", response, dumps(data))
+        if response.status != 200:
+            return False
+        response = (await response.json()).get("response")
+        # _LOGGER.debug("exchange token json %s ", response)
+        for domain, cookies in response["tokens"]["cookies"].items():
+            # _LOGGER.debug("updating %s with %s", domain, cookies)
+            for item in cookies:
+                raw_cookie = SimpleCookie()
+                cookie_name = item["Name"]
+                raw_cookie[item["Name"]] = (
+                    item["Value"]
+                    if not (
+                        item["Value"].startswith('"') and item["Value"].endswith('"')
+                    )
+                    # Strings are returned within quotations, strip them
+                    else item["Value"][1:-1]
+                )
+                for name, value in item.items():
+                    if name in ["Name", "Value"]:
+                        continue
+                    raw_cookie[cookie_name][name] = value
+                # _LOGGER.debug("updating jar with cookie %s", raw_cookie)
+                self._session.cookie_jar.update_cookies(raw_cookie, URL(domain))
+        _LOGGER.debug(
+            "Cookies successfully exchanged for refresh token for domain %s",
+            response["tokens"]["cookies"].keys(),
+        )
 
     async def _process_resp(self, resp) -> Text:
         if resp.history:
@@ -666,6 +897,7 @@ class AlexaLogin:
             self._links = links
 
         _LOGGER.debug("Processing %s", site)
+        site_url = URL(site)
         soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
 
         status: Dict[Text, Union[Text, bool]] = {}
@@ -786,7 +1018,7 @@ class AlexaLogin:
             _LOGGER.debug("Verification code requested:")
             status["verificationcode_required"] = True
             self._data = self.get_inputs(soup, {"action": "verify"})
-        elif missingcookies_tag is not None:
+        elif missingcookies_tag is not None and site_url.path != "/ap/maplanding":
             _LOGGER.debug("Error page detected:")
             href = ""
             links = missingcookies_tag.findAll("a", href=True)
@@ -825,10 +1057,13 @@ class AlexaLogin:
         else:
             _LOGGER.debug("Captcha/2FA not requested; confirming login.")
             if await self.test_loggedin():
+                query = site_url.query
+                self.access_token = query.get("openid.oa2.access_token")
                 _LOGGER.debug(
                     "Login confirmed; saving cookie to %s", self._cookiefile[0]
                 )
                 status["login_successful"] = True
+                await self.get_tokens()
                 await self.save_cookiefile()
                 #  remove extraneous Content-Type to avoid 500 errors
                 self._headers.pop("Content-Type", None)
@@ -880,20 +1115,21 @@ class AlexaLogin:
 
     def _populate_data(self, site: Text, data: Dict[str, Optional[str]]) -> bool:
         """Populate self._data with info from data."""
-        # pull data from configurator
-        password: Optional[Text] = data.get("password")
-        captcha: Optional[Text] = data.get("captcha")
-        if not data.get("securitycode") and self._totp:
-            _LOGGER.debug("No 2FA code supplied but will generate.")
-        if data.get("otp_secret"):
-            self.set_totp(data.get("otp_secret"))
-        securitycode: Optional[Text] = data.get("securitycode", self.get_totp_token())
-        claimsoption: Optional[Text] = data.get("claimsoption")
-        authopt: Optional[Text] = data.get("authselectoption")
-        verificationcode: Optional[Text] = data.get("verificationcode")
         _LOGGER.debug(
             "Preparing form submission to %s with input data: %s", site, obfuscate(data)
         )
+        # pull data from configurator
+        password: Optional[Text] = data.get("password")
+        captcha: Optional[Text] = data.get("captcha")
+        if data.get("otp_secret"):
+            self.set_totp(data.get("otp_secret"))
+        securitycode: Optional[Text] = data.get("securitycode")
+        if not securitycode and self._totp:
+            _LOGGER.debug("No 2FA code supplied but will generate.")
+            securitycode = self.get_totp_token()
+        claimsoption: Optional[Text] = data.get("claimsoption")
+        authopt: Optional[Text] = data.get("authselectoption")
+        verificationcode: Optional[Text] = data.get("verificationcode")
 
         #  add username and password to self._data for post request
         #  self._data is scraped from the form page in _process_page
@@ -901,15 +1137,14 @@ class AlexaLogin:
         if self._data:
             if "email" in self._data and self._data["email"] == "":
                 self._data["email"] = self._email
-            if "password" in self._data and self._data["password"] == "":
                 # add the otp to the password if available
-                self._data["password"] = (
-                    self._password + securitycode
-                    if not password
-                    else password + securitycode
-                    if securitycode
-                    else password
-                )
+            self._data["password"] = (
+                self._password + securitycode
+                if not password
+                else password + securitycode
+                if securitycode
+                else password
+            )
             if "rememberMe" in self._data:
                 self._data["rememberMe"] = "true"
             if captcha is not None and "guess" in self._data:
