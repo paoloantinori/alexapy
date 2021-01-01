@@ -372,7 +372,6 @@ class AlexaLogin:
         Tests:
         - Attempts to get authenticaton and compares to expected login email
         Returns false if unsuccesful getting json or the emails don't match
-        - Checks for existence of csrf cookie
         Returns false if no csrf found; necessary to issue commands
         """
         if self._debug:
@@ -383,7 +382,9 @@ class AlexaLogin:
         if not self._session:
             self._create_session()
         get_resp = await self._session.get(
-            self._prefix + self._url + "/api/bootstrap", cookies=cookies, ssl=self._ssl
+            self._prefix + "amazon.com" + "/api/bootstrap",
+            cookies=cookies,
+            ssl=self._ssl,
         )
         await self._process_resp(get_resp)
         try:
@@ -395,18 +396,34 @@ class AlexaLogin:
                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
             )
             return False
-        self.customer_id = json.get("authentication", {}).get("customerId")
-        if email != "" and email.lower() == self._email.lower():
-            _LOGGER.debug("Logged in as %s with id: %s", email, self.customer_id)
-            self.stats["login_timestamp"] = datetime.datetime.now()
-            self.stats["api_calls"] = 0
-            return True
-        if email == "":
-            _LOGGER.debug(
-                "Logged in as mobile account %s with %s", email, self.customer_id
+        # Convert from amazon.com domain to native domain
+        if self._url != "amazon.com":
+            await self.get_tokens()
+            await self.exchange_token_for_cookies()
+            get_resp = await self._session.get(
+                self._prefix + self._url + "/api/bootstrap",
             )
+            await self._process_resp(get_resp)
+            try:
+                json = await get_resp.json()
+                email = json["authentication"]["customerEmail"]
+            except (JSONDecodeError, SimpleJSONDecodeError, ContentTypeError) as ex:
+                _LOGGER.debug(
+                    "Not logged in: %s",
+                    EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
+                )
+                return False
+        self.customer_id = json.get("authentication", {}).get("customerId")
+        if (email != "" and email.lower() == self._email.lower()) or email == "":
+            if email != "":
+                _LOGGER.debug("Logged in as %s with id: %s", email, self.customer_id)
+            else:
+                _LOGGER.debug(
+                    "Logged in as mobile account %s with %s", email, self.customer_id
+                )
             self.stats["login_timestamp"] = datetime.datetime.now()
             self.stats["api_calls"] = 0
+            await self.check_domain()
             return True
         _LOGGER.debug("Not logged in due to email mismatch")
         await self.reset()
@@ -491,17 +508,17 @@ class AlexaLogin:
             await self.reset()
         _LOGGER.debug("Using credentials to log in")
         if not self._site:
-            site: URL = URL(f"https://www.{self._url}/ap/signin")
+            site: URL = URL("https://www.amazon.com/ap/signin")
             deviceid: Text = "453535333833343639344134304445313832303944354342344141414342453123413249564c5635564d32573831"
             query = {
-                "openid.return_to": f"https://www.{self._url}/ap/maplanding",
+                "openid.return_to": "https://www.amazon.com/ap/maplanding",
                 "openid.assoc_handle": "amzn_dp_project_dee_ios",
                 "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
                 "pageId": "amzn_dp_project_dee_ios",
                 "accountStatusPolicy": "P1",
                 "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
                 "openid.mode": "checkid_setup",
-                "openid.ns.oa2": f"http://www.{self._url}/ap/ext/oauth/2",
+                "openid.ns.oa2": "http://www.amazon.com/ap/ext/oauth/2",
                 "openid.oa2.client_id": f"device:{deviceid}",
                 "openid.ns.pape": "http://specs.openid.net/extensions/pape/1.0",
                 "openid.oa2.response_type": "token",
@@ -868,6 +885,44 @@ class AlexaLogin:
         _LOGGER.debug("No csrf token found")
         return False
 
+    async def check_domain(self) -> bool:
+        """Check whether logged into appropriate login domain.
+
+        Returns
+            bool: True if in correct domain
+
+        """
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept-Charset": "utf-8",
+            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "Connection": "keep-alive",
+            "Accept": "*/*",
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "en-US",
+        }
+        response = await self._session.get(
+            f"{self._prefix}{self._url}/api/users/me?platform=ios&version=2.2.223830.0",
+            headers=headers,
+        )
+        if response.status != 200:
+            if self._debug:
+                _LOGGER.debug("Unable to check for domain; proceeding:\n%s", response)
+            return True
+        response = await response.json()
+        domain = response.get("marketPlaceDomainName")
+        if self._url not in domain:
+            _LOGGER.warning(
+                "Domain %s does not match reported account domain %s; functionality is not likely to work, please fix",
+                self.url,
+                domain,
+            )
+            return False
+        _LOGGER.debug(
+            "Domain %s matches reported account domain: %s", self._url, domain
+        )
+        return True
+
     async def _process_resp(self, resp) -> Text:
         if resp.history:
             for item in resp.history:
@@ -1109,9 +1164,9 @@ class AlexaLogin:
             status["approval_status"] = approval_status.get("value")
         else:
             _LOGGER.debug("Captcha/2FA not requested; confirming login.")
+            query = site_url.query
+            self.access_token = query.get("openid.oa2.access_token")
             if await self.test_loggedin():
-                query = site_url.query
-                self.access_token = query.get("openid.oa2.access_token")
                 _LOGGER.debug(
                     "Login confirmed; saving cookie to %s", self._cookiefile[0]
                 )
