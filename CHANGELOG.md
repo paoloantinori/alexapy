@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.1 (2021-01-01)
+### Fix
+* Fix types to ensure strings returned ([`e897d64`](https://gitlab.com/keatontaylor/alexapy/-/commit/e897d64ca0bff2904f1c89aa840de7473a761b2e))
+
 ## v1.20.0 (2021-01-01)
 ### Feature
 * Add check_domain command ([`0578cc1`](https://gitlab.com/keatontaylor/alexapy/-/commit/0578cc1379c071d338806aae2f37bf71573146c4))
