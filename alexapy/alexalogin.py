@@ -1228,17 +1228,17 @@ class AlexaLogin:
             "Preparing form submission to %s with input data: %s", site, obfuscate(data)
         )
         # pull data from configurator
-        password: Optional[Text] = data.get("password")
-        captcha: Optional[Text] = data.get("captcha")
+        password: Optional[Text] = data.get("password", "")
+        captcha: Optional[Text] = data.get("captcha", "")
         if data.get("otp_secret"):
-            self.set_totp(data.get("otp_secret"))
-        securitycode: Optional[Text] = data.get("securitycode")
+            self.set_totp(data.get("otp_secret", ""))
+        securitycode: Optional[Text] = data.get("securitycode", "")
         if not securitycode and self._totp:
             _LOGGER.debug("No 2FA code supplied but will generate.")
             securitycode = self.get_totp_token()
-        claimsoption: Optional[Text] = data.get("claimsoption")
-        authopt: Optional[Text] = data.get("authselectoption")
-        verificationcode: Optional[Text] = data.get("verificationcode")
+        claimsoption: Optional[Text] = data.get("claimsoption", "")
+        authopt: Optional[Text] = data.get("authselectoption", "")
+        verificationcode: Optional[Text] = data.get("verificationcode", "")
 
         #  add username and password to self._data for post request
         #  self._data is scraped from the form page in _process_page
