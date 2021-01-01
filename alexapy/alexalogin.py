@@ -423,6 +423,7 @@ class AlexaLogin:
                 )
             self.stats["login_timestamp"] = datetime.datetime.now()
             self.stats["api_calls"] = 0
+            await self.check_domain()
             return True
         _LOGGER.debug("Not logged in due to email mismatch")
         await self.reset()
@@ -883,6 +884,44 @@ class AlexaLogin:
             _LOGGER.debug("CSRF token not found from %s", url)
         _LOGGER.debug("No csrf token found")
         return False
+
+    async def check_domain(self) -> bool:
+        """Check whether logged into appropriate login domain.
+
+        Returns
+            bool: True if in correct domain
+
+        """
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept-Charset": "utf-8",
+            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "Connection": "keep-alive",
+            "Accept": "*/*",
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "en-US",
+        }
+        response = await self._session.get(
+            f"{self._prefix}{self._url}/api/users/me?platform=ios&version=2.2.223830.0",
+            headers=headers,
+        )
+        if response.status != 200:
+            if self._debug:
+                _LOGGER.debug("Unable to check for domain; proceeding:\n%s", response)
+            return True
+        response = await response.json()
+        domain = response.get("marketPlaceDomainName")
+        if self._url not in domain:
+            _LOGGER.warning(
+                "Domain %s does not match reported account domain %s; functionality is not likely to work, please fix",
+                self.url,
+                domain,
+            )
+            return False
+        _LOGGER.debug(
+            "Domain %s matches reported account domain: %s", self._url, domain
+        )
+        return True
 
     async def _process_resp(self, resp) -> Text:
         if resp.history:
