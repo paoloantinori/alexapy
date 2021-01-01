@@ -2,6 +2,21 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.0 (2021-01-01)
+### Feature
+* Add check_domain command ([`0578cc1`](https://gitlab.com/keatontaylor/alexapy/-/commit/0578cc1379c071d338806aae2f37bf71573146c4))
+
+### Fix
+* Handle oauth for non .com domains ([`4d6b6f7`](https://gitlab.com/keatontaylor/alexapy/-/commit/4d6b6f74bfe856405736881ff06d548b67554438))
+
+## v1.19.0 (2021-01-01)
+### Feature
+* Add get_csrf function ([`ff68689`](https://gitlab.com/keatontaylor/alexapy/-/commit/ff68689e25e148799d8b1d9e1245a519ea0a856a))
+
+### Fix
+* Add uuid to AlexaLogin ([`44709c6`](https://gitlab.com/keatontaylor/alexapy/-/commit/44709c6aa78d5b723c0d42e3570ab6caa9bd0dcb))
+* Add obfuscaton on tokens ([`e55cbb3`](https://gitlab.com/keatontaylor/alexapy/-/commit/e55cbb3dd54f19b491b69ddf0435724fa814a0a7))
+
 ## v1.18.0 (2020-12-31)
 ### Feature
 * Add oauth token refresh ([`7bf192e`](https://gitlab.com/keatontaylor/alexapy/-/commit/7bf192eb497834323efb49f9a6b5b7a3217b8691))
