@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.2 (2021-01-01)
+### Fix
+* Remove authority header ([`03c11ce`](https://gitlab.com/keatontaylor/alexapy/-/commit/03c11ce09df6559af8cefa657a74d6d7aa086734))
+
 ## v1.20.1 (2021-01-01)
 ### Fix
 * Fix types to ensure strings returned ([`e897d64`](https://gitlab.com/keatontaylor/alexapy/-/commit/e897d64ca0bff2904f1c89aa840de7473a761b2e))
