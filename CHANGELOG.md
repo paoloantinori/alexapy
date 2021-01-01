@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.0 (2021-01-01)
+### Feature
+* Add check_domain command ([`0578cc1`](https://gitlab.com/keatontaylor/alexapy/-/commit/0578cc1379c071d338806aae2f37bf71573146c4))
+
+### Fix
+* Handle oauth for non .com domains ([`4d6b6f7`](https://gitlab.com/keatontaylor/alexapy/-/commit/4d6b6f74bfe856405736881ff06d548b67554438))
+
 ## v1.19.0 (2021-01-01)
 ### Feature
 * Add get_csrf function ([`ff68689`](https://gitlab.com/keatontaylor/alexapy/-/commit/ff68689e25e148799d8b1d9e1245a519ea0a856a))
