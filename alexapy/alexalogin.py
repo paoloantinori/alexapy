@@ -441,7 +441,7 @@ class AlexaLogin:
                 "Accept-Language": "*",
                 "DNT": "1",
                 "Upgrade-Insecure-Requests": "1",
-                "authority": f"www.{self._url}",
+                # "authority": f"www.{self._url}",
             }
 
             #  initiate session
