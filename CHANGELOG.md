@@ -2,6 +2,20 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.3 (2021-01-02)
+### Fix
+* Add languages for oauth login ([`c0803c5`](https://gitlab.com/keatontaylor/alexapy/-/commit/c0803c5e828524ea8965a9842c8c7d0354d34c24))
+* Fix deviceid generation for logins ([`73747dc`](https://gitlab.com/keatontaylor/alexapy/-/commit/73747dca1850f1c25a0ca70ad721e6957072e601))
+* Fix app name ([`a75211f`](https://gitlab.com/keatontaylor/alexapy/-/commit/a75211fadd5bc8e89cb6357f0019c246b19aa594))
+
+## v1.20.2 (2021-01-01)
+### Fix
+* Remove authority header ([`03c11ce`](https://gitlab.com/keatontaylor/alexapy/-/commit/03c11ce09df6559af8cefa657a74d6d7aa086734))
+
+## v1.20.1 (2021-01-01)
+### Fix
+* Fix types to ensure strings returned ([`e897d64`](https://gitlab.com/keatontaylor/alexapy/-/commit/e897d64ca0bff2904f1c89aa840de7473a761b2e))
+
 ## v1.20.0 (2021-01-01)
 ### Feature
 * Add check_domain command ([`0578cc1`](https://gitlab.com/keatontaylor/alexapy/-/commit/0578cc1379c071d338806aae2f37bf71573146c4))
