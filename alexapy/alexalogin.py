@@ -779,6 +779,8 @@ class AlexaLogin:
                 datetime.datetime.fromtimestamp(self.expires_in)
                 - datetime.datetime.now(),
             )
+            return True
+        return False
 
     async def exchange_token_for_cookies(self) -> bool:
         """Generate new session cookies using refresh token.
@@ -850,12 +852,15 @@ class AlexaLogin:
                     raw_cookie[cookie_name][name] = value
                 # _LOGGER.debug("updating jar with cookie %s", raw_cookie)
                 self._session.cookie_jar.update_cookies(raw_cookie, URL(domain))
+        success = False
         for domain, cookies in response["tokens"]["cookies"].items():
             _LOGGER.debug(
                 "%s cookies successfully exchanged for refresh token for domain %s",
                 len(cookies),
                 domain,
             )
+            success = True
+        return success
 
     async def get_csrf(self) -> bool:
         """Generate csrf if missing.
