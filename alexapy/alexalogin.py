@@ -9,16 +9,17 @@ https://gitlab.com/keatontaylor/alexapy
 """
 
 import asyncio
+import base64
+import binascii
+from binascii import Error
+import datetime
 from http.cookies import SimpleCookie
 from json import JSONDecodeError, dumps
-import base64
-import secrets
 import logging
-import datetime
 import os
 import pickle
 import re
-from binascii import Error
+import secrets
 from typing import Any, Callable, Dict, List, Optional, Text, Tuple, Union
 from urllib.parse import urlencode, urlparse
 
@@ -32,7 +33,7 @@ from yarl import URL
 from alexapy import aiohttp
 from alexapy.aiohttp.client_exceptions import ContentTypeError
 
-from .const import EXCEPTION_TEMPLATE, APP_NAME, USER_AGENT
+from .const import APP_NAME, EXCEPTION_TEMPLATE, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey
 from .helpers import _catch_all_exceptions, delete_cookie, hide_serial, obfuscate
 
@@ -398,6 +399,7 @@ class AlexaLogin:
             return False
         # Convert from amazon.com domain to native domain
         if self._url != "amazon.com":
+            self._headers["authority"] = f"www.{self._url}"
             await self.get_tokens()
             await self.exchange_token_for_cookies()
             get_resp = await self._session.get(
@@ -441,7 +443,7 @@ class AlexaLogin:
                 "Accept-Language": "*",
                 "DNT": "1",
                 "Upgrade-Insecure-Requests": "1",
-                # "authority": f"www.{self._url}",
+                "authority": "www.amazon.com",
             }
 
             #  initiate session
@@ -509,7 +511,7 @@ class AlexaLogin:
         _LOGGER.debug("Using credentials to log in")
         if not self._site:
             site: URL = URL("https://www.amazon.com/ap/signin")
-            deviceid: Text = "453535333833343639344134304445313832303944354342344141414342453123413249564c5635564d32573831"
+            deviceid: Text = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
             query = {
                 "openid.return_to": "https://www.amazon.com/ap/maplanding",
                 "openid.assoc_handle": "amzn_dp_project_dee_ios",
