@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.3 (2021-01-02)
+### Fix
+* Add languages for oauth login ([`c0803c5`](https://gitlab.com/keatontaylor/alexapy/-/commit/c0803c5e828524ea8965a9842c8c7d0354d34c24))
+* Fix deviceid generation for logins ([`73747dc`](https://gitlab.com/keatontaylor/alexapy/-/commit/73747dca1850f1c25a0ca70ad721e6957072e601))
+* Fix app name ([`a75211f`](https://gitlab.com/keatontaylor/alexapy/-/commit/a75211fadd5bc8e89cb6357f0019c246b19aa594))
+
 ## v1.20.2 (2021-01-01)
 ### Fix
 * Remove authority header ([`03c11ce`](https://gitlab.com/keatontaylor/alexapy/-/commit/03c11ce09df6559af8cefa657a74d6d7aa086734))
