@@ -33,7 +33,7 @@ from yarl import URL
 from alexapy import aiohttp
 from alexapy.aiohttp.client_exceptions import ContentTypeError
 
-from .const import APP_NAME, EXCEPTION_TEMPLATE, USER_AGENT
+from .const import APP_NAME, EXCEPTION_TEMPLATE, LOCALE_KEY, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey
 from .helpers import _catch_all_exceptions, delete_cookie, hide_serial, obfuscate
 
@@ -527,7 +527,9 @@ class AlexaLogin:
                 "openid.ns": "http://specs.openid.net/auth/2.0",
                 "openid.pape.max_auth_age": "0",
                 "openid.oa2.scope": "device_auth_access",
-                "language": "en_US",
+                "language": LOCALE_KEY.get(self.url.replace("amazon", ""))
+                if LOCALE_KEY.get(self.url.replace("amazon", ""))
+                else "en_US",
             }
             site = site.update_query(query)
             _LOGGER.debug("Attempting oauth login to %s", site)
