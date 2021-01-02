@@ -9,16 +9,17 @@ https://gitlab.com/keatontaylor/alexapy
 """
 
 import asyncio
+import base64
+import binascii
+from binascii import Error
+import datetime
 from http.cookies import SimpleCookie
 from json import JSONDecodeError, dumps
-import base64
-import secrets
 import logging
-import datetime
 import os
 import pickle
 import re
-from binascii import Error
+import secrets
 from typing import Any, Callable, Dict, List, Optional, Text, Tuple, Union
 from urllib.parse import urlencode, urlparse
 
@@ -32,7 +33,7 @@ from yarl import URL
 from alexapy import aiohttp
 from alexapy.aiohttp.client_exceptions import ContentTypeError
 
-from .const import EXCEPTION_TEMPLATE, APP_NAME, USER_AGENT
+from .const import APP_NAME, EXCEPTION_TEMPLATE, LOCALE_KEY, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey
 from .helpers import _catch_all_exceptions, delete_cookie, hide_serial, obfuscate
 
@@ -398,6 +399,7 @@ class AlexaLogin:
             return False
         # Convert from amazon.com domain to native domain
         if self._url != "amazon.com":
+            self._headers["authority"] = f"www.{self._url}"
             await self.get_tokens()
             await self.exchange_token_for_cookies()
             get_resp = await self._session.get(
@@ -441,7 +443,7 @@ class AlexaLogin:
                 "Accept-Language": "*",
                 "DNT": "1",
                 "Upgrade-Insecure-Requests": "1",
-                "authority": f"www.{self._url}",
+                "authority": "www.amazon.com",
             }
 
             #  initiate session
@@ -509,7 +511,7 @@ class AlexaLogin:
         _LOGGER.debug("Using credentials to log in")
         if not self._site:
             site: URL = URL("https://www.amazon.com/ap/signin")
-            deviceid: Text = "453535333833343639344134304445313832303944354342344141414342453123413249564c5635564d32573831"
+            deviceid: Text = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
             query = {
                 "openid.return_to": "https://www.amazon.com/ap/maplanding",
                 "openid.assoc_handle": "amzn_dp_project_dee_ios",
@@ -525,7 +527,9 @@ class AlexaLogin:
                 "openid.ns": "http://specs.openid.net/auth/2.0",
                 "openid.pape.max_auth_age": "0",
                 "openid.oa2.scope": "device_auth_access",
-                "language": "en_US",
+                "language": LOCALE_KEY.get(self.url.replace("amazon", ""))
+                if LOCALE_KEY.get(self.url.replace("amazon", ""))
+                else "en_US",
             }
             site = site.update_query(query)
             _LOGGER.debug("Attempting oauth login to %s", site)
@@ -1228,17 +1232,17 @@ class AlexaLogin:
             "Preparing form submission to %s with input data: %s", site, obfuscate(data)
         )
         # pull data from configurator
-        password: Optional[Text] = data.get("password")
-        captcha: Optional[Text] = data.get("captcha")
+        password: Optional[Text] = data.get("password", "")
+        captcha: Optional[Text] = data.get("captcha", "")
         if data.get("otp_secret"):
-            self.set_totp(data.get("otp_secret"))
-        securitycode: Optional[Text] = data.get("securitycode")
+            self.set_totp(data.get("otp_secret", ""))
+        securitycode: Optional[Text] = data.get("securitycode", "")
         if not securitycode and self._totp:
             _LOGGER.debug("No 2FA code supplied but will generate.")
             securitycode = self.get_totp_token()
-        claimsoption: Optional[Text] = data.get("claimsoption")
-        authopt: Optional[Text] = data.get("authselectoption")
-        verificationcode: Optional[Text] = data.get("verificationcode")
+        claimsoption: Optional[Text] = data.get("claimsoption", "")
+        authopt: Optional[Text] = data.get("authselectoption", "")
+        verificationcode: Optional[Text] = data.get("verificationcode", "")
 
         #  add username and password to self._data for post request
         #  self._data is scraped from the form page in _process_page
