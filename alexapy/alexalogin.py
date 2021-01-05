@@ -833,6 +833,7 @@ class AlexaLogin:
         response = (await response.json()).get("response")
         if self._debug:
             _LOGGER.debug("Exchange cookie json %s ", response)
+        success = False
         for domain, cookies in response["tokens"]["cookies"].items():
             # _LOGGER.debug("updating %s with %s", domain, cookies)
             for item in cookies:
@@ -852,8 +853,6 @@ class AlexaLogin:
                     raw_cookie[cookie_name][name] = f"{value}; Domain={domain}"
                 # _LOGGER.debug("updating jar with cookie %s", raw_cookie)
                 self._session.cookie_jar.update_cookies(raw_cookie, URL(domain))
-        success = False
-        for domain, cookies in response["tokens"]["cookies"].items():
             _LOGGER.debug(
                 "%s cookies successfully exchanged for refresh token for domain %s",
                 len(cookies),
