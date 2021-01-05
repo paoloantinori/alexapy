@@ -434,6 +434,7 @@ class AlexaLogin:
             self.stats["login_timestamp"] = datetime.datetime.now()
             self.stats["api_calls"] = 0
             await self.check_domain()
+            await self.save_cookiefile()
             return True
         _LOGGER.debug("Not logged in due to email mismatch")
         await self.reset()
