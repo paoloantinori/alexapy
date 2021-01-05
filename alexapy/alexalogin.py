@@ -872,7 +872,7 @@ class AlexaLogin:
         if self._cookies.get("csrf"):
             _LOGGER.debug("CSRF already exists; no need to discover")
             return True
-        _LOGGER.debug("Attemping to discover CSRF token")
+        _LOGGER.debug("Attempting to discover CSRF token")
         csrf_urls = [
             "/spa/index.html",
             "/api/language",
