@@ -609,11 +609,11 @@ class AlexaLogin:
 
     async def save_cookiefile(self) -> None:
         """Save login session cookies to file."""
+        self._prepare_cookies_from_session(self.url)
         for cookiefile in self._cookiefile:
             if cookiefile == self._cookiefile[0]:
                 cookie_jar = self._session.cookie_jar
                 assert isinstance(cookie_jar, aiohttp.CookieJar)
-                self._prepare_cookies_from_session(self._url)
                 cookie_jar.update_cookies(self._cookies, URL(self.url))
                 if self._debug:
                     _LOGGER.debug("Saving cookie to %s", cookiefile)
