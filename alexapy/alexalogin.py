@@ -849,7 +849,7 @@ class AlexaLogin:
                 for name, value in item.items():
                     if name in ["Name", "Value"]:
                         continue
-                    raw_cookie[cookie_name][name] = value
+                    raw_cookie[cookie_name][name] = f"{value}; Domain={domain}"
                 # _LOGGER.debug("updating jar with cookie %s", raw_cookie)
                 self._session.cookie_jar.update_cookies(raw_cookie, URL(domain))
         success = False
