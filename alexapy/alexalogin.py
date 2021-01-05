@@ -398,7 +398,7 @@ class AlexaLogin:
             )
             return False
         # Convert from amazon.com domain to native domain
-        if self._url != "amazon.com":
+        if self.url.lower() != "amazon.com":
             self._headers["authority"] = f"www.{self._url}"
             await self.get_tokens()
             await self.exchange_token_for_cookies()
@@ -613,8 +613,8 @@ class AlexaLogin:
             if cookiefile == self._cookiefile[0]:
                 cookie_jar = self._session.cookie_jar
                 assert isinstance(cookie_jar, aiohttp.CookieJar)
-                cookie_jar.update_cookies(self._cookies, URL(self._url))
                 self._prepare_cookies_from_session(self._url)
+                cookie_jar.update_cookies(self._cookies, URL(self.url))
                 if self._debug:
                     _LOGGER.debug("Saving cookie to %s", cookiefile)
                 try:
@@ -653,7 +653,7 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/json",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
@@ -669,7 +669,7 @@ class AlexaLogin:
             cookies.append({"Value": value, "Name": k})
         data = {
             "requested_extensions": ["device_info", "customer_info"],
-            "cookies": {"website_cookies": cookies, "domain": f".{self._url}"},
+            "cookies": {"website_cookies": cookies, "domain": f".{self.url}"},
             "registration_data": {
                 "domain": "Device",
                 "app_version": "2.2.223830.0",
@@ -689,7 +689,7 @@ class AlexaLogin:
         }
 
         response = await self._session.post(
-            "https://api." + self._url + "/auth/register", json=data, headers=headers,
+            "https://api." + self.url + "/auth/register", json=data, headers=headers,
         )
         if response.status != 200:
             return False
@@ -747,7 +747,7 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
@@ -757,7 +757,7 @@ class AlexaLogin:
             ),
         }
         response = await self._session.post(
-            "https://api." + self._url + "/auth/token", data=data, headers=headers,
+            "https://api." + self.url + "/auth/token", data=data, headers=headers,
         )
         if response.status != 200:
             if self._debug:
@@ -808,7 +808,7 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
@@ -818,7 +818,7 @@ class AlexaLogin:
             # ),
         }
         response = await self._session.post(
-            "https://api." + self._url + "/ap/exchangetoken/cookies",
+            "https://api." + self.url + "/ap/exchangetoken/cookies",
             data=data,
             headers=headers,
         )
@@ -881,12 +881,12 @@ class AlexaLogin:
             "/api/strings",
         ]
         for url in csrf_urls:
-            response = await self._session.get(f"{self._prefix}{self._url}{url}")
+            response = await self._session.get(f"{self._prefix}{self.url}{url}")
             if response.status != 200:
                 if self._debug:
                     _LOGGER.debug("Unable to load page for csrf: %s", response)
                 continue
-            self._prepare_cookies_from_session(self._url)
+            self._prepare_cookies_from_session(self.url)
             if self._cookies.get("csrf"):
                 _LOGGER.debug("CSRF token found from %s", url)
                 return True
@@ -904,14 +904,14 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
             "Accept-Language": "en-US",
         }
         response = await self._session.get(
-            f"{self._prefix}{self._url}/api/users/me?platform=ios&version=2.2.223830.0",
+            f"{self._prefix}{self.url}/api/users/me?platform=ios&version=2.2.223830.0",
             headers=headers,
         )
         if response.status != 200:
@@ -920,16 +920,14 @@ class AlexaLogin:
             return True
         response = await response.json()
         domain = response.get("marketPlaceDomainName")
-        if self._url not in domain:
+        if self.url not in domain:
             _LOGGER.warning(
                 "Domain %s does not match reported account domain %s; functionality is not likely to work, please fix",
                 self.url,
                 domain,
             )
             return False
-        _LOGGER.debug(
-            "Domain %s matches reported account domain: %s", self._url, domain
-        )
+        _LOGGER.debug("Domain %s matches reported account domain: %s", self.url, domain)
         return True
 
     async def _process_resp(self, resp) -> Text:
@@ -983,7 +981,7 @@ class AlexaLogin:
                     #               string,
                     #               href)
                     if href.startswith("/"):
-                        links[str(index)] = (string, (self._prefix + self._url + href))
+                        links[str(index)] = (string, (self._prefix + self.url + href))
                         index += 1
                     elif href.startswith("http"):
                         links[str(index)] = (string, href)
@@ -1006,7 +1004,7 @@ class AlexaLogin:
                                 and item.get("type") == "hidden"
                             ):
                                 params[item.get("name")] = item.get("value")
-                        href = f"{self._prefix}{self._url}{action}?{urlencode(params)}"
+                        href = f"{self._prefix}{self.url}{action}?{urlencode(params)}"
                         links[str(index)] = (string, href)
                         index += 1
             if links:
@@ -1224,7 +1222,7 @@ class AlexaLogin:
                 # site = form_tag.find("input", {"name": "openid.return_to"}).get("value")
                 _LOGGER.debug("Found url for polling page %s", site)
             elif formsite and forgotpassword_tag:
-                site = self._prefix + self._url
+                site = self._prefix + self.url
                 _LOGGER.debug("Restarting login process %s", site)
             elif formsite:
                 site = formsite
