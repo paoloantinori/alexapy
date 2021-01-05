@@ -752,9 +752,9 @@ class AlexaLogin:
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
             "Accept-Language": "en-US",
-            "Cookie": "; ".join(
-                [str(x) + "=" + str(y) for x, y in self._cookies.items()]
-            ),
+            # "Cookie": "; ".join(
+            #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
+            # ),
         }
         response = await self._session.post(
             "https://api." + self.url + "/auth/token", data=data, headers=headers,

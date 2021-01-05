@@ -88,29 +88,29 @@ class WebsocketEchoClient:
         )
         assert login.session is not None
         self._session = login.session
-        self._cookies: Dict[Text, Text] = login._cookies if login._cookies else {}
+        # self._cookies: Dict[Text, Text] = login._cookies if login._cookies else {}
         self._headers = login._headers
         self._ssl = login._ssl
-        cookies = ""  # type: Text
-        assert self._cookies is not None
-        for key, value in self._cookies.items():
-            cookies += "{}={}; ".format(key, value)
-        self._headers["Cookie"] = cookies
+        # cookies = ""  # type: Text
+        # assert self._cookies is not None
+        # for key, value in self._cookies.items():
+        #     cookies += "{}={}; ".format(key, value)
+        # self._headers["Cookie"] = cookies
         # the old websocket-client auto populates origin, which
         # aiohttp does not and is necessary for Amazon to accept a login
         self._headers["Origin"] = "https://alexa." + login.url
-        url_array: List[Text] = login.url.split(".")
-        ubid_id: Text = f"ubid-acb{url_array[len(url_array)-1]}"
-        if ubid_id in self._cookies:
-            url += str(self._cookies[ubid_id])
-        elif "ubid-main" in self._cookies:
-            url += str(self._cookies["ubid-main"])
-        else:
-            _LOGGER.warning(
-                "Websocket is missing ubid-main and %s cookies;"
-                " please report this if anything isn't working.",
-                ubid_id,
-            )
+        # url_array: List[Text] = login.url.split(".")
+        # ubid_id: Text = f"ubid-acb{url_array[len(url_array)-1]}"
+        # if ubid_id in self._cookies:
+        #     url += str(self._cookies[ubid_id])
+        # elif "ubid-main" in self._cookies:
+        #     url += str(self._cookies["ubid-main"])
+        # else:
+        #     _LOGGER.warning(
+        #         "Websocket is missing ubid-main and %s cookies;"
+        #         " please report this if anything isn't working.",
+        #         ubid_id,
+        #     )
         url += "-" + str(int(time.time())) + "000"
         # url = "ws://localhost:8080/ws"
         self.open_callback: Callable[[], Coroutine[Any, Any, None]] = open_callback
