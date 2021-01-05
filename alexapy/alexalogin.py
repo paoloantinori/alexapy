@@ -418,10 +418,18 @@ class AlexaLogin:
         self.customer_id = json.get("authentication", {}).get("customerId")
         if (email != "" and email.lower() == self._email.lower()) or email == "":
             if email != "":
-                _LOGGER.debug("Logged in as %s with id: %s", email, self.customer_id)
+                _LOGGER.debug(
+                    "Logged in as %s to %s with id: %s",
+                    email,
+                    self.url,
+                    self.customer_id,
+                )
             else:
                 _LOGGER.debug(
-                    "Logged in as mobile account %s with %s", email, self.customer_id
+                    "Logged in as to %s mobile account %s with %s",
+                    email,
+                    self.url,
+                    self.customer_id,
                 )
             self.stats["login_timestamp"] = datetime.datetime.now()
             self.stats["api_calls"] = 0
