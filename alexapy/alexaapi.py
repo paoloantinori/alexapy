@@ -268,6 +268,7 @@ class AlexaAPI:
             response.reason,
             response.content_type,
         )
+        login.stats["api_calls"] += 1
         if response.status == 401:
             login.status["login_successful"] = False
             raise AlexapyLoginError(response.reason)
