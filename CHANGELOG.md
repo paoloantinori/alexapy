@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.4 (2021-01-06)
+### Fix
+* Accept .domain cookies ([`1a496c0`](https://gitlab.com/keatontaylor/alexapy/-/commit/1a496c0e635e8211e73a27f5f8b242bf89d2d2e7))
+* Save cookiefile after non-.com login ([`8704eae`](https://gitlab.com/keatontaylor/alexapy/-/commit/8704eaeae79f713f13509beb968e05a8c831dc34))
+* Add domain to cookies from exchange ([`6a1f616`](https://gitlab.com/keatontaylor/alexapy/-/commit/6a1f616ff77d46c42f791f2fada0f19b42ece8da))
+* Fix typo in debug message ([`056670e`](https://gitlab.com/keatontaylor/alexapy/-/commit/056670e81490bbac0d04c17c45fea4869d9319ca))
+* Increment api_calls on static calls ([`ea70527`](https://gitlab.com/keatontaylor/alexapy/-/commit/ea70527cdd393e9d041ced902df267ef2357ecf5))
+* Fix return for oauth functions ([`d8cc629`](https://gitlab.com/keatontaylor/alexapy/-/commit/d8cc6297589b3f9268a1b3b6872fc0ceeae88483))
+
 ## v1.20.3 (2021-01-02)
 ### Fix
 * Add languages for oauth login ([`c0803c5`](https://gitlab.com/keatontaylor/alexapy/-/commit/c0803c5e828524ea8965a9842c8c7d0354d34c24))
