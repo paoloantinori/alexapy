@@ -398,7 +398,7 @@ class AlexaLogin:
             )
             return False
         # Convert from amazon.com domain to native domain
-        if self._url != "amazon.com":
+        if self.url.lower() != "amazon.com":
             self._headers["authority"] = f"www.{self._url}"
             await self.get_tokens()
             await self.exchange_token_for_cookies()
@@ -418,14 +418,23 @@ class AlexaLogin:
         self.customer_id = json.get("authentication", {}).get("customerId")
         if (email != "" and email.lower() == self._email.lower()) or email == "":
             if email != "":
-                _LOGGER.debug("Logged in as %s with id: %s", email, self.customer_id)
+                _LOGGER.debug(
+                    "Logged in as %s to %s with id: %s",
+                    email,
+                    self.url,
+                    self.customer_id,
+                )
             else:
                 _LOGGER.debug(
-                    "Logged in as mobile account %s with %s", email, self.customer_id
+                    "Logged in as to %s mobile account %s with %s",
+                    email,
+                    self.url,
+                    self.customer_id,
                 )
             self.stats["login_timestamp"] = datetime.datetime.now()
             self.stats["api_calls"] = 0
             await self.check_domain()
+            await self.save_cookiefile()
             return True
         _LOGGER.debug("Not logged in due to email mismatch")
         await self.reset()
@@ -466,7 +475,7 @@ class AlexaLogin:
             )
         for cookie in cookie_jar:
             oldvalue = self._cookies[cookie.key] if cookie.key in self._cookies else ""
-            if cookie["domain"] == str(site) or cookie["domain"] == "":
+            if cookie["domain"] in [str(site), f".{site}", ""]:
                 self._cookies[cookie.key] = cookie.value
                 if self._debug and oldvalue != cookie.value:
                     _LOGGER.debug(
@@ -609,12 +618,12 @@ class AlexaLogin:
 
     async def save_cookiefile(self) -> None:
         """Save login session cookies to file."""
+        self._prepare_cookies_from_session(self.url)
         for cookiefile in self._cookiefile:
             if cookiefile == self._cookiefile[0]:
                 cookie_jar = self._session.cookie_jar
                 assert isinstance(cookie_jar, aiohttp.CookieJar)
-                cookie_jar.update_cookies(self._cookies, URL(self._url))
-                self._prepare_cookies_from_session(self._url)
+                cookie_jar.update_cookies(self._cookies, URL(self.url))
                 if self._debug:
                     _LOGGER.debug("Saving cookie to %s", cookiefile)
                 try:
@@ -653,7 +662,7 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/json",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
@@ -669,7 +678,7 @@ class AlexaLogin:
             cookies.append({"Value": value, "Name": k})
         data = {
             "requested_extensions": ["device_info", "customer_info"],
-            "cookies": {"website_cookies": cookies, "domain": f".{self._url}"},
+            "cookies": {"website_cookies": cookies, "domain": f".{self.url}"},
             "registration_data": {
                 "domain": "Device",
                 "app_version": "2.2.223830.0",
@@ -689,7 +698,7 @@ class AlexaLogin:
         }
 
         response = await self._session.post(
-            "https://api." + self._url + "/auth/register", json=data, headers=headers,
+            "https://api." + self.url + "/auth/register", json=data, headers=headers,
         )
         if response.status != 200:
             return False
@@ -747,17 +756,17 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
             "Accept-Language": "en-US",
-            "Cookie": "; ".join(
-                [str(x) + "=" + str(y) for x, y in self._cookies.items()]
-            ),
+            # "Cookie": "; ".join(
+            #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
+            # ),
         }
         response = await self._session.post(
-            "https://api." + self._url + "/auth/token", data=data, headers=headers,
+            "https://api." + self.url + "/auth/token", data=data, headers=headers,
         )
         if response.status != 200:
             if self._debug:
@@ -779,6 +788,8 @@ class AlexaLogin:
                 datetime.datetime.fromtimestamp(self.expires_in)
                 - datetime.datetime.now(),
             )
+            return True
+        return False
 
     async def exchange_token_for_cookies(self) -> bool:
         """Generate new session cookies using refresh token.
@@ -806,7 +817,7 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
@@ -816,7 +827,7 @@ class AlexaLogin:
             # ),
         }
         response = await self._session.post(
-            "https://api." + self._url + "/ap/exchangetoken/cookies",
+            "https://api." + self.url + "/ap/exchangetoken/cookies",
             data=data,
             headers=headers,
         )
@@ -831,6 +842,7 @@ class AlexaLogin:
         response = (await response.json()).get("response")
         if self._debug:
             _LOGGER.debug("Exchange cookie json %s ", response)
+        success = False
         for domain, cookies in response["tokens"]["cookies"].items():
             # _LOGGER.debug("updating %s with %s", domain, cookies)
             for item in cookies:
@@ -847,15 +859,16 @@ class AlexaLogin:
                 for name, value in item.items():
                     if name in ["Name", "Value"]:
                         continue
-                    raw_cookie[cookie_name][name] = value
+                    raw_cookie[cookie_name][name] = f"{value}; Domain={domain}"
                 # _LOGGER.debug("updating jar with cookie %s", raw_cookie)
                 self._session.cookie_jar.update_cookies(raw_cookie, URL(domain))
-        for domain, cookies in response["tokens"]["cookies"].items():
             _LOGGER.debug(
                 "%s cookies successfully exchanged for refresh token for domain %s",
                 len(cookies),
                 domain,
             )
+            success = True
+        return success
 
     async def get_csrf(self) -> bool:
         """Generate csrf if missing.
@@ -867,7 +880,7 @@ class AlexaLogin:
         if self._cookies.get("csrf"):
             _LOGGER.debug("CSRF already exists; no need to discover")
             return True
-        _LOGGER.debug("Attemping to discover CSRF token")
+        _LOGGER.debug("Attempting to discover CSRF token")
         csrf_urls = [
             "/spa/index.html",
             "/api/language",
@@ -876,12 +889,12 @@ class AlexaLogin:
             "/api/strings",
         ]
         for url in csrf_urls:
-            response = await self._session.get(f"{self._prefix}{self._url}{url}")
+            response = await self._session.get(f"{self._prefix}{self.url}{url}")
             if response.status != 200:
                 if self._debug:
                     _LOGGER.debug("Unable to load page for csrf: %s", response)
                 continue
-            self._prepare_cookies_from_session(self._url)
+            self._prepare_cookies_from_session(self.url)
             if self._cookies.get("csrf"):
                 _LOGGER.debug("CSRF token found from %s", url)
                 return True
@@ -899,14 +912,14 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self._url}",
+            "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
             "Accept-Language": "en-US",
         }
         response = await self._session.get(
-            f"{self._prefix}{self._url}/api/users/me?platform=ios&version=2.2.223830.0",
+            f"{self._prefix}{self.url}/api/users/me?platform=ios&version=2.2.223830.0",
             headers=headers,
         )
         if response.status != 200:
@@ -915,16 +928,14 @@ class AlexaLogin:
             return True
         response = await response.json()
         domain = response.get("marketPlaceDomainName")
-        if self._url not in domain:
+        if self.url not in domain:
             _LOGGER.warning(
                 "Domain %s does not match reported account domain %s; functionality is not likely to work, please fix",
                 self.url,
                 domain,
             )
             return False
-        _LOGGER.debug(
-            "Domain %s matches reported account domain: %s", self._url, domain
-        )
+        _LOGGER.debug("Domain %s matches reported account domain: %s", self.url, domain)
         return True
 
     async def _process_resp(self, resp) -> Text:
@@ -978,7 +989,7 @@ class AlexaLogin:
                     #               string,
                     #               href)
                     if href.startswith("/"):
-                        links[str(index)] = (string, (self._prefix + self._url + href))
+                        links[str(index)] = (string, (self._prefix + self.url + href))
                         index += 1
                     elif href.startswith("http"):
                         links[str(index)] = (string, href)
@@ -1001,7 +1012,7 @@ class AlexaLogin:
                                 and item.get("type") == "hidden"
                             ):
                                 params[item.get("name")] = item.get("value")
-                        href = f"{self._prefix}{self._url}{action}?{urlencode(params)}"
+                        href = f"{self._prefix}{self.url}{action}?{urlencode(params)}"
                         links[str(index)] = (string, href)
                         index += 1
             if links:
@@ -1219,7 +1230,7 @@ class AlexaLogin:
                 # site = form_tag.find("input", {"name": "openid.return_to"}).get("value")
                 _LOGGER.debug("Found url for polling page %s", site)
             elif formsite and forgotpassword_tag:
-                site = self._prefix + self._url
+                site = self._prefix + self.url
                 _LOGGER.debug("Restarting login process %s", site)
             elif formsite:
                 site = formsite

@@ -159,7 +159,7 @@ class AlexaAPI:
         response = await getattr(self._session, method)(
             url,
             json=data,
-            cookies=self._login._cookies,
+            # cookies=self._login._cookies,
             headers=self._login._headers,
             ssl=self._login._ssl,
         )
@@ -256,7 +256,7 @@ class AlexaAPI:
         response = await getattr(session, method)(
             url,
             json=data,
-            cookies=login._cookies,
+            # cookies=login._cookies,
             headers=login._headers,
             ssl=login._ssl,
         )
@@ -268,6 +268,7 @@ class AlexaAPI:
             response.reason,
             response.content_type,
         )
+        login.stats["api_calls"] += 1
         if response.status == 401:
             login.status["login_successful"] = False
             raise AlexapyLoginError(response.reason)
