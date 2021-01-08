@@ -659,51 +659,61 @@ class AlexaLogin:
         ).decode("utf8")
         self._cookies["frc"] = frc
         self._cookies["map-md"] = map_md
-        headers = {
-            "Content-Type": "application/json",
-            "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self.url}",
-            "Connection": "keep-alive",
-            "Accept": "*/*",
-            "User-Agent": USER_AGENT,
-            "Accept-Language": "en-US",
-            # "Cookie": "; ".join(
-            #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
-            # ),
-        }
-        cookies = []
-        for k, value in self._cookies.items():
-            # if k == "csrf":
-            #     continue
-            cookies.append({"Value": value, "Name": k})
-        data = {
-            "requested_extensions": ["device_info", "customer_info"],
-            "cookies": {"website_cookies": cookies, "domain": f".{self.url}"},
-            "registration_data": {
-                "domain": "Device",
-                "app_version": "2.2.223830.0",
-                "device_type": "A2IVLV5VM2W81",
-                "device_name": f"%FIRST_NAME%'s%DUPE_STRATEGY_1ST%{APP_NAME}",
-                "os_version": "11.4.1",
-                "device_serial": "2cf947a5a093d686a30c33cb07a703fd"
-                if not self.uuid
-                else self.uuid,
-                "device_model": "iPhone",
-                "app_name": APP_NAME,
-                "software_version": "1",
-            },
-            "auth_data": {"access_token": self.access_token},
-            "user_context_map": {"frc": frc},
-            "requested_token_type": ["bearer", "mac_dms", "website_cookies"],
-        }
-
-        response = await self._session.post(
-            "https://api." + self.url + "/auth/register", json=data, headers=headers,
-        )
-        if response.status != 200:
+        if self.url.lower() != "amazon.com":
+            urls = [self.url, "amazon.com"]
+        else:
+            urls = [self.url]
+        registered = False
+        for url in urls:
+            headers = {
+                "Content-Type": "application/json",
+                "Accept-Charset": "utf-8",
+                "x-amzn-identity-auth-domain": f"api.{url}",
+                "Connection": "keep-alive",
+                "Accept": "*/*",
+                "User-Agent": USER_AGENT,
+                "Accept-Language": "en-US",
+                # "Cookie": "; ".join(
+                #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
+                # ),
+            }
+            cookies = []
+            for k, value in self._cookies.items():
+                # if k == "csrf":
+                #     continue
+                cookies.append({"Value": value, "Name": k})
+            data = {
+                "requested_extensions": ["device_info", "customer_info"],
+                "cookies": {"website_cookies": cookies, "domain": f".{url}"},
+                "registration_data": {
+                    "domain": "Device",
+                    "app_version": "2.2.223830.0",
+                    "device_type": "A2IVLV5VM2W81",
+                    "device_name": f"%FIRST_NAME%'s%DUPE_STRATEGY_1ST%{APP_NAME}",
+                    "os_version": "11.4.1",
+                    "device_serial": "2cf947a5a093d686a30c33cb07a703fd"
+                    if not self.uuid
+                    else self.uuid,
+                    "device_model": "iPhone",
+                    "app_name": APP_NAME,
+                    "software_version": "1",
+                },
+                "auth_data": {"access_token": self.access_token},
+                "user_context_map": {"frc": frc},
+                "requested_token_type": ["bearer", "mac_dms", "website_cookies"],
+            }
+            _LOGGER.debug("Attempting to register with %s", url)
+            response = await self._session.post(
+                "https://api." + url + "/auth/register", json=data, headers=headers,
+            )
+            # _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
+            if response.status == 200:
+                registered = True
+                break
+        if not registered:
+            _LOGGER.debug("Unable to register with %s", urls)
             return False
         response = (await response.json()).get("response")
-        # _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
         if response.get("success"):
             _LOGGER.debug(
                 "Successfully registered %s device with Amazon",
