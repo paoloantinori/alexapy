@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.20.5 (2021-01-08)
+### Fix
+* Fix registration error with amazon.com.au ([`690f99a`](https://gitlab.com/keatontaylor/alexapy/-/commit/690f99a58eb91f4d3e2e6824453e8511a7bd07a4))
+
 ## v1.20.4 (2021-01-06)
 ### Fix
 * Accept .domain cookies ([`1a496c0`](https://gitlab.com/keatontaylor/alexapy/-/commit/1a496c0e635e8211e73a27f5f8b242bf89d2d2e7))
