@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.21.0 (2021-01-09)
+### Feature
+* Enable proxy login option ([`66ae83c`](https://gitlab.com/keatontaylor/alexapy/-/commit/66ae83cd38e54eb66d015cc075f9513c8f8eccf9))
+
+### Fix
+* Provide get request parameters ([`8bc47c0`](https://gitlab.com/keatontaylor/alexapy/-/commit/8bc47c08a3d8371daa38e39809437b3c224a22b2))
+
 ## v1.20.5 (2021-01-08)
 ### Fix
 * Fix registration error with amazon.com.au ([`690f99a`](https://gitlab.com/keatontaylor/alexapy/-/commit/690f99a58eb91f4d3e2e6824453e8511a7bd07a4))
