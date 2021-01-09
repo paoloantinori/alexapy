@@ -614,7 +614,7 @@ class AlexaLogin:
             # submit post request with username/password and other needed info
             if self.status.get("force_get"):
                 post_resp = await self._session.get(
-                    site, data=self._data, headers=self._headers, ssl=self._ssl,
+                    site, params=self._data, headers=self._headers, ssl=self._ssl,
                 )
             else:
                 post_resp = await self._session.post(
