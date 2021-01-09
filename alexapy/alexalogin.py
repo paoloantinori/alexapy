@@ -436,7 +436,7 @@ class AlexaLogin:
                 )
                 return False
         self.customer_id = json.get("authentication", {}).get("customerId")
-        if (email != "" and email.lower() == self._email.lower()) or email == "":
+        if (email != "" and email.lower() == self.email.lower()) or email == "":
             if email != "":
                 _LOGGER.debug(
                     "Logged in as %s to %s with id: %s",
