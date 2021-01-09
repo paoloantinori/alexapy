@@ -118,6 +118,21 @@ class AlexaLogin:
         """Return email or mobile account for this Login."""
         return self._email
 
+    @email.setter
+    def email(self, value: Optional[Text]) -> None:
+        """Set email."""
+        self._email = value
+
+    @property
+    def password(self) -> Text:
+        """Return password for this Login."""
+        return self._password
+
+    @password.setter
+    def password(self, value: Optional[Text]) -> None:
+        """Set password."""
+        self._password = value
+
     @property
     def customer_id(self) -> Optional[Text]:
         """Return customer_id for this Login."""
@@ -136,6 +151,11 @@ class AlexaLogin:
     def url(self) -> Text:
         """Return url for this Login."""
         return self._url
+
+    @property
+    def lastreq(self) -> Optional[aiohttp.ClientResponse]:
+        """Return last response for last request for this Login."""
+        return self._lastreq
 
     @property
     def close_requested(self) -> bool:
@@ -507,14 +527,7 @@ class AlexaLogin:
         if cookies:
             _LOGGER.debug("Using cookies to log in")
             if await self.test_loggedin(cookies):
-                self.status = {}
-                self.status["login_successful"] = True
-                _LOGGER.debug("Log in successful with cookies")
-                await self.get_tokens()
-                # await self.refresh_access_token()
-                # await self.exchange_token_for_cookies()
-                await self.get_csrf()
-                await self.save_cookiefile()
+                await self.finalize_login()
                 return
             await self.reset()
         _LOGGER.debug("Using credentials to log in")
@@ -1192,26 +1205,16 @@ class AlexaLogin:
             query = site_url.query
             self.access_token = query.get("openid.oa2.access_token")
             if await self.test_loggedin():
+                await self.finalize_login()
+                return
+            _LOGGER.debug("Login failed; check credentials")
+            status["login_failed"] = "login_failed"
+            if self._data and "" in self._data.values():
+                missing = [k for (k, v) in self._data.items() if v == ""]
                 _LOGGER.debug(
-                    "Login confirmed; saving cookie to %s", self._cookiefile[0]
+                    "If credentials correct, please report" " these missing values: %s",
+                    missing,
                 )
-                status["login_successful"] = True
-                await self.get_tokens()
-                await self.get_csrf()
-                await self.save_cookiefile()
-                #  remove extraneous Content-Type to avoid 500 errors
-                self._headers.pop("Content-Type", None)
-
-            else:
-                _LOGGER.debug("Login failed; check credentials")
-                status["login_failed"] = "login_failed"
-                if self._data and "" in self._data.values():
-                    missing = [k for (k, v) in self._data.items() if v == ""]
-                    _LOGGER.debug(
-                        "If credentials correct, please report"
-                        " these missing values: %s",
-                        missing,
-                    )
         self.status = status
         # determine post url if not logged in
         if status.get("approval_status") == "TransactionCompleted":
@@ -1310,3 +1313,14 @@ class AlexaLogin:
             self._data.pop("", None)  # remove '' key
             return "" in self._data.values()  # test if unfilled values
         return False
+
+    async def finalize_login(self) -> None:
+        """Perform final steps after successful login."""
+        _LOGGER.debug("Login confirmed; saving cookie to %s", self._cookiefile[0])
+        self.status = {}
+        self.status["login_successful"] = True
+        await self.get_tokens()
+        await self.get_csrf()
+        await self.save_cookiefile()
+        #  remove extraneous Content-Type to avoid 500 errors
+        self._headers.pop("Content-Type", None)

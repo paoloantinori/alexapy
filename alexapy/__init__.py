@@ -14,6 +14,7 @@ except ModuleNotFoundError:
 from .alexaapi import AlexaAPI
 from .alexalogin import AlexaLogin
 from .alexawebsocket import WebsocketEchoClient
+from .alexaproxy import AlexaProxy
 from .errors import (
     AlexapyConnectionError,
     AlexapyLoginCloseRequested,
@@ -30,6 +31,7 @@ __all__ = [
     "AlexapyConnectionError",
     "AlexapyLoginCloseRequested",
     "AlexapyLoginError",
+    "AlexaProxy",
     "AlexapyPyotpInvalidKey",
     "WebsocketEchoClient",
     "hide_email",
