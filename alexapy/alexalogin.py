@@ -584,7 +584,9 @@ class AlexaLogin:
             _LOGGER.debug("Loaded last request to %s ", site)
             resp = self._lastreq
         else:
-            resp = await self._session.get(site, headers=self._headers, ssl=self._ssl)
+            resp = await self._session.get(
+                site, headers=self._headers, ssl=self._ssl, params=self._data
+            )
             self._lastreq = resp
             site = await self._process_resp(resp)
         html: Text = await resp.text()
@@ -612,22 +614,27 @@ class AlexaLogin:
                 _LOGGER.debug("Header: %s", dumps(self._headers))
 
             # submit post request with username/password and other needed info
+            post_resp = None
             if self.status.get("force_get"):
-                post_resp = await self._session.get(
-                    site, params=self._data, headers=self._headers, ssl=self._ssl,
-                )
+                if not self.status.get("approval") and not self.status.get(
+                    "action_required"
+                ):
+                    post_resp = await self._session.get(
+                        site, params=self._data, headers=self._headers, ssl=self._ssl,
+                    )
             else:
                 post_resp = await self._session.post(
                     site, data=self._data, headers=self._headers, ssl=self._ssl,
                 )
 
             # headers need to be submitted to have the referer
-            if self._debug:
-                async with aiofiles.open(self._debugpost, mode="wb") as localfile:
-                    await localfile.write(await post_resp.read())
-            self._lastreq = post_resp
-            site = await self._process_resp(post_resp)
-            self._site = await self._process_page(await post_resp.text(), site)
+            if post_resp:
+                if self._debug:
+                    async with aiofiles.open(self._debugpost, mode="wb") as localfile:
+                        await localfile.write(await post_resp.read())
+                self._lastreq = post_resp
+                site = await self._process_resp(post_resp)
+                self._site = await self._process_page(await post_resp.text(), site)
 
     async def save_cookiefile(self) -> None:
         """Save login session cookies to file."""
@@ -1181,6 +1188,7 @@ class AlexaLogin:
                 message += div.getText()
             status["force_get"] = True
             status["message"] = re.sub("(\\s)+", "\\1", message)
+            status["action_required"] = True
             _LOGGER.debug("Javascript Authentication page detected: %s", message)
         elif forgotpassword_tag or soup.find("input", {"name": "OTPChallengeOptions"}):
             status["message"] = (
