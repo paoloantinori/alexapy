@@ -9,6 +9,7 @@ This provides a login by proxy method.
 For more details about this api, please refer to the documentation at
 https://gitlab.com/keatontaylor/alexapy
 """
+from alexapy.aiohttp.client_exceptions import ClientConnectionError
 import binascii
 import logging
 import secrets
@@ -97,7 +98,10 @@ class AlexaProxy:
         site = site.update_query(query)
         headers = multidict.MultiDict(request.headers)
         headers.update({"Host": "www.amazon.com"})
-        resp = await self._login._session.get(site, headers=headers)
+        try:
+            resp = await self._login._session.get(site, headers=headers)
+        except ClientConnectionError as ex:
+            return web.Response(text=f"Error connecting to {site}; please retry: {ex}")
         text = (await resp.text()).replace("https://www.amazon.com", self.access_url())
         return web.Response(text=text, content_type=resp.content_type,)
 
@@ -122,7 +126,12 @@ class AlexaProxy:
             resp = self._login.lastreq
         else:
             site = str(request.url).replace(self.access_url(), "https://www.amazon.com")
-            resp = await self._login._session.get(site)
+            try:
+                resp = await self._login._session.get(site)
+            except ClientConnectionError as ex:
+                return web.Response(
+                    text=f"Error connecting to {site}; please retry: {ex}"
+                )
         content_type = resp.content_type
         if content_type == "text/html":
             text = (await resp.text()).replace(
@@ -158,8 +167,11 @@ class AlexaProxy:
                 "Referer": "www.amazon.com",
             }
         )
-        # submit post
-        resp = await self._login._session.post(site, data=data, headers=headers)
+        try:
+            # submit post
+            resp = await self._login._session.post(site, data=data, headers=headers)
+        except ClientConnectionError as ex:
+            return web.Response(text=f"Error connecting to {site}; please retry: {ex}")
         text = await resp.text()
         content_type = resp.content_type
         if resp.url.path == "/ap/maplanding":
