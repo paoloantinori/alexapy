@@ -117,6 +117,9 @@ class AlexaLogin:
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
         self.uuid = uuid  # needed to be unique but repeateable for device registration
+        _LOGGER.debug(
+            "Login created for %s - %s", obfuscate(self.email), self.url,
+        )
 
     @property
     def email(self) -> Text:
@@ -358,6 +361,7 @@ class AlexaLogin:
     async def reset(self) -> None:
         # pylint: disable=import-outside-toplevel
         """Remove data related to existing login."""
+        _LOGGER.debug("Resetting Login for %s - %s", self.email, self.url)
         await self.close()
         self._session = None
         self._cookies = {}
@@ -1334,7 +1338,12 @@ class AlexaLogin:
 
     async def finalize_login(self) -> None:
         """Perform final steps after successful login."""
-        _LOGGER.debug("Login confirmed; saving cookie to %s", self._cookiefile[0])
+        _LOGGER.debug(
+            "Login confirmed for %s - %s; saving cookie to %s",
+            self.email,
+            self.url,
+            self._cookiefile[0],
+        )
         self.status = {}
         self.status["login_successful"] = True
         await self.get_tokens()

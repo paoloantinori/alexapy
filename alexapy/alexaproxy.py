@@ -181,7 +181,12 @@ class AlexaProxy:
         if resp.url.path == "/ap/maplanding":
             self._login.access_token = resp.url.query.get("openid.oa2.access_token")
             if self._callback_url:
-                _LOGGER.debug("Success. Redirecting to: %s", self._callback_url)
+                _LOGGER.debug(
+                    "Proxy success for %s - %s. Redirecting to: %s",
+                    self._login.email,
+                    self._login.url,
+                    self._callback_url,
+                )
                 raise web.HTTPFound(location=URL(self._callback_url))
             return web.Response(
                 text=f"Successfully logged in as {self._login.email} for flow {self._config_flow_id}. Please close the window.",
