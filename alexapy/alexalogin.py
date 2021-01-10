@@ -73,8 +73,8 @@ class AlexaLogin:
         import certifi
 
         oauth = oauth or {}
-        prefix: Text = "alexa_media"
-        self._prefix = "https://alexa."
+        self._hass_domain: Text = "alexa_media"
+        self._prefix: Text = "https://alexa."
         self._url: Text = url
         self._email: Text = email
         self._password: Text = password
@@ -90,13 +90,18 @@ class AlexaLogin:
             "login_timestamp": datetime.datetime(1, 1, 1),
             "api_calls": 0,
         }
+        self._outputpath = outputpath
         self._cookiefile: List[Text] = [
-            outputpath(".storage/{}.{}.pickle".format(prefix, email)),
-            outputpath("{}.{}.pickle".format(prefix, email)),
-            outputpath(".storage/{}.{}.txt".format(prefix, email)),
+            self._outputpath(f".storage/{self._hass_domain}.{self.email}.pickle"),
+            self._outputpath(f"{self._hass_domain}.{self.email}.pickle"),
+            self._outputpath(f".storage/{self._hass_domain}.{self.email}.txt"),
         ]
-        self._debugpost: Text = outputpath("{}{}post.html".format(prefix, email))
-        self._debugget: Text = outputpath("{}{}get.html".format(prefix, email))
+        self._debugpost: Text = outputpath(
+            "{}{}post.html".format(self._hass_domain, email)
+        )
+        self._debugget: Text = outputpath(
+            "{}{}get.html".format(self._hass_domain, email)
+        )
         self._lastreq: Optional[aiohttp.ClientResponse] = None
         self._debug: bool = debug
         self._links: Optional[Dict[Text, Tuple[Text, Text]]] = {}
@@ -639,6 +644,11 @@ class AlexaLogin:
     async def save_cookiefile(self) -> None:
         """Save login session cookies to file."""
         self._prepare_cookies_from_session(self.url)
+        self._cookiefile = [
+            self._outputpath(f".storage/{self._hass_domain}.{self.email}.pickle"),
+            self._outputpath(f"{self._hass_domain}.{self.email}.pickle"),
+            self._outputpath(f".storage/{self._hass_domain}.{self.email}.txt"),
+        ]
         for cookiefile in self._cookiefile:
             if cookiefile == self._cookiefile[0]:
                 cookie_jar = self._session.cookie_jar
