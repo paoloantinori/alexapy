@@ -174,12 +174,12 @@ class AlexaProxy:
             return web.Response(text=f"Error connecting to {site}; please retry: {ex}")
         text = await resp.text()
         content_type = resp.content_type
+        if self.data.get("email"):
+            self._login.email = self.data.get("email")
+        if self.data.get("password"):
+            self._login.password = self.data.get("password")
         if resp.url.path == "/ap/maplanding":
             self._login.access_token = resp.url.query.get("openid.oa2.access_token")
-            if self.data.get("email"):
-                self._login.email = self.data.get("email")
-            if self.data.get("password"):
-                self._login.password = self.data.get("password")
             if self._callback_url:
                 _LOGGER.debug("Success. Redirecting to: %s", self._callback_url)
                 raise web.HTTPFound(location=URL(self._callback_url))
