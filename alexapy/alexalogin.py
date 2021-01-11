@@ -82,7 +82,6 @@ class AlexaLogin:
         self._ssl = ssl.create_default_context(
             purpose=ssl.Purpose.SERVER_AUTH, cafile=certifi.where()
         )
-        self._cookies: Optional[Dict[Text, Text]] = {}
         self._headers: Dict[Text, Text] = {}
         self._data: Optional[Dict[Text, Text]] = None
         self.status: Optional[Dict[Text, Union[Text, bool]]] = {}
@@ -229,6 +228,7 @@ class AlexaLogin:
         cookies: Optional[
             Union[RequestsCookieJar, http.cookiejar.MozillaCookieJar]
         ] = None
+        return_cookies = {}
         numcookies: int = 0
         loaded: bool = False
         if self._cookiefile:
@@ -289,21 +289,20 @@ class AlexaLogin:
                 if isinstance(cookies, RequestsCookieJar):
                     _LOGGER.debug("Loading RequestsCookieJar")
                     cookies = cookies.get_dict()
-                    assert self._cookies is not None
                     assert cookies is not None
                     for key, value in cookies.items():
                         if self._debug:
                             _LOGGER.debug('Key: "%s", Value: "%s"', key, value)
                         # escape extra quote marks from Requests cookie
-                        self._cookies[str(key)] = value.strip('"')
-                    numcookies = len(self._cookies)
+                        return_cookies[str(key)] = value.strip('"')
+                    numcookies = len(return_cookies)
                 elif isinstance(cookies, defaultdict):
                     _LOGGER.debug("Trying to load aiohttpCookieJar to session")
                     cookie_jar: aiohttp.CookieJar = self._session.cookie_jar
                     try:
                         cookie_jar.load(cookiefile)
-                        self._prepare_cookies_from_session(self._url)
-                        numcookies = len(self._cookies)
+                        return_cookies = self._get_cookies_from_session()
+                        numcookies = len(return_cookies)
                     except (OSError, EOFError, TypeError, AttributeError) as ex:
                         _LOGGER.debug(
                             "Error loading aiohttpcookie from %s: %s",
@@ -315,8 +314,8 @@ class AlexaLogin:
                         self._create_session(True)
                 elif isinstance(cookies, dict):
                     _LOGGER.debug("Found dict cookie")
-                    self._cookies = cookies
-                    numcookies = len(self._cookies)
+                    return_cookies = cookies
+                    numcookies = len(return_cookies)
                 elif isinstance(cookies, http.cookiejar.MozillaCookieJar):
                     _LOGGER.debug("Found Mozillacookiejar")
                     for cookie in cookies:
@@ -327,8 +326,8 @@ class AlexaLogin:
                                 cookie.expires,
                             )
                         # escape extra quote marks from MozillaCookieJar cookie
-                        self._cookies[cookie.name] = cookie.value.strip('"')
-                    numcookies = len(self._cookies)
+                        return_cookies[cookie.name] = cookie.value.strip('"')
+                    numcookies = len(return_cookies)
                 else:
                     _LOGGER.debug("Ignoring unknown file %s", type(cookies))
                 if numcookies:
@@ -347,7 +346,7 @@ class AlexaLogin:
                                 self._cookiefile[0],
                                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
                             )
-        return self._cookies
+        return return_cookies
 
     async def close(self) -> None:
         """Close connection for login."""
@@ -364,7 +363,6 @@ class AlexaLogin:
         _LOGGER.debug("Resetting Login for %s - %s", self.email, self.url)
         await self.close()
         self._session = None
-        self._cookies = {}
         self._data = None
         self._lastreq = None
         self.status = {}
@@ -487,33 +485,15 @@ class AlexaLogin:
             #  initiate session
             self._session = aiohttp.ClientSession(headers=self._headers)
 
-    def _prepare_cookies_from_session(self, site: Text) -> None:
-        """Update self._cookies from aiohttp session.
-
-        This should only be needed to run after a succesful login.
-        """
+    def _get_cookies_from_session(self, site: Text = "") -> Dict[Text, Text]:
+        """Return cookies from aiohttp session."""
         assert self._session
+        if not site:
+            site = self.url
+        cookies = {}
         cookie_jar = self._session.cookie_jar
-        if self._cookies is None:
-            self._cookies = {}
-        if self._debug:
-            _LOGGER.debug(
-                "Updating self._cookies with %s session cookies:\n%s",
-                site,
-                self._print_session_cookies(),
-            )
-        for cookie in cookie_jar:
-            oldvalue = self._cookies[cookie.key] if cookie.key in self._cookies else ""
-            if cookie["domain"] in [str(site), f".{site}", ""]:
-                self._cookies[cookie.key] = cookie.value
-                if self._debug and oldvalue != cookie.value:
-                    _LOGGER.debug(
-                        "%s: key: %s value: %s -> %s",
-                        site,
-                        cookie.key,
-                        oldvalue,
-                        cookie.value,
-                    )
+        cookies = cookie_jar.filter_cookies(URL(f"https://{site}"))
+        return cookies
 
     def _print_session_cookies(self) -> Text:
         result: Text = ""
@@ -647,7 +627,6 @@ class AlexaLogin:
 
     async def save_cookiefile(self) -> None:
         """Save login session cookies to file."""
-        self._prepare_cookies_from_session(self.url)
         self._cookiefile = [
             self._outputpath(f".storage/{self._hass_domain}.{self.email}.pickle"),
             self._outputpath(f"{self._hass_domain}.{self.email}.pickle"),
@@ -657,7 +636,6 @@ class AlexaLogin:
             if cookiefile == self._cookiefile[0]:
                 cookie_jar = self._session.cookie_jar
                 assert isinstance(cookie_jar, aiohttp.CookieJar)
-                cookie_jar.update_cookies(self._cookies, URL(self.url))
                 if self._debug:
                     _LOGGER.debug("Saving cookie to %s", cookiefile)
                 try:
@@ -691,8 +669,9 @@ class AlexaLogin:
                 "utf8"
             )
         ).decode("utf8")
-        self._cookies["frc"] = frc
-        self._cookies["map-md"] = map_md
+        cookies = self._get_cookies_from_session()
+        cookies["frc"] = frc
+        cookies["map-md"] = map_md
         if self.url.lower() != "amazon.com":
             urls = [self.url, "amazon.com"]
         else:
@@ -711,14 +690,14 @@ class AlexaLogin:
                 #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
                 # ),
             }
-            cookies = []
-            for k, value in self._cookies.items():
+            cookies_list = []
+            for k, value in cookies.items():
                 # if k == "csrf":
                 #     continue
-                cookies.append({"Value": value, "Name": k})
+                cookies_list.append({"Value": value.value, "Name": k})
             data = {
                 "requested_extensions": ["device_info", "customer_info"],
-                "cookies": {"website_cookies": cookies, "domain": f".{url}"},
+                "cookies": {"website_cookies": cookies_list, "domain": f".{url}"},
                 "registration_data": {
                     "domain": "Device",
                     "app_version": "2.2.223830.0",
@@ -921,7 +900,8 @@ class AlexaLogin:
             bool: True if csrf is found
 
         """
-        if self._cookies.get("csrf"):
+        cookies = self._get_cookies_from_session()
+        if cookies.get("csrf"):
             _LOGGER.debug("CSRF already exists; no need to discover")
             return True
         _LOGGER.debug("Attempting to discover CSRF token")
@@ -938,8 +918,8 @@ class AlexaLogin:
                 if self._debug:
                     _LOGGER.debug("Unable to load page for csrf: %s", response)
                 continue
-            self._prepare_cookies_from_session(self.url)
-            if self._cookies.get("csrf"):
+            cookies = self._get_cookies_from_session()
+            if cookies.get("csrf"):
                 _LOGGER.debug("CSRF token found from %s", url)
                 return True
             _LOGGER.debug("CSRF token not found from %s", url)

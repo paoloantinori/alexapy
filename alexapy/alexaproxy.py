@@ -9,7 +9,6 @@ This provides a login by proxy method.
 For more details about this api, please refer to the documentation at
 https://gitlab.com/keatontaylor/alexapy
 """
-from alexapy.aiohttp.client_exceptions import ClientConnectionError
 import binascii
 import logging
 import secrets
@@ -19,6 +18,7 @@ from aiohttp import web
 import multidict
 from yarl import URL
 
+from alexapy.aiohttp.client_exceptions import ClientConnectionError
 from alexapy.alexalogin import AlexaLogin
 from alexapy.const import LOCALE_KEY
 from alexapy.stackoverflow import get_open_port
