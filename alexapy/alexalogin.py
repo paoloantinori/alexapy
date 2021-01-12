@@ -649,6 +649,8 @@ class AlexaLogin:
             elif (cookiefile) and os.path.exists(cookiefile):
                 _LOGGER.debug("Removing outdated cookiefile %s", cookiefile)
                 await delete_cookie(cookiefile)
+        if self._debug:
+            _LOGGER.debug("Session Cookies:\n%s", self._print_session_cookies())
 
     async def get_tokens(self) -> bool:
         """Get access and refresh tokens after registering device using cookies.
@@ -719,7 +721,7 @@ class AlexaLogin:
             response = await self._session.post(
                 "https://api." + url + "/auth/register", json=data, headers=headers,
             )
-            # _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
+            _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
             if response.status == 200:
                 registered = True
                 break

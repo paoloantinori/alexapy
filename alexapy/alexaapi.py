@@ -434,7 +434,7 @@ class AlexaAPI:
         extra = extra or {}
         operation_payload = {
             "deviceType": self._device._device_type,
-            "deviceSerialNumber": self._device.unique_id,
+            "deviceSerialNumber": self._device.device_serial_number,
             "locale": (self._device._locale if self._device._locale else "en-US"),
             "customerId": self._login.customer_id
             if customer_id is None
@@ -486,7 +486,7 @@ class AlexaAPI:
         operation_payload = {
             "targetDevice": {
                 "deviceType": self._device._device_type,
-                "deviceSerialNumber": self._device.unique_id,
+                "deviceSerialNumber": self._device.device_serial_number,
             },
             "locale": (self._device._locale if self._device._locale else "en-US"),
             "customerId": self._login.customer_id
@@ -579,7 +579,7 @@ class AlexaAPI:
                     "deviceSerialNumber" in node
                     and node["deviceSerialNumber"] == "ALEXA_CURRENT_DSN"
                 ):
-                    (node["deviceSerialNumber"]) = self._device.unique_id
+                    (node["deviceSerialNumber"]) = self._device.device_serial_number
                 if "locale" in node and node["locale"] == "ALEXA_CURRENT_LOCALE":
                     (node["locale"]) = (
                         self._device._locale if self._device._locale else "en-US"
@@ -725,7 +725,7 @@ class AlexaAPI:
         else:
             kwargs["devices"] = [
                 {
-                    "deviceSerialNumber": self._device.unique_id,
+                    "deviceSerialNumber": self._device.device_serial_number,
                     "deviceType": self._device._device_type,
                 },
             ]
@@ -775,7 +775,7 @@ class AlexaAPI:
         else:
             devices.append(
                 {
-                    "deviceSerialNumber": self._device.unique_id,
+                    "deviceSerialNumber": self._device.device_serial_number,
                     "deviceTypeId": self._device._device_type,
                 }
             )
@@ -999,7 +999,7 @@ class AlexaAPI:
         """Select the media player."""
         await self._post_request(
             "/api/np/command?deviceSerialNumber="
-            + self._device.unique_id
+            + self._device.device_serial_number
             + "&deviceType="
             + self._device._device_type,
             data=data,
@@ -1084,7 +1084,7 @@ class AlexaAPI:
         """Get playing state."""
         response = await self._get_request(
             "/api/np/player?deviceSerialNumber="
-            + self._device.unique_id
+            + self._device.device_serial_number
             + "&deviceType="
             + self._device._device_type
             + "&screenWidth=2560"
@@ -1102,7 +1102,7 @@ class AlexaAPI:
 
         """
         data = {
-            "deviceSerialNumber": self._device.unique_id,
+            "deviceSerialNumber": self._device.device_serial_number,
             "deviceType": self._device._device_type,
             "enabled": state,
         }
@@ -1139,7 +1139,7 @@ class AlexaAPI:
             "/api/bluetooth/pair-sink/"
             + self._device._device_type
             + "/"
-            + self._device.unique_id,
+            + self._device.device_serial_number,
             data={"bluetoothDeviceAddress": mac},
         )
 
@@ -1150,7 +1150,7 @@ class AlexaAPI:
             "/api/bluetooth/disconnect-sink/"
             + self._device._device_type
             + "/"
-            + self._device.unique_id,
+            + self._device.device_serial_number,
             data=None,
         )
 
@@ -1467,7 +1467,7 @@ class AlexaAPI:
 
         """
         data = {
-            "deviceSerialNumber": self._device.unique_id,
+            "deviceSerialNumber": self._device.device_serial_number,
             "deviceType": self._device._device_type,
             "backgroundImageID": "JqIFZhtBTx25wLGTJGdNGQ",
             "backgroundImageType": "PERSONAL_PHOTOS",
