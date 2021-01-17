@@ -1240,6 +1240,9 @@ class AlexaAPI:
                             last_activity["sourceDeviceIds"][0]["serialNumber"]
                         ),
                         "timestamp": last_activity["creationTimestamp"],
+                        "summary": json.loads(last_activity["description"]).get(
+                            "summary", ""
+                        ),
                     }
         return None
 
