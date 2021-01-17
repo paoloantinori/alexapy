@@ -65,6 +65,7 @@ class AlexaLogin:
         otp_secret: Text = "",
         oauth: Optional[Dict[Any, Any]] = None,
         uuid: Optional[Text] = None,
+        oauth_login: bool = True,
     ) -> None:
         # pylint: disable=too-many-arguments,import-outside-toplevel
         """Set up initial connection and log in."""
@@ -106,7 +107,6 @@ class AlexaLogin:
         self._links: Optional[Dict[Text, Tuple[Text, Text]]] = {}
         self._options: Optional[Dict[Text, Text]] = {}
         self._site: Optional[Text] = None
-        self._create_session()
         self._close_requested = False
         self._customer_id: Optional[Text] = None
         self._totp: Optional[pyotp.TOTP] = None
@@ -116,9 +116,11 @@ class AlexaLogin:
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
         self.uuid = uuid  # needed to be unique but repeateable for device registration
+        self.oauth_login: bool = oauth_login
         _LOGGER.debug(
             "Login created for %s - %s", obfuscate(self.email), self.url,
         )
+        self._create_session()
 
     @property
     def email(self) -> Text:
@@ -158,6 +160,38 @@ class AlexaLogin:
     def url(self) -> Text:
         """Return url for this Login."""
         return self._url
+
+    @property
+    def start_url(self) -> URL:
+        """Return start url for this Login."""
+        if self.oauth_login:
+            site: URL = URL("https://www.amazon.com/ap/signin")
+            deviceid: Text = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
+            query = {
+                "openid.return_to": "https://www.amazon.com/ap/maplanding",
+                "openid.assoc_handle": "amzn_dp_project_dee_ios",
+                "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
+                "pageId": "amzn_dp_project_dee_ios",
+                "accountStatusPolicy": "P1",
+                "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
+                "openid.mode": "checkid_setup",
+                "openid.ns.oa2": "http://www.amazon.com/ap/ext/oauth/2",
+                "openid.oa2.client_id": f"device:{deviceid}",
+                "openid.ns.pape": "http://specs.openid.net/extensions/pape/1.0",
+                "openid.oa2.response_type": "token",
+                "openid.ns": "http://specs.openid.net/auth/2.0",
+                "openid.pape.max_auth_age": "0",
+                "openid.oa2.scope": "device_auth_access",
+                "language": LOCALE_KEY.get(self.url.replace("amazon", ""))
+                if LOCALE_KEY.get(self.url.replace("amazon", ""))
+                else "en_US",
+            }
+            site = site.update_query(query)
+            _LOGGER.debug("Attempting oauth login to %s", site)
+        else:
+            site: URL = URL(self._prefix + self.url)
+            self._headers["authority"] = f"www.{self._url}"
+        return site
 
     @property
     def lastreq(self) -> Optional[aiohttp.ClientResponse]:
@@ -409,6 +443,9 @@ class AlexaLogin:
             _LOGGER.debug("Header: %s", dumps(self._headers))
         if not self._session:
             self._create_session()
+        await self.get_tokens()
+        await self.exchange_token_for_cookies()
+        await self.get_csrf()
         get_resp = await self._session.get(
             self._prefix + "amazon.com" + "/api/bootstrap",
             cookies=cookies,
@@ -423,12 +460,11 @@ class AlexaLogin:
                 "Not logged in: %s",
                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
             )
-            return False
+            if self.url.lower() == "amazon.com":
+                return False
         # Convert from amazon.com domain to native domain
         if self.url.lower() != "amazon.com":
             self._headers["authority"] = f"www.{self._url}"
-            await self.get_tokens()
-            await self.exchange_token_for_cookies()
             get_resp = await self._session.get(
                 self._prefix + self._url + "/api/bootstrap",
             )
@@ -470,18 +506,28 @@ class AlexaLogin:
     def _create_session(self, force=False) -> None:
         if not self._session or force:
             #  define session headers
-            self._headers = {
-                "User-Agent": USER_AGENT,
-                # "User-Agent": (
-                #     "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PitanguiBridge/2.2.345247.0-[HARDWARE=iPhone10_4][SOFTWARE=13.5.1]"
-                # ),
-                "Accept": ("*/*"),
-                "Accept-Language": "*",
-                "DNT": "1",
-                "Upgrade-Insecure-Requests": "1",
-                "authority": "www.amazon.com",
-            }
-
+            if self.oauth_login:
+                self._headers = {
+                    "User-Agent": USER_AGENT,
+                    # "User-Agent": (
+                    #     "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PitanguiBridge/2.2.345247.0-[HARDWARE=iPhone10_4][SOFTWARE=13.5.1]"
+                    # ),
+                    "Accept": ("*/*"),
+                    "Accept-Language": "*",
+                    "DNT": "1",
+                    "Upgrade-Insecure-Requests": "1",
+                    # "authority": "www.amazon.com",
+                }
+            else:
+                self._headers = {
+                    "User-Agent": (
+                        "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PitanguiBridge/2.2.345247.0-[HARDWARE=iPhone10_4][SOFTWARE=13.5.1]"
+                    ),
+                    "Accept": ("*/*"),
+                    "Accept-Language": "*",
+                    "DNT": "1",
+                    "Upgrade-Insecure-Requests": "1",
+                }
             #  initiate session
             self._session = aiohttp.ClientSession(headers=self._headers)
 
@@ -521,29 +567,7 @@ class AlexaLogin:
             await self.reset()
         _LOGGER.debug("Using credentials to log in")
         if not self._site:
-            site: URL = URL("https://www.amazon.com/ap/signin")
-            deviceid: Text = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
-            query = {
-                "openid.return_to": "https://www.amazon.com/ap/maplanding",
-                "openid.assoc_handle": "amzn_dp_project_dee_ios",
-                "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
-                "pageId": "amzn_dp_project_dee_ios",
-                "accountStatusPolicy": "P1",
-                "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
-                "openid.mode": "checkid_setup",
-                "openid.ns.oa2": "http://www.amazon.com/ap/ext/oauth/2",
-                "openid.oa2.client_id": f"device:{deviceid}",
-                "openid.ns.pape": "http://specs.openid.net/extensions/pape/1.0",
-                "openid.oa2.response_type": "token",
-                "openid.ns": "http://specs.openid.net/auth/2.0",
-                "openid.pape.max_auth_age": "0",
-                "openid.oa2.scope": "device_auth_access",
-                "language": LOCALE_KEY.get(self.url.replace("amazon", ""))
-                if LOCALE_KEY.get(self.url.replace("amazon", ""))
-                else "en_US",
-            }
-            site = site.update_query(query)
-            _LOGGER.debug("Attempting oauth login to %s", site)
+            site: URL = self.start_url
         else:
             site = self._site
         if not self._session:
@@ -671,15 +695,16 @@ class AlexaLogin:
                 "utf8"
             )
         ).decode("utf8")
-        cookies = self._get_cookies_from_session()
-        cookies["frc"] = frc
-        cookies["map-md"] = map_md
+
         if self.url.lower() != "amazon.com":
             urls = [self.url, "amazon.com"]
         else:
             urls = [self.url]
         registered = False
         for url in urls:
+            cookies = self._get_cookies_from_session(f"https://{url}")
+            cookies["frc"] = frc
+            cookies["map-md"] = map_md
             headers = {
                 "Content-Type": "application/json",
                 "Accept-Charset": "utf-8",
@@ -781,11 +806,13 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self.url}",
+            "x-amzn-identity-auth-domain": "api.amazon.com",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
-            "Accept-Language": "en-US",
+            "Accept-Language": LOCALE_KEY.get(self.url.replace("amazon", ""))
+            if LOCALE_KEY.get(self.url.replace("amazon", ""))
+            else "en_US",
             # "Cookie": "; ".join(
             #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
             # ),
@@ -793,6 +820,7 @@ class AlexaLogin:
         response = await self._session.post(
             "https://api." + self.url + "/auth/token", data=data, headers=headers,
         )
+        _LOGGER.debug("refresh response %s with \n%s", response, dumps(data))
         if response.status != 200:
             if self._debug:
                 _LOGGER.debug("Failed to refresh access token: %s", response)
@@ -835,24 +863,26 @@ class AlexaLogin:
             "source_token_type": "refresh_token",
             "di.hw.version": "iPhone",
             "di.sdk.version": "6.10.0",
-            "cookies": {},
+            # "cookies": {},
             "app_name": APP_NAME,
             "di.os.version": "11.4.1",
         }
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self.url}",
+            # "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
-            "Accept-Language": "en-US",
+            "Accept-Language": LOCALE_KEY.get(self.url.replace("amazon", ""))
+            if LOCALE_KEY.get(self.url.replace("amazon", ""))
+            else "en_US",
             # "Cookie": "; ".join(
             #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
             # ),
         }
         response = await self._session.post(
-            "https://api." + self.url + "/ap/exchangetoken/cookies",
+            "https://www." + self.url + "/ap/exchangetoken/cookies",
             data=data,
             headers=headers,
         )
@@ -1328,8 +1358,6 @@ class AlexaLogin:
         )
         self.status = {}
         self.status["login_successful"] = True
-        await self.get_tokens()
-        await self.get_csrf()
         await self.save_cookiefile()
         #  remove extraneous Content-Type to avoid 500 errors
         self._headers.pop("Content-Type", None)
