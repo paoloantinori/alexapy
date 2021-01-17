@@ -158,7 +158,8 @@ def _catch_all_exceptions(func):
                 obfuscate(kwargs),
                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
             )
-            login.status["login_successful"] = False
+            if login:
+                login.status["login_successful"] = False
             raise AlexapyLoginError from ex
         except (ContentTypeError) as ex:
             _LOGGER.warning(
@@ -169,7 +170,8 @@ def _catch_all_exceptions(func):
                 obfuscate(kwargs),
                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
             )
-            login.status["login_successful"] = False
+            if login:
+                login.status["login_successful"] = False
             raise AlexapyLoginError from ex
         except CancelledError as ex:
             _LOGGER.warning(
