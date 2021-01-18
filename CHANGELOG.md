@@ -2,6 +2,22 @@
 
 <!--next-version-placeholder-->
 
+## v1.22.0 (2021-01-18)
+### Feature
+* Add summary for get_last_device_serial ([`887f689`](https://gitlab.com/keatontaylor/alexapy/-/commit/887f689b96997bedfc3f43791d2800dc7f083623))
+* Autofill otp for proxy if available ([`6113132`](https://gitlab.com/keatontaylor/alexapy/-/commit/6113132fc7b9526da32e42ce2573f44d81de5812))
+
+### Fix
+* Ignore skill invocations with last_called ([`92a35fe`](https://gitlab.com/keatontaylor/alexapy/-/commit/92a35fe72f068575fa41e257f53de58bb96c8f9a))
+* Add oauth_login option ([`2a79d69`](https://gitlab.com/keatontaylor/alexapy/-/commit/2a79d69c501796363403a7004c19d810dec1e263))
+* Use device serial number instead of unique_id ([`cf558bd`](https://gitlab.com/keatontaylor/alexapy/-/commit/cf558bda21c786b4b7abca1478afdb08eca44e3f))
+* Fix TypeError when login not determined ([`71b5941`](https://gitlab.com/keatontaylor/alexapy/-/commit/71b594159288cc1df510a459bcfc1839f1650333))
+* Fix language for .es domain to Spanish ([`bd068d3`](https://gitlab.com/keatontaylor/alexapy/-/commit/bd068d305ba4ee5c6455be9c32b4f50b10afd31c))
+* Generate cookiefile path dynamically ([`f57ee13`](https://gitlab.com/keatontaylor/alexapy/-/commit/f57ee1337f22d083e5f5d782f2e8380189f0efc6))
+* Collect email/password in earlier post ([`0508732`](https://gitlab.com/keatontaylor/alexapy/-/commit/0508732a8f56e629c9351450be56a1376b37b26d))
+* Fix premature submission for action_required ([`c529554`](https://gitlab.com/keatontaylor/alexapy/-/commit/c52955404ac226d951cbcf4c6a0e37462b212335))
+* Handle connection errors ([`659cf9f`](https://gitlab.com/keatontaylor/alexapy/-/commit/659cf9f53e11c58f323ec57b0be579935dbc5601))
+
 ## v1.21.0 (2021-01-09)
 ### Feature
 * Enable proxy login option ([`66ae83c`](https://gitlab.com/keatontaylor/alexapy/-/commit/66ae83cd38e54eb66d015cc075f9513c8f8eccf9))
