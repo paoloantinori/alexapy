@@ -19,7 +19,7 @@ LOCALE_KEY = {
     ".co.uk": "en_GB",
     ".in": "en_IN",
     ".com": "en_US",
-    ".es": "en_ES",
+    ".es": "es_ES",
     ".mx": "es_MX",
     ".fr": "fr_FR",
     ".it": "it_IT",

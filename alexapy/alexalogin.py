@@ -65,6 +65,7 @@ class AlexaLogin:
         otp_secret: Text = "",
         oauth: Optional[Dict[Any, Any]] = None,
         uuid: Optional[Text] = None,
+        oauth_login: bool = True,
     ) -> None:
         # pylint: disable=too-many-arguments,import-outside-toplevel
         """Set up initial connection and log in."""
@@ -73,8 +74,8 @@ class AlexaLogin:
         import certifi
 
         oauth = oauth or {}
-        prefix: Text = "alexa_media"
-        self._prefix = "https://alexa."
+        self._hass_domain: Text = "alexa_media"
+        self._prefix: Text = "https://alexa."
         self._url: Text = url
         self._email: Text = email
         self._password: Text = password
@@ -82,7 +83,6 @@ class AlexaLogin:
         self._ssl = ssl.create_default_context(
             purpose=ssl.Purpose.SERVER_AUTH, cafile=certifi.where()
         )
-        self._cookies: Optional[Dict[Text, Text]] = {}
         self._headers: Dict[Text, Text] = {}
         self._data: Optional[Dict[Text, Text]] = None
         self.status: Optional[Dict[Text, Union[Text, bool]]] = {}
@@ -90,19 +90,23 @@ class AlexaLogin:
             "login_timestamp": datetime.datetime(1, 1, 1),
             "api_calls": 0,
         }
+        self._outputpath = outputpath
         self._cookiefile: List[Text] = [
-            outputpath(".storage/{}.{}.pickle".format(prefix, email)),
-            outputpath("{}.{}.pickle".format(prefix, email)),
-            outputpath(".storage/{}.{}.txt".format(prefix, email)),
+            self._outputpath(f".storage/{self._hass_domain}.{self.email}.pickle"),
+            self._outputpath(f"{self._hass_domain}.{self.email}.pickle"),
+            self._outputpath(f".storage/{self._hass_domain}.{self.email}.txt"),
         ]
-        self._debugpost: Text = outputpath("{}{}post.html".format(prefix, email))
-        self._debugget: Text = outputpath("{}{}get.html".format(prefix, email))
+        self._debugpost: Text = outputpath(
+            "{}{}post.html".format(self._hass_domain, email)
+        )
+        self._debugget: Text = outputpath(
+            "{}{}get.html".format(self._hass_domain, email)
+        )
         self._lastreq: Optional[aiohttp.ClientResponse] = None
         self._debug: bool = debug
         self._links: Optional[Dict[Text, Tuple[Text, Text]]] = {}
         self._options: Optional[Dict[Text, Text]] = {}
         self._site: Optional[Text] = None
-        self._create_session()
         self._close_requested = False
         self._customer_id: Optional[Text] = None
         self._totp: Optional[pyotp.TOTP] = None
@@ -112,6 +116,11 @@ class AlexaLogin:
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
         self.uuid = uuid  # needed to be unique but repeateable for device registration
+        self.oauth_login: bool = oauth_login
+        _LOGGER.debug(
+            "Login created for %s - %s", obfuscate(self.email), self.url,
+        )
+        self._create_session()
 
     @property
     def email(self) -> Text:
@@ -151,6 +160,38 @@ class AlexaLogin:
     def url(self) -> Text:
         """Return url for this Login."""
         return self._url
+
+    @property
+    def start_url(self) -> URL:
+        """Return start url for this Login."""
+        if self.oauth_login:
+            site: URL = URL("https://www.amazon.com/ap/signin")
+            deviceid: Text = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
+            query = {
+                "openid.return_to": "https://www.amazon.com/ap/maplanding",
+                "openid.assoc_handle": "amzn_dp_project_dee_ios",
+                "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
+                "pageId": "amzn_dp_project_dee_ios",
+                "accountStatusPolicy": "P1",
+                "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
+                "openid.mode": "checkid_setup",
+                "openid.ns.oa2": "http://www.amazon.com/ap/ext/oauth/2",
+                "openid.oa2.client_id": f"device:{deviceid}",
+                "openid.ns.pape": "http://specs.openid.net/extensions/pape/1.0",
+                "openid.oa2.response_type": "token",
+                "openid.ns": "http://specs.openid.net/auth/2.0",
+                "openid.pape.max_auth_age": "0",
+                "openid.oa2.scope": "device_auth_access",
+                "language": LOCALE_KEY.get(self.url.replace("amazon", ""))
+                if LOCALE_KEY.get(self.url.replace("amazon", ""))
+                else "en_US",
+            }
+            site = site.update_query(query)
+            _LOGGER.debug("Attempting oauth login to %s", site)
+        else:
+            site: URL = URL(self._prefix + self.url)
+            self._headers["authority"] = f"www.{self._url}"
+        return site
 
     @property
     def lastreq(self) -> Optional[aiohttp.ClientResponse]:
@@ -221,6 +262,7 @@ class AlexaLogin:
         cookies: Optional[
             Union[RequestsCookieJar, http.cookiejar.MozillaCookieJar]
         ] = None
+        return_cookies = {}
         numcookies: int = 0
         loaded: bool = False
         if self._cookiefile:
@@ -281,21 +323,20 @@ class AlexaLogin:
                 if isinstance(cookies, RequestsCookieJar):
                     _LOGGER.debug("Loading RequestsCookieJar")
                     cookies = cookies.get_dict()
-                    assert self._cookies is not None
                     assert cookies is not None
                     for key, value in cookies.items():
                         if self._debug:
                             _LOGGER.debug('Key: "%s", Value: "%s"', key, value)
                         # escape extra quote marks from Requests cookie
-                        self._cookies[str(key)] = value.strip('"')
-                    numcookies = len(self._cookies)
+                        return_cookies[str(key)] = value.strip('"')
+                    numcookies = len(return_cookies)
                 elif isinstance(cookies, defaultdict):
                     _LOGGER.debug("Trying to load aiohttpCookieJar to session")
                     cookie_jar: aiohttp.CookieJar = self._session.cookie_jar
                     try:
                         cookie_jar.load(cookiefile)
-                        self._prepare_cookies_from_session(self._url)
-                        numcookies = len(self._cookies)
+                        return_cookies = self._get_cookies_from_session()
+                        numcookies = len(return_cookies)
                     except (OSError, EOFError, TypeError, AttributeError) as ex:
                         _LOGGER.debug(
                             "Error loading aiohttpcookie from %s: %s",
@@ -307,8 +348,8 @@ class AlexaLogin:
                         self._create_session(True)
                 elif isinstance(cookies, dict):
                     _LOGGER.debug("Found dict cookie")
-                    self._cookies = cookies
-                    numcookies = len(self._cookies)
+                    return_cookies = cookies
+                    numcookies = len(return_cookies)
                 elif isinstance(cookies, http.cookiejar.MozillaCookieJar):
                     _LOGGER.debug("Found Mozillacookiejar")
                     for cookie in cookies:
@@ -319,8 +360,8 @@ class AlexaLogin:
                                 cookie.expires,
                             )
                         # escape extra quote marks from MozillaCookieJar cookie
-                        self._cookies[cookie.name] = cookie.value.strip('"')
-                    numcookies = len(self._cookies)
+                        return_cookies[cookie.name] = cookie.value.strip('"')
+                    numcookies = len(return_cookies)
                 else:
                     _LOGGER.debug("Ignoring unknown file %s", type(cookies))
                 if numcookies:
@@ -339,7 +380,7 @@ class AlexaLogin:
                                 self._cookiefile[0],
                                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
                             )
-        return self._cookies
+        return return_cookies
 
     async def close(self) -> None:
         """Close connection for login."""
@@ -353,9 +394,9 @@ class AlexaLogin:
     async def reset(self) -> None:
         # pylint: disable=import-outside-toplevel
         """Remove data related to existing login."""
+        _LOGGER.debug("Resetting Login for %s - %s", self.email, self.url)
         await self.close()
         self._session = None
-        self._cookies = {}
         self._data = None
         self._lastreq = None
         self.status = {}
@@ -402,6 +443,9 @@ class AlexaLogin:
             _LOGGER.debug("Header: %s", dumps(self._headers))
         if not self._session:
             self._create_session()
+        await self.get_tokens()
+        await self.exchange_token_for_cookies()
+        await self.get_csrf()
         get_resp = await self._session.get(
             self._prefix + "amazon.com" + "/api/bootstrap",
             cookies=cookies,
@@ -416,12 +460,11 @@ class AlexaLogin:
                 "Not logged in: %s",
                 EXCEPTION_TEMPLATE.format(type(ex).__name__, ex.args),
             )
-            return False
+            if self.url.lower() == "amazon.com":
+                return False
         # Convert from amazon.com domain to native domain
         if self.url.lower() != "amazon.com":
             self._headers["authority"] = f"www.{self._url}"
-            await self.get_tokens()
-            await self.exchange_token_for_cookies()
             get_resp = await self._session.get(
                 self._prefix + self._url + "/api/bootstrap",
             )
@@ -463,48 +506,40 @@ class AlexaLogin:
     def _create_session(self, force=False) -> None:
         if not self._session or force:
             #  define session headers
-            self._headers = {
-                "User-Agent": USER_AGENT,
-                # "User-Agent": (
-                #     "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PitanguiBridge/2.2.345247.0-[HARDWARE=iPhone10_4][SOFTWARE=13.5.1]"
-                # ),
-                "Accept": ("*/*"),
-                "Accept-Language": "*",
-                "DNT": "1",
-                "Upgrade-Insecure-Requests": "1",
-                "authority": "www.amazon.com",
-            }
-
+            if self.oauth_login:
+                self._headers = {
+                    "User-Agent": USER_AGENT,
+                    # "User-Agent": (
+                    #     "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PitanguiBridge/2.2.345247.0-[HARDWARE=iPhone10_4][SOFTWARE=13.5.1]"
+                    # ),
+                    "Accept": ("*/*"),
+                    "Accept-Language": "*",
+                    "DNT": "1",
+                    "Upgrade-Insecure-Requests": "1",
+                    # "authority": "www.amazon.com",
+                }
+            else:
+                self._headers = {
+                    "User-Agent": (
+                        "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PitanguiBridge/2.2.345247.0-[HARDWARE=iPhone10_4][SOFTWARE=13.5.1]"
+                    ),
+                    "Accept": ("*/*"),
+                    "Accept-Language": "*",
+                    "DNT": "1",
+                    "Upgrade-Insecure-Requests": "1",
+                }
             #  initiate session
             self._session = aiohttp.ClientSession(headers=self._headers)
 
-    def _prepare_cookies_from_session(self, site: Text) -> None:
-        """Update self._cookies from aiohttp session.
-
-        This should only be needed to run after a succesful login.
-        """
+    def _get_cookies_from_session(self, site: Text = "") -> Dict[Text, Text]:
+        """Return cookies from aiohttp session."""
         assert self._session
+        if not site:
+            site = self.url
+        cookies = {}
         cookie_jar = self._session.cookie_jar
-        if self._cookies is None:
-            self._cookies = {}
-        if self._debug:
-            _LOGGER.debug(
-                "Updating self._cookies with %s session cookies:\n%s",
-                site,
-                self._print_session_cookies(),
-            )
-        for cookie in cookie_jar:
-            oldvalue = self._cookies[cookie.key] if cookie.key in self._cookies else ""
-            if cookie["domain"] in [str(site), f".{site}", ""]:
-                self._cookies[cookie.key] = cookie.value
-                if self._debug and oldvalue != cookie.value:
-                    _LOGGER.debug(
-                        "%s: key: %s value: %s -> %s",
-                        site,
-                        cookie.key,
-                        oldvalue,
-                        cookie.value,
-                    )
+        cookies = cookie_jar.filter_cookies(URL(f"https://{site}"))
+        return cookies
 
     def _print_session_cookies(self) -> Text:
         result: Text = ""
@@ -532,29 +567,7 @@ class AlexaLogin:
             await self.reset()
         _LOGGER.debug("Using credentials to log in")
         if not self._site:
-            site: URL = URL("https://www.amazon.com/ap/signin")
-            deviceid: Text = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
-            query = {
-                "openid.return_to": "https://www.amazon.com/ap/maplanding",
-                "openid.assoc_handle": "amzn_dp_project_dee_ios",
-                "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
-                "pageId": "amzn_dp_project_dee_ios",
-                "accountStatusPolicy": "P1",
-                "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
-                "openid.mode": "checkid_setup",
-                "openid.ns.oa2": "http://www.amazon.com/ap/ext/oauth/2",
-                "openid.oa2.client_id": f"device:{deviceid}",
-                "openid.ns.pape": "http://specs.openid.net/extensions/pape/1.0",
-                "openid.oa2.response_type": "token",
-                "openid.ns": "http://specs.openid.net/auth/2.0",
-                "openid.pape.max_auth_age": "0",
-                "openid.oa2.scope": "device_auth_access",
-                "language": LOCALE_KEY.get(self.url.replace("amazon", ""))
-                if LOCALE_KEY.get(self.url.replace("amazon", ""))
-                else "en_US",
-            }
-            site = site.update_query(query)
-            _LOGGER.debug("Attempting oauth login to %s", site)
+            site: URL = self.start_url
         else:
             site = self._site
         if not self._session:
@@ -584,7 +597,9 @@ class AlexaLogin:
             _LOGGER.debug("Loaded last request to %s ", site)
             resp = self._lastreq
         else:
-            resp = await self._session.get(site, headers=self._headers, ssl=self._ssl)
+            resp = await self._session.get(
+                site, headers=self._headers, ssl=self._ssl, params=self._data
+            )
             self._lastreq = resp
             site = await self._process_resp(resp)
         html: Text = await resp.text()
@@ -612,31 +627,39 @@ class AlexaLogin:
                 _LOGGER.debug("Header: %s", dumps(self._headers))
 
             # submit post request with username/password and other needed info
+            post_resp = None
             if self.status.get("force_get"):
-                post_resp = await self._session.get(
-                    site, params=self._data, headers=self._headers, ssl=self._ssl,
-                )
+                if not self.status.get("approval") and not self.status.get(
+                    "action_required"
+                ):
+                    post_resp = await self._session.get(
+                        site, params=self._data, headers=self._headers, ssl=self._ssl,
+                    )
             else:
                 post_resp = await self._session.post(
                     site, data=self._data, headers=self._headers, ssl=self._ssl,
                 )
 
             # headers need to be submitted to have the referer
-            if self._debug:
-                async with aiofiles.open(self._debugpost, mode="wb") as localfile:
-                    await localfile.write(await post_resp.read())
-            self._lastreq = post_resp
-            site = await self._process_resp(post_resp)
-            self._site = await self._process_page(await post_resp.text(), site)
+            if post_resp:
+                if self._debug:
+                    async with aiofiles.open(self._debugpost, mode="wb") as localfile:
+                        await localfile.write(await post_resp.read())
+                self._lastreq = post_resp
+                site = await self._process_resp(post_resp)
+                self._site = await self._process_page(await post_resp.text(), site)
 
     async def save_cookiefile(self) -> None:
         """Save login session cookies to file."""
-        self._prepare_cookies_from_session(self.url)
+        self._cookiefile = [
+            self._outputpath(f".storage/{self._hass_domain}.{self.email}.pickle"),
+            self._outputpath(f"{self._hass_domain}.{self.email}.pickle"),
+            self._outputpath(f".storage/{self._hass_domain}.{self.email}.txt"),
+        ]
         for cookiefile in self._cookiefile:
             if cookiefile == self._cookiefile[0]:
                 cookie_jar = self._session.cookie_jar
                 assert isinstance(cookie_jar, aiohttp.CookieJar)
-                cookie_jar.update_cookies(self._cookies, URL(self.url))
                 if self._debug:
                     _LOGGER.debug("Saving cookie to %s", cookiefile)
                 try:
@@ -650,6 +673,8 @@ class AlexaLogin:
             elif (cookiefile) and os.path.exists(cookiefile):
                 _LOGGER.debug("Removing outdated cookiefile %s", cookiefile)
                 await delete_cookie(cookiefile)
+        if self._debug:
+            _LOGGER.debug("Session Cookies:\n%s", self._print_session_cookies())
 
     async def get_tokens(self) -> bool:
         """Get access and refresh tokens after registering device using cookies.
@@ -670,14 +695,16 @@ class AlexaLogin:
                 "utf8"
             )
         ).decode("utf8")
-        self._cookies["frc"] = frc
-        self._cookies["map-md"] = map_md
+
         if self.url.lower() != "amazon.com":
             urls = [self.url, "amazon.com"]
         else:
             urls = [self.url]
         registered = False
         for url in urls:
+            cookies = self._get_cookies_from_session(f"https://{url}")
+            cookies["frc"] = frc
+            cookies["map-md"] = map_md
             headers = {
                 "Content-Type": "application/json",
                 "Accept-Charset": "utf-8",
@@ -690,14 +717,14 @@ class AlexaLogin:
                 #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
                 # ),
             }
-            cookies = []
-            for k, value in self._cookies.items():
+            cookies_list = []
+            for k, value in cookies.items():
                 # if k == "csrf":
                 #     continue
-                cookies.append({"Value": value, "Name": k})
+                cookies_list.append({"Value": value.value, "Name": k})
             data = {
                 "requested_extensions": ["device_info", "customer_info"],
-                "cookies": {"website_cookies": cookies, "domain": f".{url}"},
+                "cookies": {"website_cookies": cookies_list, "domain": f".{url}"},
                 "registration_data": {
                     "domain": "Device",
                     "app_version": "2.2.223830.0",
@@ -719,7 +746,7 @@ class AlexaLogin:
             response = await self._session.post(
                 "https://api." + url + "/auth/register", json=data, headers=headers,
             )
-            # _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
+            _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
             if response.status == 200:
                 registered = True
                 break
@@ -779,11 +806,13 @@ class AlexaLogin:
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self.url}",
+            "x-amzn-identity-auth-domain": "api.amazon.com",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
-            "Accept-Language": "en-US",
+            "Accept-Language": LOCALE_KEY.get(self.url.replace("amazon", ""))
+            if LOCALE_KEY.get(self.url.replace("amazon", ""))
+            else "en_US",
             # "Cookie": "; ".join(
             #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
             # ),
@@ -791,6 +820,7 @@ class AlexaLogin:
         response = await self._session.post(
             "https://api." + self.url + "/auth/token", data=data, headers=headers,
         )
+        _LOGGER.debug("refresh response %s with \n%s", response, dumps(data))
         if response.status != 200:
             if self._debug:
                 _LOGGER.debug("Failed to refresh access token: %s", response)
@@ -833,24 +863,26 @@ class AlexaLogin:
             "source_token_type": "refresh_token",
             "di.hw.version": "iPhone",
             "di.sdk.version": "6.10.0",
-            "cookies": {},
+            # "cookies": {},
             "app_name": APP_NAME,
             "di.os.version": "11.4.1",
         }
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": f"api.{self.url}",
+            # "x-amzn-identity-auth-domain": f"api.{self.url}",
             "Connection": "keep-alive",
             "Accept": "*/*",
             "User-Agent": USER_AGENT,
-            "Accept-Language": "en-US",
+            "Accept-Language": LOCALE_KEY.get(self.url.replace("amazon", ""))
+            if LOCALE_KEY.get(self.url.replace("amazon", ""))
+            else "en_US",
             # "Cookie": "; ".join(
             #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
             # ),
         }
         response = await self._session.post(
-            "https://api." + self.url + "/ap/exchangetoken/cookies",
+            "https://www." + self.url + "/ap/exchangetoken/cookies",
             data=data,
             headers=headers,
         )
@@ -900,7 +932,8 @@ class AlexaLogin:
             bool: True if csrf is found
 
         """
-        if self._cookies.get("csrf"):
+        cookies = self._get_cookies_from_session()
+        if cookies.get("csrf"):
             _LOGGER.debug("CSRF already exists; no need to discover")
             return True
         _LOGGER.debug("Attempting to discover CSRF token")
@@ -917,8 +950,8 @@ class AlexaLogin:
                 if self._debug:
                     _LOGGER.debug("Unable to load page for csrf: %s", response)
                 continue
-            self._prepare_cookies_from_session(self.url)
-            if self._cookies.get("csrf"):
+            cookies = self._get_cookies_from_session()
+            if cookies.get("csrf"):
                 _LOGGER.debug("CSRF token found from %s", url)
                 return True
             _LOGGER.debug("CSRF token not found from %s", url)
@@ -1181,6 +1214,7 @@ class AlexaLogin:
                 message += div.getText()
             status["force_get"] = True
             status["message"] = re.sub("(\\s)+", "\\1", message)
+            status["action_required"] = True
             _LOGGER.debug("Javascript Authentication page detected: %s", message)
         elif forgotpassword_tag or soup.find("input", {"name": "OTPChallengeOptions"}):
             status["message"] = (
@@ -1316,11 +1350,14 @@ class AlexaLogin:
 
     async def finalize_login(self) -> None:
         """Perform final steps after successful login."""
-        _LOGGER.debug("Login confirmed; saving cookie to %s", self._cookiefile[0])
+        _LOGGER.debug(
+            "Login confirmed for %s - %s; saving cookie to %s",
+            self.email,
+            self.url,
+            self._cookiefile[0],
+        )
         self.status = {}
         self.status["login_successful"] = True
-        await self.get_tokens()
-        await self.get_csrf()
         await self.save_cookiefile()
         #  remove extraneous Content-Type to avoid 500 errors
         self._headers.pop("Content-Type", None)

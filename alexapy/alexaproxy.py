@@ -9,17 +9,16 @@ This provides a login by proxy method.
 For more details about this api, please refer to the documentation at
 https://gitlab.com/keatontaylor/alexapy
 """
-import binascii
 import logging
-import secrets
 from typing import Text
 
 from aiohttp import web
+from bs4 import BeautifulSoup
 import multidict
 from yarl import URL
 
+from alexapy.aiohttp.client_exceptions import ClientConnectionError
 from alexapy.alexalogin import AlexaLogin
-from alexapy.const import LOCALE_KEY
 from alexapy.stackoverflow import get_open_port
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,7 +50,7 @@ class AlexaProxy:
 
     def access_url(self) -> URL:
         """Return access url for proxy."""
-        return f"{URL(self._base_url).with_port(self.port)}"
+        return f"{URL(self._base_url).with_port(self.port)}/"
 
     async def start_handler(self, request: web.Request) -> web.Response:
         """Handle start of proxy interaction.
@@ -67,38 +66,31 @@ class AlexaProxy:
         """
         self._config_flow_id = request.query["config_flow_id"]
         self._callback_url = request.query["callback_url"]
+        await self._login.reset()
+        site: URL = self._login.start_url
         _LOGGER.debug(
-            "Starting auth for domain %s for configflow %s with callback %s",
+            "Starting auth at %s for domain %s for configflow %s with callback %s",
+            site,
             self._login.url,
             self._config_flow_id,
             self._callback_url,
         )
-        site: URL = URL("https://www.amazon.com/ap/signin")
-        deviceid: Text = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
-        query = {
-            "openid.return_to": "https://www.amazon.com/ap/maplanding",
-            "openid.assoc_handle": "amzn_dp_project_dee_ios",
-            "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
-            "pageId": "amzn_dp_project_dee_ios",
-            "accountStatusPolicy": "P1",
-            "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
-            "openid.mode": "checkid_setup",
-            "openid.ns.oa2": "http://www.amazon.com/ap/ext/oauth/2",
-            "openid.oa2.client_id": f"device:{deviceid}",
-            "openid.ns.pape": "http://specs.openid.net/extensions/pape/1.0",
-            "openid.oa2.response_type": "token",
-            "openid.ns": "http://specs.openid.net/auth/2.0",
-            "openid.pape.max_auth_age": "0",
-            "openid.oa2.scope": "device_auth_access",
-            "language": LOCALE_KEY.get(self._login.url.replace("amazon", ""))
-            if LOCALE_KEY.get(self._login.url.replace("amazon", ""))
-            else "en_US",
-        }
-        site = site.update_query(query)
-        headers = multidict.MultiDict(request.headers)
-        headers.update({"Host": "www.amazon.com"})
-        resp = await self._login._session.get(site, headers=headers)
-        text = (await resp.text()).replace("https://www.amazon.com", self.access_url())
+        headers = self._change_headers(site, request)
+        try:
+            resp = await self._login._session.get(site, headers=headers)
+        except ClientConnectionError as ex:
+            return web.Response(text=f"Error connecting to {site}; please retry: {ex}")
+        if self._login._debug:
+            await self._login._process_resp(resp)
+        text = self.change_host_to_proxy(await resp.text())
+        text = self.autofill(
+            text,
+            {
+                "email": self._login.email,
+                "password": self._login.password,
+                "otpCode": self._login.get_totp_token(),
+            },
+        )
         return web.Response(text=text, content_type=resp.content_type,)
 
     async def get_handler(self, request: web.Request) -> web.Response:
@@ -121,12 +113,26 @@ class AlexaProxy:
             self._callback_url = request.query["callback_url"]
             resp = self._login.lastreq
         else:
-            site = str(request.url).replace(self.access_url(), "https://www.amazon.com")
-            resp = await self._login._session.get(site)
+            site = URL(self.change_proxy_to_host(str(request.url)))
+            headers = self._change_headers(site, request)
+            try:
+                resp = await self._login._session.get(site, headers=headers)
+            except ClientConnectionError as ex:
+                return web.Response(
+                    text=f"Error connecting to {site}; please retry: {ex}"
+                )
+        if self._login._debug:
+            await self._login._process_resp(resp)
         content_type = resp.content_type
         if content_type == "text/html":
-            text = (await resp.text()).replace(
-                "https://www.amazon.com", self.access_url()
+            text = self.change_host_to_proxy(await resp.text())
+            text = self.autofill(
+                text,
+                {
+                    "email": self._login.email,
+                    "password": self._login.password,
+                    "otpCode": self._login.get_totp_token(),
+                },
             )
             return web.Response(text=text, content_type=content_type,)
         # handle non html content
@@ -149,32 +155,43 @@ class AlexaProxy:
         _LOGGER.debug("Post Request: %s", request.url)
         data = await request.post()
         self.data.update(data)
-        site = str(request.url).replace(self.access_url(), "https://www.amazon.com")
-        headers = multidict.MultiDict(request.headers)
-        headers.update(
-            {
-                "Host": "www.amazon.com",
-                "Origin": "www.amazon.com",
-                "Referer": "www.amazon.com",
-            }
-        )
-        # submit post
-        resp = await self._login._session.post(site, data=data, headers=headers)
+        site = URL(self.change_proxy_to_host(str(request.url)))
+        headers = self._change_headers(site, request)
+        try:
+            # submit post
+            resp = await self._login._session.post(site, data=data, headers=headers)
+        except ClientConnectionError as ex:
+            return web.Response(text=f"Error connecting to {site}; please retry: {ex}")
+        if self._login._debug:
+            await self._login._process_resp(resp)
         text = await resp.text()
         content_type = resp.content_type
-        if resp.url.path == "/ap/maplanding":
+        if self.data.get("email"):
+            self._login.email = self.data.get("email")
+        if self.data.get("password"):
+            self._login.password = self.data.get("password")
+        if resp.url.path in ["/ap/maplanding", "/spa/index.html"]:
             self._login.access_token = resp.url.query.get("openid.oa2.access_token")
-            if self.data.get("email"):
-                self._login.email = self.data.get("email")
-            if self.data.get("password"):
-                self._login.password = self.data.get("password")
             if self._callback_url:
-                _LOGGER.debug("Success. Redirecting to: %s", self._callback_url)
+                _LOGGER.debug(
+                    "Proxy success for %s - %s. Redirecting to: %s",
+                    self._login.email,
+                    self._login.url,
+                    self._callback_url,
+                )
                 raise web.HTTPFound(location=URL(self._callback_url))
             return web.Response(
                 text=f"Successfully logged in as {self._login.email} for flow {self._config_flow_id}. Please close the window.",
             )
-        text = text.replace("https://www.amazon.com", self.access_url())
+        text = self.change_host_to_proxy(text)
+        text = self.autofill(
+            text,
+            {
+                "email": self._login.email,
+                "password": self._login.password,
+                "otpCode": self._login.get_totp_token(),
+            },
+        )
         return web.Response(text=text, content_type=content_type)
 
     async def start_proxy(self) -> None:
@@ -200,3 +217,70 @@ class AlexaProxy:
         _LOGGER.debug("Stopping proxy at %s", f"{self._base_url}:{self.port}")
         await self.runner.cleanup()
         await self.runner.shutdown()
+
+    def change_proxy_to_host(self, text: Text) -> Text:
+        """Replace text with proxy address.
+
+        Args
+            text (Text): text to replace
+
+        Returns
+            Text: Result of replacing
+
+        """
+        if self._login.oauth_login:
+            return text.replace(self.access_url(), "https://www.amazon.com/")
+        return text.replace(self.access_url(), f"https://www.{self._login.url}/")
+
+    def change_host_to_proxy(self, text: Text) -> Text:
+        """Replace text with Amazon address.
+
+        Args
+            text (Text): text to replace
+
+        Returns
+            Text: Result of replacing
+
+        """
+        if self._login.oauth_login:
+            return text.replace("https://www.amazon.com/", self.access_url())
+        return text.replace(f"https://www.{self._login.url}/", self.access_url())
+
+    def _change_headers(self, site, request) -> dict:
+        # necessary since MultiDict.update did not appear to work
+        headers = multidict.MultiDict(request.headers)
+        result = {}
+        for k, value in headers.items():
+            result[k] = value
+        # _LOGGER.debug("Original headers %s", headers)
+        if result.get("Host"):
+            result.pop("Host")
+        if result.get("Origin"):
+            result["Origin"] = f"https://{site.host}"
+        if result.get("Referer") and URL(result.get("Referer")).query.get(
+            "config_flow_id"
+        ):
+            result.pop("Referer")
+        elif result.get("Referer"):
+            result["Referer"] = self.change_proxy_to_host(result.get("Referer"))
+        # _LOGGER.debug("Final headers %s", result)
+        return result
+
+    def autofill(self, html: Text, items: dict) -> Text:
+        """Autofill input tags in form in html.
+
+        Args
+            html (Text): html to convert
+            items (dict): Dictionary of values to fill
+
+        Returns
+            Text: html with values filled in
+
+        """
+        soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
+        for item, value in items.items():
+            for html_tag in soup.find_all(attrs={"name": item}):
+                html_tag["value"] = value
+                if self._login._debug:
+                    _LOGGER.debug("Filled %s", html_tag)
+        return str(soup)

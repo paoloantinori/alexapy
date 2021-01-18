@@ -55,9 +55,8 @@ class AlexaAPI:
         AlexaAPI._sequence_queue[self._login.email] = []
         AlexaAPI._sequence_lock[self._login.email] = asyncio.Lock()
         try:
-            assert self._login._cookies is not None
-            csrf = self._login._cookies["csrf"]
-            self._login._headers["csrf"] = csrf
+            csrf = self._login._get_cookies_from_session()["csrf"]
+            self._login._headers["csrf"] = csrf.value
         except KeyError as ex:
             _LOGGER.warning(
                 (
@@ -78,15 +77,19 @@ class AlexaAPI:
 
         """
         if login != self._login or login.session != self._session:
-            _LOGGER.debug("New Login %s detected; replacing %s", login, self._login)
+            _LOGGER.debug(
+                "%s: New Login %s detected; replacing %s",
+                hide_email(login.email),
+                login,
+                self._login,
+            )
             self._login = login
             self._session = login.session
             self._url: Text = "https://alexa." + login.url
             self._login._headers["Referer"] = "{}/spa/index.html".format(self._url)
             try:
-                assert self._login._cookies is not None
-                csrf = self._login._cookies["csrf"]
-                self._login._headers["csrf"] = csrf
+                csrf = self._login._get_cookies_from_session()["csrf"]
+                self._login._headers["csrf"] = csrf.value
             except KeyError as ex:
                 if login.status.get("login_successful"):
                     _LOGGER.warning(
@@ -115,7 +118,10 @@ class AlexaAPI:
     ) -> ClientResponse:
         async with self._login._oauth_lock:
             if self._login.expires_in and (self._login.expires_in - time.time() < 0):
-                _LOGGER.debug("Detected access token expiration; refreshing")
+                _LOGGER.debug(
+                    "%s: Detected access token expiration; refreshing",
+                    hide_email(self._login.email),
+                )
                 if (
                     # await self._login.get_tokens()
                     # and
@@ -130,7 +136,7 @@ class AlexaAPI:
             elif query is None:
                 query = {"_": math.floor(time.time() * 1000)}
         url: URL = URL(self._url + uri).update_query(query)
-        # _LOGGER.debug("Trying %s: %s : with uri: %s data %s query %s",
+        # _LOGGER.debug("%s: Trying %s: %s : with uri: %s data %s query %s",
         #               method,
         #               url,
         #               uri,
@@ -138,7 +144,8 @@ class AlexaAPI:
         #               query)
         if self._login.close_requested:
             _LOGGER.debug(
-                "Login object has been asked to close; ignoring %s request to %s with %s %s",
+                "%s: Login object has been asked to close; ignoring %s request to %s with %s %s",
+                hide_email(self._login.email),
                 method,
                 uri,
                 data,
@@ -147,7 +154,8 @@ class AlexaAPI:
             raise AlexapyLoginCloseRequested()
         if not self._login.status.get("login_successful"):
             _LOGGER.debug(
-                "Login error detected; ignoring %s request to %s with %s %s",
+                "%s:Login error detected; ignoring %s request to %s with %s %s",
+                hide_email(self._login.email),
                 method,
                 uri,
                 data,
@@ -164,7 +172,8 @@ class AlexaAPI:
             ssl=self._login._ssl,
         )
         _LOGGER.debug(
-            "%s: %s returned %s:%s:%s",
+            "%s: %s: %s returned %s:%s:%s",
+            hide_email(self._login.email),
             response.request_info.method,
             response.request_info.url,
             response.status,
@@ -216,7 +225,10 @@ class AlexaAPI:
     ) -> ClientResponse:
         async with login._oauth_lock:
             if login.expires_in and (login.expires_in - time.time() < 0):
-                _LOGGER.debug("Detected access token expiration; refreshing")
+                _LOGGER.debug(
+                    "%s: Detected access token expiration; refreshing",
+                    hide_email(login.email),
+                )
                 if (
                     # await login.get_tokens()
                     # and
@@ -227,7 +239,7 @@ class AlexaAPI:
                     await login.save_cookiefile()
         session = login.session
         url: URL = URL("https://alexa." + login.url + uri).update_query(query)
-        # _LOGGER.debug("Trying static %s: %s : with uri: %s data %s query %s",
+        # _LOGGER.debug("%s: %s: Trying static %s: %s : with uri: %s data %s query %s", hide_email(login.email)
         #               method,
         #               url,
         #               uri,
@@ -235,7 +247,8 @@ class AlexaAPI:
         #               query)
         if login.close_requested:
             _LOGGER.debug(
-                "Login object has been asked to close; ignoring %s request to %s with %s %s",
+                "%s: Login object has been asked to close; ignoring %s request to %s with %s %s",
+                hide_email(login.email),
                 method,
                 uri,
                 data,
@@ -244,7 +257,8 @@ class AlexaAPI:
             raise AlexapyLoginCloseRequested()
         if not login.status.get("login_successful"):
             _LOGGER.debug(
-                "Login error detected; ignoring %s request to %s with %s %s",
+                "%s: Login error detected; ignoring %s request to %s with %s %s",
+                hide_email(login.email),
                 method,
                 uri,
                 data,
@@ -261,7 +275,8 @@ class AlexaAPI:
             ssl=login._ssl,
         )
         _LOGGER.debug(
-            "static %s: %s returned %s:%s:%s",
+            "%s: static %s: %s returned %s:%s:%s",
+            hide_email(login.email),
             response.request_info.method,
             response.request_info.url,
             response.status,
@@ -319,7 +334,9 @@ class AlexaAPI:
                     ).get(
                         "deviceSerialNumber"
                     ):
-                        _LOGGER.debug("Creating Parallel node")
+                        _LOGGER.debug(
+                            "%s: Creating Parallel node", hide_email(self._login.email),
+                        )
                         sequence_json["startNode"][
                             "@type"
                         ] = "com.amazon.alexa.behaviors.model.ParallelNode"
@@ -341,16 +358,28 @@ class AlexaAPI:
                         AlexaAPI._sequence_queue[self._login.email]
                     )
                     AlexaAPI._sequence_queue[self._login.email] = []
-                    _LOGGER.debug("Creating sequence for %s items", items)
+                    _LOGGER.debug(
+                        "%s: Creating sequence for %s items",
+                        hide_email(self._login.email),
+                        items,
+                    )
                 else:
-                    _LOGGER.debug("Queue changed while waiting %s seconds", queue_delay)
+                    _LOGGER.debug(
+                        "%s: Queue changed while waiting %s seconds",
+                        hide_email(self._login.email),
+                        queue_delay,
+                    )
                     return
         data = {
             "behaviorId": "PREVIEW",
             "sequenceJson": json.dumps(sequence_json),
             "status": "ENABLED",
         }
-        _LOGGER.debug("Running behavior with data: %s", json.dumps(data))
+        _LOGGER.debug(
+            "%s: Running behavior with data: %s",
+            hide_email(self._login.email),
+            json.dumps(data),
+        )
         await self._post_request("/api/behaviors/preview", data=data)
 
     @_catch_all_exceptions
@@ -405,7 +434,7 @@ class AlexaAPI:
         extra = extra or {}
         operation_payload = {
             "deviceType": self._device._device_type,
-            "deviceSerialNumber": self._device.unique_id,
+            "deviceSerialNumber": self._device.device_serial_number,
             "locale": (self._device._locale if self._device._locale else "en-US"),
             "customerId": self._login.customer_id
             if customer_id is None
@@ -457,7 +486,7 @@ class AlexaAPI:
         operation_payload = {
             "targetDevice": {
                 "deviceType": self._device._device_type,
-                "deviceSerialNumber": self._device.unique_id,
+                "deviceSerialNumber": self._device.device_serial_number,
             },
             "locale": (self._device._locale if self._device._locale else "en-US"),
             "customerId": self._login.customer_id
@@ -550,7 +579,7 @@ class AlexaAPI:
                     "deviceSerialNumber" in node
                     and node["deviceSerialNumber"] == "ALEXA_CURRENT_DSN"
                 ):
-                    (node["deviceSerialNumber"]) = self._device.unique_id
+                    (node["deviceSerialNumber"]) = self._device.device_serial_number
                 if "locale" in node and node["locale"] == "ALEXA_CURRENT_LOCALE":
                     (node["locale"]) = (
                         self._device._locale if self._device._locale else "en-US"
@@ -571,7 +600,9 @@ class AlexaAPI:
                 automation_id = automation["automationId"]
                 sequence = automation["sequence"]
         if automation_id is None or sequence is None:
-            _LOGGER.debug("No routine found for %s", utterance)
+            _LOGGER.debug(
+                "%s: No routine found for %s", hide_email(self._login.email), utterance
+            )
             return
         new_nodes = []
         if "nodesToExecute" in sequence["startNode"]:
@@ -694,7 +725,7 @@ class AlexaAPI:
         else:
             kwargs["devices"] = [
                 {
-                    "deviceSerialNumber": self._device.unique_id,
+                    "deviceSerialNumber": self._device.device_serial_number,
                     "deviceType": self._device._device_type,
                 },
             ]
@@ -744,7 +775,7 @@ class AlexaAPI:
         else:
             devices.append(
                 {
-                    "deviceSerialNumber": self._device.unique_id,
+                    "deviceSerialNumber": self._device.device_serial_number,
                     "deviceTypeId": self._device._device_type,
                 }
             )
@@ -968,7 +999,7 @@ class AlexaAPI:
         """Select the media player."""
         await self._post_request(
             "/api/np/command?deviceSerialNumber="
-            + self._device.unique_id
+            + self._device.device_serial_number
             + "&deviceType="
             + self._device._device_type,
             data=data,
@@ -1053,7 +1084,7 @@ class AlexaAPI:
         """Get playing state."""
         response = await self._get_request(
             "/api/np/player?deviceSerialNumber="
-            + self._device.unique_id
+            + self._device.device_serial_number
             + "&deviceType="
             + self._device._device_type
             + "&screenWidth=2560"
@@ -1071,15 +1102,25 @@ class AlexaAPI:
 
         """
         data = {
-            "deviceSerialNumber": self._device.unique_id,
+            "deviceSerialNumber": self._device.device_serial_number,
             "deviceType": self._device._device_type,
             "enabled": state,
         }
-        _LOGGER.debug("Setting DND state: %s data: %s", state, json.dumps(data))
+        _LOGGER.debug(
+            "%s: Setting DND state: %s data: %s",
+            hide_email(self._login.email),
+            state,
+            json.dumps(data),
+        )
         response = await self._put_request("/api/dnd/status", data=data)
         response_json = await response.json(content_type=None) if response else None
         success = data == response_json
-        _LOGGER.debug("Success: %s Response: %s", success, response_json)
+        _LOGGER.debug(
+            "%s: Success: %s Response: %s",
+            hide_email(self._login.email),
+            success,
+            response_json,
+        )
         return success
 
     @staticmethod
@@ -1098,7 +1139,7 @@ class AlexaAPI:
             "/api/bluetooth/pair-sink/"
             + self._device._device_type
             + "/"
-            + self._device.unique_id,
+            + self._device.device_serial_number,
             data={"bluetoothDeviceAddress": mac},
         )
 
@@ -1109,7 +1150,7 @@ class AlexaAPI:
             "/api/bluetooth/disconnect-sink/"
             + self._device._device_type
             + "/"
-            + self._device.unique_id,
+            + self._device.device_serial_number,
             data=None,
         )
 
@@ -1190,15 +1231,22 @@ class AlexaAPI:
         if response is not None:
             for last_activity in response:
                 # Ignore discarded activity records
-                if (
-                    last_activity["activityStatus"]
-                    != "DISCARDED_NON_DEVICE_DIRECTED_INTENT"
+                # Ignore empty summary
+                if last_activity[
+                    "activityStatus"
+                ] != "DISCARDED_NON_DEVICE_DIRECTED_INTENT" and json.loads(
+                    last_activity["description"]
+                ).get(
+                    "summary"
                 ):
                     return {
                         "serialNumber": (
                             last_activity["sourceDeviceIds"][0]["serialNumber"]
                         ),
                         "timestamp": last_activity["creationTimestamp"],
+                        "summary": json.loads(last_activity["description"]).get(
+                            "summary", ""
+                        ),
                     }
         return None
 
@@ -1218,7 +1266,9 @@ class AlexaAPI:
         Returns json
 
         """
-        _LOGGER.debug("Setting Guard state: %s ", state)
+        _LOGGER.debug(
+            "%s: Setting Guard state: %s ", hide_email(self._login.email), state
+        )
 
         await self.send_sequence(
             "controlGuardState",
@@ -1248,7 +1298,9 @@ class AlexaAPI:
             "post", login, "/api/phoenix/state", data=data
         )
         result = await response.json(content_type=None) if response else None
-        _LOGGER.debug("get_guard_state response: %s", result)
+        _LOGGER.debug(
+            "%s: get_guard_state response: %s", hide_email(login.email), result
+        )
         return result
 
     @staticmethod
@@ -1280,7 +1332,8 @@ class AlexaAPI:
             "put", login, "/api/phoenix/state", data=data
         )
         _LOGGER.debug(
-            "set_guard_state response: %s for data: %s ",
+            "%s: set_guard_state response: %s for data: %s ",
+            hide_email(login.email),
             await response.json(content_type=None) if response else None,
             json.dumps(data),
         )
@@ -1298,7 +1351,7 @@ class AlexaAPI:
 
         """
         response = await AlexaAPI._static_request("get", login, "/api/phoenix")
-        # _LOGGER.debug("Response: %s",
+        # _LOGGER.debug("%s: Response: %s", hide_email(login.email),
         #               await response.json(content_type=None))
         return (
             json.loads((await response.json(content_type=None))["networkDetail"])
@@ -1318,7 +1371,7 @@ class AlexaAPI:
 
         """
         response = await AlexaAPI._static_request("get", login, "/api/notifications")
-        # _LOGGER.debug("Response: %s",
+        # _LOGGER.debug("%s: Response: %s", hide_email(login.email),
         #               response.json(content_type=None))
         return (
             (await response.json(content_type=None))["notifications"]
@@ -1341,7 +1394,7 @@ class AlexaAPI:
         response = await AlexaAPI._static_request(
             "put", login, "/api/notifications", data=data
         )
-        # _LOGGER.debug("Response: %s",
+        # _LOGGER.debug("%s: Response: %s", hide_email(login.email),
         #               response.json(content_type=None))
         return await response.json(content_type=None) if response else None
 
@@ -1376,7 +1429,7 @@ class AlexaAPI:
             (await response.json(content_type=None))["activities"] if response else None
         )
         if not response_json:
-            _LOGGER.debug("%s:No history to delete.", hide_email(email))
+            _LOGGER.debug("%s: No history to delete.", hide_email(email))
             return True
         _LOGGER.debug(
             "%s:Attempting to delete %s items from history",
@@ -1403,7 +1456,7 @@ class AlexaAPI:
                 completed = False
             elif response.status == 200:
                 _LOGGER.debug(
-                    "%s:Succesfully deleted %s", hide_email(email), activity["id"],
+                    "%s: Succesfully deleted %s", hide_email(email), activity["id"],
                 )
         return completed
 
@@ -1421,19 +1474,29 @@ class AlexaAPI:
 
         """
         data = {
-            "deviceSerialNumber": self._device.unique_id,
+            "deviceSerialNumber": self._device.device_serial_number,
             "deviceType": self._device._device_type,
             "backgroundImageID": "JqIFZhtBTx25wLGTJGdNGQ",
             "backgroundImageType": "PERSONAL_PHOTOS",
             "backgroundImageURL": url,
         }
-        _LOGGER.debug("Setting background of %s to: %s", self._device, url)
+        _LOGGER.debug(
+            "%s: Setting background of %s to: %s",
+            hide_email(self._login.email),
+            self._device,
+            url,
+        )
         if url.startswith("http://"):
             _LOGGER.warning("Background URL should be a valid https image")
         response = await self._post_request("/api/background-image", data=data)
         response_json = await response.json(content_type=None) if response else None
         success = response.status == 200
-        _LOGGER.debug("Success: %s Response: %s", success, response_json)
+        _LOGGER.debug(
+            "%s: Success: %s Response: %s",
+            hide_email(self._login.email),
+            success,
+            response_json,
+        )
         return success
 
     @staticmethod
