@@ -13,6 +13,7 @@ import logging
 from typing import Text
 
 from aiohttp import web
+from bs4 import BeautifulSoup
 import multidict
 from yarl import URL
 
@@ -82,6 +83,14 @@ class AlexaProxy:
         if self._login._debug:
             await self._login._process_resp(resp)
         text = self.change_host_to_proxy(await resp.text())
+        text = self.autofill(
+            text,
+            {
+                "email": self._login.email,
+                "password": self._login.password,
+                "otpCode": self._login.get_totp_token(),
+            },
+        )
         return web.Response(text=text, content_type=resp.content_type,)
 
     async def get_handler(self, request: web.Request) -> web.Response:
@@ -117,6 +126,14 @@ class AlexaProxy:
         content_type = resp.content_type
         if content_type == "text/html":
             text = self.change_host_to_proxy(await resp.text())
+            text = self.autofill(
+                text,
+                {
+                    "email": self._login.email,
+                    "password": self._login.password,
+                    "otpCode": self._login.get_totp_token(),
+                },
+            )
             return web.Response(text=text, content_type=content_type,)
         # handle non html content
         return web.Response(body=await resp.content.read(), content_type=content_type)
@@ -167,6 +184,14 @@ class AlexaProxy:
                 text=f"Successfully logged in as {self._login.email} for flow {self._config_flow_id}. Please close the window.",
             )
         text = self.change_host_to_proxy(text)
+        text = self.autofill(
+            text,
+            {
+                "email": self._login.email,
+                "password": self._login.password,
+                "otpCode": self._login.get_totp_token(),
+            },
+        )
         return web.Response(text=text, content_type=content_type)
 
     async def start_proxy(self) -> None:
@@ -240,3 +265,22 @@ class AlexaProxy:
             result["Referer"] = self.change_proxy_to_host(result.get("Referer"))
         # _LOGGER.debug("Final headers %s", result)
         return result
+
+    def autofill(self, html: Text, items: dict) -> Text:
+        """Autofill input tags in form in html.
+
+        Args
+            html (Text): html to convert
+            items (dict): Dictionary of values to fill
+
+        Returns
+            Text: html with values filled in
+
+        """
+        soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
+        for item, value in items.items():
+            for html_tag in soup.find_all(attrs={"name": item}):
+                html_tag["value"] = value
+                if self._login._debug:
+                    _LOGGER.debug("Filled %s", html_tag)
+        return str(soup)

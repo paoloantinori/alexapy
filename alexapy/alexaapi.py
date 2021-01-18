@@ -1231,15 +1231,22 @@ class AlexaAPI:
         if response is not None:
             for last_activity in response:
                 # Ignore discarded activity records
-                if (
-                    last_activity["activityStatus"]
-                    != "DISCARDED_NON_DEVICE_DIRECTED_INTENT"
+                # Ignore empty summary
+                if last_activity[
+                    "activityStatus"
+                ] != "DISCARDED_NON_DEVICE_DIRECTED_INTENT" and json.loads(
+                    last_activity["description"]
+                ).get(
+                    "summary"
                 ):
                     return {
                         "serialNumber": (
                             last_activity["sourceDeviceIds"][0]["serialNumber"]
                         ),
                         "timestamp": last_activity["creationTimestamp"],
+                        "summary": json.loads(last_activity["description"]).get(
+                            "summary", ""
+                        ),
                     }
         return None
 
