@@ -457,6 +457,8 @@ class AlexaLogin:
             cookies=cookies,
             ssl=self._ssl,
         )
+        email = None
+        json = None
         await self._process_resp(get_resp)
         try:
             json = await get_resp.json()
