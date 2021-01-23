@@ -35,7 +35,13 @@ from alexapy.aiohttp.client_exceptions import ContentTypeError
 
 from .const import APP_NAME, EXCEPTION_TEMPLATE, LOCALE_KEY, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey
-from .helpers import _catch_all_exceptions, delete_cookie, hide_serial, obfuscate
+from .helpers import (
+    _catch_all_exceptions,
+    delete_cookie,
+    hide_email,
+    hide_serial,
+    obfuscate,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -451,6 +457,8 @@ class AlexaLogin:
             cookies=cookies,
             ssl=self._ssl,
         )
+        email = None
+        json = None
         await self._process_resp(get_resp)
         try:
             json = await get_resp.json()
@@ -479,8 +487,8 @@ class AlexaLogin:
                 )
                 return False
         self.customer_id = json.get("authentication", {}).get("customerId")
-        if (email != "" and email.lower() == self.email.lower()) or email == "":
-            if email != "":
+        if (email and email.lower() == self.email.lower()) or "@" not in self.email:
+            if "@" in self.email:
                 _LOGGER.debug(
                     "Logged in as %s to %s with id: %s",
                     email,
@@ -499,7 +507,9 @@ class AlexaLogin:
             await self.check_domain()
             await self.save_cookiefile()
             return True
-        _LOGGER.debug("Not logged in due to email mismatch")
+        _LOGGER.debug(
+            "Not logged in due to email mismatch to stored %s", hide_email(email)
+        )
         await self.reset()
         return False
 
@@ -1293,8 +1303,10 @@ class AlexaLogin:
                 if "ap_error" in status and status.get("ap_error_href"):
                     assert isinstance(status["ap_error_href"], str)
                     site = status["ap_error_href"]
-                else:
+                elif self._headers.get("Referer"):
                     site = self._headers["Referer"]
+                else:
+                    site = self.start_url
                 _LOGGER.debug("Found post url to get; forcing get to %s", site)
                 self._lastreq = None
             elif formsite and formsite == "/ap/cvf/approval/poll":
@@ -1304,7 +1316,7 @@ class AlexaLogin:
                 # site = form_tag.find("input", {"name": "openid.return_to"}).get("value")
                 _LOGGER.debug("Found url for polling page %s", site)
             elif formsite and forgotpassword_tag:
-                site = self._prefix + self.url
+                site = self.start_url
                 _LOGGER.debug("Restarting login process %s", site)
             elif formsite:
                 site = formsite
