@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.22.2 (2021-01-23)
+### Fix
+* Fix test for stored email for non-email login ([`02f5f9c`](https://gitlab.com/keatontaylor/alexapy/-/commit/02f5f9c0d8437b7c39e12b4f71e3a5c8cd8f3a80))
+* Use proper start url on forgotpassword ([`9f5fa64`](https://gitlab.com/keatontaylor/alexapy/-/commit/9f5fa6488f2e42f72da13215a6fd38469e56ada4))
+* Handle site redirection if headers blank ([`5395ac5`](https://gitlab.com/keatontaylor/alexapy/-/commit/5395ac599972ab6ade214d89a6726c6e0d3a296b))
+
 ## v1.22.1 (2021-01-23)
 ### Fix
 * Add fallback to amazon.com ([`0968f71`](https://gitlab.com/keatontaylor/alexapy/-/commit/0968f7132b7eeeaeb36f049bf7c5a9977bc3a440))
