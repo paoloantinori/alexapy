@@ -743,9 +743,15 @@ class AlexaLogin:
                 "requested_token_type": ["bearer", "mac_dms", "website_cookies"],
             }
             _LOGGER.debug("Attempting to register with %s", url)
-            response = await self._session.post(
-                "https://api." + url + "/auth/register", json=data, headers=headers,
-            )
+            try:
+                response = await self._session.post(
+                    "https://api." + url + "/auth/register", json=data, headers=headers,
+                )
+            except aiohttp.ClientConnectorError:
+                _LOGGER.debug("Fallback attempt to register with api.amazon.com")
+                response = await self._session.post(
+                    "https://api.amazon.com/auth/register", json=data, headers=headers,
+                )
             _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
             if response.status == 200:
                 registered = True
@@ -817,9 +823,17 @@ class AlexaLogin:
             #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
             # ),
         }
-        response = await self._session.post(
-            "https://api." + self.url + "/auth/token", data=data, headers=headers,
-        )
+        try:
+            response = await self._session.post(
+                "https://api." + self.url + "/auth/token", data=data, headers=headers,
+            )
+        except aiohttp.ClientConnectionError:
+            _LOGGER.debug(
+                "Fallback attempt to refresh access token with api.amazon.com"
+            )
+            response = await self._session.post(
+                "https://api.amazon.com/auth/token", data=data, headers=headers,
+            )
         _LOGGER.debug("refresh response %s with \n%s", response, dumps(data))
         if response.status != 200:
             if self._debug:
@@ -881,11 +895,19 @@ class AlexaLogin:
             #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
             # ),
         }
-        response = await self._session.post(
-            "https://www." + self.url + "/ap/exchangetoken/cookies",
-            data=data,
-            headers=headers,
-        )
+        try:
+            response = await self._session.post(
+                "https://www." + self.url + "/ap/exchangetoken/cookies",
+                data=data,
+                headers=headers,
+            )
+        except aiohttp.ClientConnectorError:
+            _LOGGER.debug("Fallback attempt to exchange tokens with www.amazon.com")
+            response = await self._session.post(
+                "https://www.amazon.com/ap/exchangetoken/cookies",
+                data=data,
+                headers=headers,
+            )
         if response.status != 200:
             if self._debug:
                 _LOGGER.debug(
@@ -945,8 +967,13 @@ class AlexaLogin:
             "/api/strings",
         ]
         for url in csrf_urls:
-            response = await self._session.get(f"{self._prefix}{self.url}{url}")
-            if response.status != 200:
+            failed = False
+            response = None
+            try:
+                response = await self._session.get(f"{self._prefix}{self.url}{url}")
+            except aiohttp.ClientConnectionError:
+                failed = True
+            if failed or response and response.status != 200:
                 if self._debug:
                     _LOGGER.debug("Unable to load page for csrf: %s", response)
                 continue
