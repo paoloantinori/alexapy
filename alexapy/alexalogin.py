@@ -35,7 +35,13 @@ from alexapy.aiohttp.client_exceptions import ContentTypeError
 
 from .const import APP_NAME, EXCEPTION_TEMPLATE, LOCALE_KEY, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey
-from .helpers import _catch_all_exceptions, delete_cookie, hide_serial, obfuscate
+from .helpers import (
+    _catch_all_exceptions,
+    delete_cookie,
+    hide_email,
+    hide_serial,
+    obfuscate,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -499,7 +505,9 @@ class AlexaLogin:
             await self.check_domain()
             await self.save_cookiefile()
             return True
-        _LOGGER.debug("Not logged in due to email mismatch")
+        _LOGGER.debug(
+            "Not logged in due to email mismatch to stored %s", hide_email(email)
+        )
         await self.reset()
         return False
 
