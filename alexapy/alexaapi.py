@@ -1207,9 +1207,8 @@ class AlexaAPI:
             "/api/activities",
             query={"startTime": "", "size": items, "offset": 1},
         )
-        return (
-            (await response.json(content_type=None))["activities"] if response else None
-        )
+        result = await response.json(content_type=None)
+        return result["activities"] if result and result.get("activities") else None
 
     @staticmethod
     @_catch_all_exceptions
@@ -1439,8 +1438,9 @@ class AlexaAPI:
         import urllib.parse  # pylint: disable=import-outside-toplevel
 
         completed = True
+        result = await response.json(content_type=None)
         response_json = (
-            (await response.json(content_type=None))["activities"] if response else None
+            result["activities"] if result and result.get("activities") else None
         )
         if not response_json:
             _LOGGER.debug("%s: No history to delete.", hide_email(email))
