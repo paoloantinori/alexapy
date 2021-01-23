@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.22.1 (2021-01-23)
+### Fix
+* Add fallback to amazon.com ([`0968f71`](https://gitlab.com/keatontaylor/alexapy/-/commit/0968f7132b7eeeaeb36f049bf7c5a9977bc3a440))
+* Handle empty response from activities ([`bb643a7`](https://gitlab.com/keatontaylor/alexapy/-/commit/bb643a7cd00c8b16ae6c821d2468af676d9d4fcd))
+* Downgrade if oauth token refresh fails ([`0296314`](https://gitlab.com/keatontaylor/alexapy/-/commit/0296314566cab0038c7e27671bbc859132c9d455))
+
 ## v1.22.0 (2021-01-18)
 ### Feature
 * Add summary for get_last_device_serial ([`887f689`](https://gitlab.com/keatontaylor/alexapy/-/commit/887f689b96997bedfc3f43791d2800dc7f083623))
