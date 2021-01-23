@@ -1293,8 +1293,10 @@ class AlexaLogin:
                 if "ap_error" in status and status.get("ap_error_href"):
                     assert isinstance(status["ap_error_href"], str)
                     site = status["ap_error_href"]
-                else:
+                elif self._headers.get("Referer"):
                     site = self._headers["Referer"]
+                else:
+                    site = self.start_url
                 _LOGGER.debug("Found post url to get; forcing get to %s", site)
                 self._lastreq = None
             elif formsite and formsite == "/ap/cvf/approval/poll":
