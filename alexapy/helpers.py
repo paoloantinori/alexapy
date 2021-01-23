@@ -47,6 +47,11 @@ def hide_email(email: Text) -> Text:
     return hide_serial(email)
 
 
+def hide_password(value: Text) -> Text:
+    """Obfuscate password."""
+    return f"REDACTED {len(value)} CHARS"
+
+
 def hide_serial(item: Optional[Union[dict, str, list]]) -> Union[dict, str, list]:
     """Obfuscate serial."""
     if item is None:
@@ -92,7 +97,7 @@ def obfuscate(item):
         response = item.copy()
         for key, value in item.items():
             if key in ["password"]:
-                response[key] = f"REDACTED {len(value)} CHARS"
+                response[key] = hide_password(value)
             elif key in ["email"]:
                 response[key] = hide_email(value)
             elif key in ["cookies_txt"]:

@@ -130,6 +130,13 @@ class AlexaAPI:
                     and await self._login.get_csrf()
                 ):
                     await self._login.save_cookiefile()
+                else:
+                    _LOGGER.debug(
+                        "%s: Unable to refresh oauth", hide_email(self._login.email),
+                    )
+                    self._login.access_token = None
+                    self._login.refresh_token = None
+                    self._login.expires_in = None
         if method == "get":
             if query and not query.get("_"):
                 query["_"] = math.floor(time.time() * 1000)
@@ -237,6 +244,13 @@ class AlexaAPI:
                     and await login.get_csrf()
                 ):
                     await login.save_cookiefile()
+                else:
+                    _LOGGER.debug(
+                        "%s: Unable to refresh oauth", hide_email(login.email),
+                    )
+                    login.access_token = None
+                    login.refresh_token = None
+                    login.expires_in = None
         session = login.session
         url: URL = URL("https://alexa." + login.url + uri).update_query(query)
         # _LOGGER.debug("%s: %s: Trying static %s: %s : with uri: %s data %s query %s", hide_email(login.email)
@@ -1193,9 +1207,8 @@ class AlexaAPI:
             "/api/activities",
             query={"startTime": "", "size": items, "offset": 1},
         )
-        return (
-            (await response.json(content_type=None))["activities"] if response else None
-        )
+        result = await response.json(content_type=None)
+        return result["activities"] if result and result.get("activities") else None
 
     @staticmethod
     @_catch_all_exceptions
@@ -1425,8 +1438,9 @@ class AlexaAPI:
         import urllib.parse  # pylint: disable=import-outside-toplevel
 
         completed = True
+        result = await response.json(content_type=None)
         response_json = (
-            (await response.json(content_type=None))["activities"] if response else None
+            result["activities"] if result and result.get("activities") else None
         )
         if not response_json:
             _LOGGER.debug("%s: No history to delete.", hide_email(email))

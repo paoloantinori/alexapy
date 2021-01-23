@@ -19,6 +19,7 @@ from yarl import URL
 
 from alexapy.aiohttp.client_exceptions import ClientConnectionError
 from alexapy.alexalogin import AlexaLogin
+from alexapy.helpers import hide_email, hide_password
 from alexapy.stackoverflow import get_open_port
 
 _LOGGER = logging.getLogger(__name__)
@@ -282,5 +283,15 @@ class AlexaProxy:
             for html_tag in soup.find_all(attrs={"name": item}):
                 html_tag["value"] = value
                 if self._login._debug:
-                    _LOGGER.debug("Filled %s", html_tag)
+                    _LOGGER.debug(
+                        "Filled %s",
+                        str(html_tag).replace(
+                            value,
+                            hide_password(value)
+                            if item == "password"
+                            else hide_email(value)
+                            if item == "email"
+                            else value,
+                        ),
+                    )
         return str(soup)
