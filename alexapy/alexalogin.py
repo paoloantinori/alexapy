@@ -1306,7 +1306,7 @@ class AlexaLogin:
                 # site = form_tag.find("input", {"name": "openid.return_to"}).get("value")
                 _LOGGER.debug("Found url for polling page %s", site)
             elif formsite and forgotpassword_tag:
-                site = self._prefix + self.url
+                site = self.start_url
                 _LOGGER.debug("Restarting login process %s", site)
             elif formsite:
                 site = formsite
