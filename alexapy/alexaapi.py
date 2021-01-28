@@ -1226,7 +1226,7 @@ class AlexaAPI:
     ) -> Optional[Dict[Text, Any]]:
         """Identify all Alexa automations."""
         response = await AlexaAPI._static_request(
-            "get", login, "/api/behaviors/automations", query={"limit": items}
+            "get", login, "/api/behaviors/v2/automations", query={"limit": items}
         )
         return await response.json(content_type=None) if response else None
 
