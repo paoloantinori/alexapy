@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.22.3 (2021-01-28)
+### Fix
+* Update to v2 automation url ([`17cc499`](https://gitlab.com/keatontaylor/alexapy/-/commit/17cc49953ccdb2ab7ca280da3a8954626a63b124))
+
 ## v1.22.2 (2021-01-23)
 ### Fix
 * Fix test for stored email for non-email login ([`02f5f9c`](https://gitlab.com/keatontaylor/alexapy/-/commit/02f5f9c0d8437b7c39e12b4f71e3a5c8cd8f3a80))
