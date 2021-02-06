@@ -36,14 +36,14 @@ python-versions = "*"
 
 [[package]]
 name = "aresponses"
-version = "0.1.5"
-description = "Asyncio testing server. Similar to the responses library used for 'requests'"
+version = "2.1.4"
+description = "Asyncio response mocking. Similar to the responses library used for 'requests'"
 category = "dev"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
 
 [package.dependencies]
-aiohttp = "*"
+aiohttp = ">=3.1.0,<4.0.0"
 pytest-asyncio = "*"
 
 [[package]]
@@ -259,7 +259,7 @@ test = ["pytest (>=3.6.0,!=3.9.0,!=3.9.1,!=3.9.2)", "pretend", "iso8601", "pytz"
 
 [[package]]
 name = "detox"
-version = "0.19"
+version = "0.18"
 description = "distributing activities of the tox tool"
 category = "dev"
 optional = false
@@ -268,7 +268,7 @@ python-versions = "*"
 [package.dependencies]
 eventlet = ">=0.15.0"
 py = ">=1.4.27"
-tox = ">=3.5,<3.7"
+tox = ">=3.5,<4"
 
 [package.extras]
 dev = ["pytest (>=3.8)"]
@@ -301,6 +301,17 @@ description = "Docutils -- Python Documentation Utilities"
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[[package]]
+name = "dotty-dict"
+version = "1.3.0"
+description = "Dictionary wrapper for quick access to deeply nested keys."
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+setuptools_scm = "*"
 
 [[package]]
 name = "dparse"
@@ -745,7 +756,7 @@ six = "*"
 
 [[package]]
 name = "python-semantic-release"
-version = "7.12.0"
+version = "7.13.2"
 description = "Automatic semantic versioning for python projects"
 category = "dev"
 optional = false
@@ -754,12 +765,13 @@ python-versions = "*"
 [package.dependencies]
 click = ">=7,<8"
 click-log = ">=0.3,<1"
+dotty-dict = ">=1.3.0,<2"
 gitpython = ">=3.0.8,<4"
 invoke = ">=1.4.1,<2"
 python-gitlab = ">=1.10,<2"
 requests = ">=2.25,<3"
 semver = ">=2.10,<3"
-toml = ">=0.10.0,<0.11.0"
+tomlkit = ">=0.7.0,<1.0.0"
 twine = ">=3,<4"
 
 [package.extras]
@@ -828,7 +840,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)", "win-inet-pton"]
 
 [[package]]
 name = "requests-toolbelt"
-version = "0.8.0"
+version = "0.9.1"
 description = "A utility belt for advanced users of python-requests"
 category = "dev"
 optional = false
@@ -883,6 +895,17 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
+name = "setuptools-scm"
+version = "5.0.1"
+description = "the blessed package to manage your versions by scm tags"
+category = "dev"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
+
+[package.extras]
+toml = ["toml"]
+
+[[package]]
 name = "simplejson"
 version = "3.17.2"
 description = "Simple, fast, extensible JSON encoder/decoder for Python"
@@ -931,24 +954,35 @@ optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
-name = "tox"
-version = "3.6.1"
-description = "virtualenv-based automation of test activities"
+name = "tomlkit"
+version = "0.7.0"
+description = "Style preserving TOML library"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[[package]]
+name = "tox"
+version = "3.21.4"
+description = "tox is a generic virtualenv management and test command line tool"
+category = "dev"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 
 [package.dependencies]
-filelock = ">=3.0.0,<4"
-pluggy = ">=0.3.0,<1"
-py = ">=1.4.17,<2"
-six = ">=1.0.0,<2"
+colorama = {version = ">=0.4.1", markers = "platform_system == \"Windows\""}
+filelock = ">=3.0.0"
+importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
+packaging = ">=14"
+pluggy = ">=0.12.0"
+py = ">=1.4.17"
+six = ">=1.14.0"
 toml = ">=0.9.4"
-virtualenv = ">=1.11.2"
+virtualenv = ">=16.0.0,<20.0.0 || >20.0.0,<20.0.1 || >20.0.1,<20.0.2 || >20.0.2,<20.0.3 || >20.0.3,<20.0.4 || >20.0.4,<20.0.5 || >20.0.5,<20.0.6 || >20.0.6,<20.0.7 || >20.0.7"
 
 [package.extras]
-docs = ["sphinx (>=1.8.0,<2)", "towncrier (>=18.5.0)", "pygments-github-lexers (>=0.0.5)", "sphinxcontrib-autoprogram (>=0.1.5)"]
-testing = ["pytest (>=3.0.0,<4)", "pytest-cov (>=2.5.1,<3)", "pytest-mock (>=1.10.0,<2)", "pytest-timeout (>=1.3.0,<2)", "pytest-xdist (>=1.22.2,<2)", "pytest-randomly (>=1.2.3,<2)"]
+docs = ["pygments-github-lexers (>=0.0.5)", "sphinx (>=2.0.0)", "sphinxcontrib-autoprogram (>=0.1.5)", "towncrier (>=18.5.0)"]
+testing = ["flaky (>=3.4.0)", "freezegun (>=0.3.11)", "psutil (>=5.6.1)", "pytest (>=4.0.0)", "pytest-cov (>=2.5.1)", "pytest-mock (>=1.10.0)", "pytest-randomly (>=1.0.0)", "pytest-xdist (>=1.22.2)", "pathlib2 (>=2.3.3)"]
 
 [[package]]
 name = "tqdm"
@@ -1142,8 +1176,8 @@ appdirs = [
     {file = "appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41"},
 ]
 aresponses = [
-    {file = "aresponses-0.1.5-py3-none-any.whl", hash = "sha256:ae57ab6de2051e6526a849ca81f275f6cd16d10197bb7fbbe8200ca72c431146"},
-    {file = "aresponses-0.1.5.tar.gz", hash = "sha256:978e75672c30a6057e1cf3e0ee22902b38daedf7fabec8c6876b446850db56f8"},
+    {file = "aresponses-2.1.4-py3-none-any.whl", hash = "sha256:2a5a100c9b39e559bf55c26cc837a8ce64ab160ee086afa01ee9c4ef07f245db"},
+    {file = "aresponses-2.1.4.tar.gz", hash = "sha256:39674af90700f1bfe2c7c9049cd8116f5c10d34d2e2427fd744b88d9e8644c94"},
 ]
 astroid = [
     {file = "astroid-2.4.2-py3-none-any.whl", hash = "sha256:bc58d83eb610252fd8de6363e39d4f1d0619c894b0ed24603b881c02e64c7386"},
@@ -1312,8 +1346,8 @@ cryptography = [
     {file = "cryptography-3.3.1.tar.gz", hash = "sha256:7e177e4bea2de937a584b13645cab32f25e3d96fc0bc4a4cf99c27dc77682be6"},
 ]
 detox = [
-    {file = "detox-0.19-py2.py3-none-any.whl", hash = "sha256:fcad009e2d20ce61176dc826a2c1562bd712fe53953ca603b455171cf819080f"},
-    {file = "detox-0.19.tar.gz", hash = "sha256:e650f95f0c7f5858578014b3b193e5dac76c89285c1bbe4bae598fd641bf9cd3"},
+    {file = "detox-0.18-py2.py3-none-any.whl", hash = "sha256:611022c742ca7dea4b35033b047cc1f7cc5f4a6595f9582aaa4012fa0d8deb32"},
+    {file = "detox-0.18.tar.gz", hash = "sha256:20dd67705cbde36752b1a522891d93c8444fd2a1500b9a7d08f57ec3a7856efb"},
 ]
 distlib = [
     {file = "distlib-0.3.1-py2.py3-none-any.whl", hash = "sha256:8c09de2c67b3e7deef7184574fc060ab8a793e7adbb183d942c389c8b13c52fb"},
@@ -1326,6 +1360,9 @@ dnspython = [
 docutils = [
     {file = "docutils-0.16-py2.py3-none-any.whl", hash = "sha256:0c5b78adfbf7762415433f5515cd5c9e762339e23369dbe8000d84a4bf4ab3af"},
     {file = "docutils-0.16.tar.gz", hash = "sha256:c2de3a60e9e7d07be26b7f2b00ca0309c207e06c100f9cc2a94931fc75a478fc"},
+]
+dotty-dict = [
+    {file = "dotty_dict-1.3.0.tar.gz", hash = "sha256:eb0035a3629ecd84397a68f1f42f1e94abd1c34577a19cd3eacad331ee7cbaf0"},
 ]
 dparse = [
     {file = "dparse-0.5.1-py3-none-any.whl", hash = "sha256:e953a25e44ebb60a5c6efc2add4420c177f1d8404509da88da9729202f306994"},
@@ -1599,8 +1636,8 @@ python-gitlab = [
     {file = "python_gitlab-1.15.0-py3-none-any.whl", hash = "sha256:51ad36873b5c20cd21d9373db0936fb99c521575668320025d0fb519398d2e17"},
 ]
 python-semantic-release = [
-    {file = "python-semantic-release-7.12.0.tar.gz", hash = "sha256:86a39779dbf661b29749741cd46be6e2220fbdc2af7d4517d8bc7753a8bb3db0"},
-    {file = "python_semantic_release-7.12.0-py3-none-any.whl", hash = "sha256:0ebe95eee937a67fd5f6f11168b23b8b5282b78c342d21364a0fa5c2f8a39ecb"},
+    {file = "python-semantic-release-7.13.2.tar.gz", hash = "sha256:5eaffada8d0e0bddeaf57776a6c510809fe4915ebf71d204efe8f362072c1a78"},
+    {file = "python_semantic_release-7.13.2-py3-none-any.whl", hash = "sha256:57d49e97ed895a1ac8bedd9b89d136f217b7d159b8d865051dd1dd43275ddd47"},
 ]
 pywin32-ctypes = [
     {file = "pywin32-ctypes-0.2.0.tar.gz", hash = "sha256:24ffc3b341d457d48e8922352130cf2644024a4ff09762a2261fd34c36ee5942"},
@@ -1681,8 +1718,8 @@ requests = [
     {file = "requests-2.25.1.tar.gz", hash = "sha256:27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804"},
 ]
 requests-toolbelt = [
-    {file = "requests-toolbelt-0.8.0.tar.gz", hash = "sha256:f6a531936c6fa4c6cfce1b9c10d5c4f498d16528d2a54a22ca00011205a187b5"},
-    {file = "requests_toolbelt-0.8.0-py2.py3-none-any.whl", hash = "sha256:42c9c170abc2cacb78b8ab23ac957945c7716249206f90874651971a4acff237"},
+    {file = "requests-toolbelt-0.9.1.tar.gz", hash = "sha256:968089d4584ad4ad7c171454f0a5c6dac23971e9472521ea3b6d49d610aa6fc0"},
+    {file = "requests_toolbelt-0.9.1-py2.py3-none-any.whl", hash = "sha256:380606e1d10dc85c3bd47bf5a6095f815ec007be7a8b69c878507068df059e6f"},
 ]
 rfc3986 = [
     {file = "rfc3986-1.4.0-py2.py3-none-any.whl", hash = "sha256:af9147e9aceda37c91a05f4deb128d4b4b49d6b199775fd2d2927768abdc8f50"},
@@ -1699,6 +1736,16 @@ secretstorage = [
 semver = [
     {file = "semver-2.13.0-py2.py3-none-any.whl", hash = "sha256:ced8b23dceb22134307c1b8abfa523da14198793d9787ac838e70e29e77458d4"},
     {file = "semver-2.13.0.tar.gz", hash = "sha256:fa0fe2722ee1c3f57eac478820c3a5ae2f624af8264cbdf9000c980ff7f75e3f"},
+]
+setuptools-scm = [
+    {file = "setuptools_scm-5.0.1-py2.7.egg", hash = "sha256:db4ab2e0c2644ba71b1e5212b14ff65dbf0af465796d314a75e0cf6128f605f7"},
+    {file = "setuptools_scm-5.0.1-py2.py3-none-any.whl", hash = "sha256:62fa535edb31ece9fa65dc9dcb3056145b8020c8c26c0ef1018aef33db95c40d"},
+    {file = "setuptools_scm-5.0.1-py3.5.egg", hash = "sha256:1fc4e25df445351d172bb4788f4d07f9e9ce0e8b7dee6b19584e46110172ca13"},
+    {file = "setuptools_scm-5.0.1-py3.6.egg", hash = "sha256:e878036c2527dfd05818727846338be86b2be6955741b85fab2625f63d001021"},
+    {file = "setuptools_scm-5.0.1-py3.7.egg", hash = "sha256:eb19b46816fc106a4c2d4180022687eab40f9773cf61390b845afb093d1f4ecd"},
+    {file = "setuptools_scm-5.0.1-py3.8.egg", hash = "sha256:48b31488d089270500f120efea723968c01abd85fd4876043a3b7c7ef7d0b761"},
+    {file = "setuptools_scm-5.0.1-py3.9.egg", hash = "sha256:b928021c4381f96d577847d540d6e03065f8f8851c768a0c9bc552d463bae0d4"},
+    {file = "setuptools_scm-5.0.1.tar.gz", hash = "sha256:c85b6b46d0edd40d2301038cdea96bb6adc14d62ef943e75afb08b3e7bcf142a"},
 ]
 simplejson = [
     {file = "simplejson-3.17.2-cp27-cp27m-macosx_10_13_x86_64.whl", hash = "sha256:2d3eab2c3fe52007d703a26f71cf649a8c771fcdd949a3ae73041ba6797cfcf8"},
@@ -1767,9 +1814,13 @@ toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
     {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
 ]
+tomlkit = [
+    {file = "tomlkit-0.7.0-py2.py3-none-any.whl", hash = "sha256:6babbd33b17d5c9691896b0e68159215a9387ebfa938aa3ac42f4a4beeb2b831"},
+    {file = "tomlkit-0.7.0.tar.gz", hash = "sha256:ac57f29693fab3e309ea789252fcce3061e19110085aa31af5446ca749325618"},
+]
 tox = [
-    {file = "tox-3.6.1-py2.py3-none-any.whl", hash = "sha256:edfca7809925f49bdc110d0a2d9966bbf35a0c25637216d9586e7a5c5de17bfb"},
-    {file = "tox-3.6.1.tar.gz", hash = "sha256:2a8d8a63660563e41e64e3b5b677e81ce1ffa5e2a93c2c565d3768c287445800"},
+    {file = "tox-3.21.4-py2.py3-none-any.whl", hash = "sha256:65d0e90ceb816638a50d64f4b47b11da767b284c0addda2294cb3cd69bd72425"},
+    {file = "tox-3.21.4.tar.gz", hash = "sha256:cf7fef81a3a2434df4d7af2a6d1bf606d2970220addfbe7dea2615bd4bb2c252"},
 ]
 tqdm = [
     {file = "tqdm-4.56.0-py2.py3-none-any.whl", hash = "sha256:4621f6823bab46a9cc33d48105753ccbea671b68bab2c50a9f0be23d4065cb5a"},
