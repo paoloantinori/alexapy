@@ -75,17 +75,18 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
         soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
         for item, value in items.items():
             for html_tag in soup.find_all(attrs={"name": item}):
-                html_tag["value"] = value
-                if self._login._debug:
-                    _LOGGER.debug(
-                        "Filled %s",
-                        str(html_tag).replace(
-                            value,
-                            hide_password(value)
-                            if item == "password"
-                            else hide_email(value)
-                            if item == "email"
-                            else value,
-                        ),
-                    )
+                if not html_tag.get("value"):
+                    html_tag["value"] = value
+                    if self._login._debug:
+                        _LOGGER.debug(
+                            "Filled %s",
+                            str(html_tag).replace(
+                                value,
+                                hide_password(value)
+                                if item == "password"
+                                else hide_email(value)
+                                if item == "email"
+                                else value,
+                            ),
+                        )
         return str(soup)
