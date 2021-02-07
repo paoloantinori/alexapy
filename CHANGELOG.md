@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v1.23.1 (2021-02-07)
+### Fix
+* Allow reuse of alexaproxy ([`4c2b5a0`](https://gitlab.com/keatontaylor/alexapy/-/commit/4c2b5a096a7ccbbd932bb830faff6c3b237ee9e6))
+* Fix autofill to only fill in blank values ([`95cbbd3`](https://gitlab.com/keatontaylor/alexapy/-/commit/95cbbd3b3c46971a0b1bf15b0b3197aa2cba8043))
+
+## v1.23.0 (2021-02-06)
+### Feature
+* Update deps ([`a00ba4d`](https://gitlab.com/keatontaylor/alexapy/-/commit/a00ba4df5f26ad2b665ff9a0f0153c43e41ac79f))
+
 ## v1.22.3 (2021-01-28)
 ### Fix
 * Update to v2 automation url ([`17cc499`](https://gitlab.com/keatontaylor/alexapy/-/commit/17cc49953ccdb2ab7ca280da3a8954626a63b124))
