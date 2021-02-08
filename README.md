@@ -1,6 +1,7 @@
 # alexapy
 
 [![pipeline status](https://gitlab.com/keatontaylor/alexapy/badges/master/pipeline.svg)](https://gitlab.com/keatontaylor/alexapy/commits/master)
+![PyPI - Downloads](https://img.shields.io/pypi/dd/alexapy)
 
 Python Package for controlling Alexa devices (echo dot, etc) programmatically. This was originally designed for [alexa_media_player](https://github.com/custom-components/alexa_media_player) a custom_component for [Home Assistant](https://www.home-assistant.io/).
 
