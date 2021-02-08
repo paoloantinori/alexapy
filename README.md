@@ -1,5 +1,8 @@
 # alexapy
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python version compatibility](https://img.shields.io/pypi/pyversions/alexapy)](https://pypi.org/project/alexapy)
+[![Version on PyPi](https://img.shields.io/pypi/v/alexapy)](https://pypi.org/project/alexapy)
 [![pipeline status](https://gitlab.com/keatontaylor/alexapy/badges/master/pipeline.svg)](https://gitlab.com/keatontaylor/alexapy/commits/master)
 ![PyPI - Downloads](https://img.shields.io/pypi/dd/alexapy)
 ![PyPI - Downloads](https://img.shields.io/pypi/dw/alexapy)
