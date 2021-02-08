@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.24.0 (2021-02-08)
+### Feature
+* Add change_login function ([`0e1147b`](https://gitlab.com/keatontaylor/alexapy/-/commit/0e1147bfaeaf2c8acfe76925c627603351b54c7d))
+
+### Fix
+* Remove modifier clear from test ([`bd59728`](https://gitlab.com/keatontaylor/alexapy/-/commit/bd597281ce6a6e9d55b35d3b5cac17c9accb11c7))
+
 ## v1.23.1 (2021-02-07)
 ### Fix
 * Allow reuse of alexaproxy ([`4c2b5a0`](https://gitlab.com/keatontaylor/alexapy/-/commit/4c2b5a096a7ccbbd932bb830faff6c3b237ee9e6))
