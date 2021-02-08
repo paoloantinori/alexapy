@@ -61,10 +61,29 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
             # Reset so proxy can be reused
             # Unfortunately because the route has a handler bound and cannot be changed, we need to remove the modifiers for other proxies.
             await self.reset_data()
-            self.modifiers = {}
             if self._callback_url:
                 return URL(self._callback_url)
             return f"Successfully logged in as {self._login.email} for flow {self._config_flow_id}. Please close the window."
+
+    def change_login(self, login: AlexaLogin) -> None:
+        """Change login.
+
+        Args
+            login (AlexaLogin): AlexaLogin object to update after completion of proxy.
+
+        """
+        self._login = login
+        self.tests = {"test": self._test_resp}
+        self.modifiers = {
+            "autofill": partial(
+                self.autofill,
+                {
+                    "email": self._login.email,
+                    "password": self._login.password,
+                    "otpCode": self._login.get_totp_token(),
+                },
+            )
+        }
 
     def autofill(self, items: dict, html: Text) -> Text:
         """Autofill input tags in form in html.
