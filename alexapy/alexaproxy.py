@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#  SPDX-License-Identifier: Apache-2.0
-"""
-Python Package for controlling Alexa devices (echo dot, etc) programmatically.
+"""Python Package for controlling Alexa devices (echo dot, etc) programmatically.
+
+SPDX-License-Identifier: Apache-2.0
 
 This provides a login by proxy method.
+Built on https://github.com/alandtse/auth_capture_proxy
 
 For more details about this api, please refer to the documentation at
 https://gitlab.com/keatontaylor/alexapy
@@ -79,9 +78,8 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
     def change_login(self, login: AlexaLogin) -> None:
         """Change login.
 
-        Args
+        Args:
             login (AlexaLogin): AlexaLogin object to update after completion of proxy.
-
         """
         self._login = login
         self.tests = {"test_amazon_url": self.test_amazon_url}
