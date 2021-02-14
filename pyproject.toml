@@ -37,6 +37,10 @@ python-semantic-release = "*"
 tox = "*"
 safety = "^1.8.7"
 black = {version = "^19.10b0", allow-prereleases = true}
+Sphinx = "^3.5.0"
+autoapi = "^2.0.1"
+sphinx-rtd-theme = "^0.5.1"
+m2r2 = "^0.2.7"
 
 [tool.black]
 line-length = 88

@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#  SPDX-License-Identifier: Apache-2.0
-"""
-Python Package for controlling Alexa devices (echo dot, etc) programmatically.
+"""Python Package for controlling Alexa devices (echo dot, etc) programmatically.
+
+SPDX-License-Identifier: Apache-2.0
+
+Login class.
 
 For more details about this api, please refer to the documentation at
 https://gitlab.com/keatontaylor/alexapy
@@ -689,11 +689,9 @@ class AlexaLogin:
     async def get_tokens(self) -> bool:
         """Get access and refresh tokens after registering device using cookies.
 
-        Returns
+        Returns:
             bool: True if successful.
-
         """
-
         if not self.access_token:
             _LOGGER.warning(
                 "No access token found; falling back to credential login instead of oauth."

@@ -23,7 +23,8 @@ pylint:
 	poetry run pylint alexapy
 black:
 	poetry run black alexapy --exclude aiohttp/
-
+docs: docstyle
+	poetry run sphinx-build -b html docs docs/html
 # publish:
 # deprecated by semantic-release
 # 	poetry run python setup.py sdist bdist_wheel
