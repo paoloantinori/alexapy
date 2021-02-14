@@ -38,7 +38,7 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
         self._login: AlexaLogin = login
         self._config_flow_id = None
         self._callback_url = None
-        self.tests = {"test": self._test_resp}
+        self.tests = {"test_amazon_url": self.test_amazon_url}
         self.modifiers = {
             "autofill": partial(
                 self.autofill,
@@ -50,7 +50,18 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
             )
         }
 
-    async def _test_resp(self, resp, data, query) -> Optional[Union[URL, Text]]:
+    async def test_amazon_url(self, resp, data, query) -> Optional[Union[URL, Text]]:
+        """Test for Alexa success.
+
+        Args
+            resp (ClientResponse): The aiohttp response.
+            data (Dict[Text, Any]): Dictionary of all post data captured through proxy with overwrites for duplicate keys.
+            query (Dict[Text, Any]): Dictionary of all query data with overwrites for duplicate keys.
+
+        Returns
+            Optional[Union[URL, Text]]: URL for a http 302 redirect or Text to display on success. None indicates test did not pass.
+
+        """
         if resp.url.path in ["/ap/maplanding", "/spa/index.html"]:
             self._login.session.cookie_jar.update_cookies(
                 self.session.cookie_jar.filter_cookies(self._host_url.with_path("/"))
@@ -73,7 +84,7 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
 
         """
         self._login = login
-        self.tests = {"test": self._test_resp}
+        self.tests = {"test_amazon_url": self._test_resp}
         self.modifiers = {
             "autofill": partial(
                 self.autofill,
