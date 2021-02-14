@@ -9,7 +9,7 @@ from .client_exceptions import (
     ServerDisconnectedError,
     ServerTimeoutError,
 )
-from .helpers import BaseTimerContext
+from .helpers import BaseTimerContext, set_exception, set_result
 from .http import HttpResponseParser, RawResponseMessage
 from .streams import EMPTY_PAYLOAD, DataQueue, StreamReader
 
@@ -23,7 +23,7 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
 
         self._should_close = False
 
-        self._payload = None
+        self._payload: Optional[StreamReader] = None
         self._skip_payload = False
         self._payload_parser = None
 
@@ -35,6 +35,8 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
 
         self._read_timeout = None  # type: Optional[float]
         self._read_timeout_handle = None  # type: Optional[asyncio.TimerHandle]
+
+        self.closed = self._loop.create_future()  # type: asyncio.Future[None]
 
     @property
     def upgraded(self) -> bool:
@@ -66,10 +68,15 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
             self._drop_timeout()
 
     def is_connected(self) -> bool:
-        return self.transport is not None
+        return self.transport is not None and not self.transport.is_closing()
 
     def connection_lost(self, exc: Optional[BaseException]) -> None:
         self._drop_timeout()
+
+        if exc is not None:
+            set_exception(self.closed, exc)
+        else:
+            set_result(self.closed, None)
 
         if self._payload_parser is not None:
             with suppress(Exception):
@@ -137,11 +144,12 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
     def set_response_params(
         self,
         *,
-        timer: BaseTimerContext = None,
+        timer: Optional[BaseTimerContext] = None,
         skip_payload: bool = False,
         read_until_eof: bool = False,
         auto_decompress: bool = True,
-        read_timeout: Optional[float] = None
+        read_timeout: Optional[float] = None,
+        read_bufsize: int = 2 ** 16,
     ) -> None:
         self._skip_payload = skip_payload
 
@@ -151,8 +159,10 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
         self._parser = HttpResponseParser(
             self,
             self._loop,
+            read_bufsize,
             timer=timer,
             payload_exception=ClientPayloadError,
+            response_with_body=not skip_payload,
             read_until_eof=read_until_eof,
             auto_decompress=auto_decompress,
         )
@@ -220,7 +230,7 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
 
                 self._upgraded = upgraded
 
-                payload = None
+                payload: Optional[StreamReader] = None
                 for message, payload in messages:
                     if message.should_close:
                         self._should_close = True
@@ -228,7 +238,7 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
                     self._payload = payload
 
                     if self._skip_payload or message.code in (204, 304):
-                        self.feed_data((message, EMPTY_PAYLOAD), 0)  # type: ignore  # noqa
+                        self.feed_data((message, EMPTY_PAYLOAD), 0)
                     else:
                         self.feed_data((message, payload), 0)
                 if payload is not None:
