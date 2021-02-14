@@ -145,4 +145,4 @@ Variables
 
    .. code-block:: text
 
-      <alexapy.aiohttp.payload.PayloadRegistry object at 0x1065e1a50>
+      <alexapy.aiohttp.payload.PayloadRegistry object at 0x10a079250>
