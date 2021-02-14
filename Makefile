@@ -22,7 +22,7 @@ docstyle:
 pylint:
 	poetry run pylint alexapy
 black:
-	poetry run black alexapy
+	poetry run black alexapy --exclude aiohttp/
 
 # publish:
 # deprecated by semantic-release

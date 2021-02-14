@@ -1,11 +1,10 @@
 """Http related parsers and protocol."""
 
 import asyncio
-import collections
 import zlib
-from typing import Any, Awaitable, Callable, Optional, Union  # noqa
+from typing import Any, Awaitable, Callable, NamedTuple, Optional, Union  # noqa
 
-from multidict import CIMultiDict  # noqa
+from multidict import CIMultiDict
 
 from .abc import AbstractStreamWriter
 from .base_protocol import BaseProtocol
@@ -13,12 +12,18 @@ from .helpers import NO_EXTENSIONS
 
 __all__ = ("StreamWriter", "HttpVersion", "HttpVersion10", "HttpVersion11")
 
-HttpVersion = collections.namedtuple("HttpVersion", ["major", "minor"])
+
+class HttpVersion(NamedTuple):
+    major: int
+    minor: int
+
+
 HttpVersion10 = HttpVersion(1, 0)
 HttpVersion11 = HttpVersion(1, 1)
 
 
 _T_OnChunkSent = Optional[Callable[[bytes], Awaitable[None]]]
+_T_OnHeadersSent = Optional[Callable[["CIMultiDict[str]"], Awaitable[None]]]
 
 
 class StreamWriter(AbstractStreamWriter):
@@ -27,6 +32,7 @@ class StreamWriter(AbstractStreamWriter):
         protocol: BaseProtocol,
         loop: asyncio.AbstractEventLoop,
         on_chunk_sent: _T_OnChunkSent = None,
+        on_headers_sent: _T_OnHeadersSent = None,
     ) -> None:
         self._protocol = protocol
         self._transport = protocol.transport
@@ -42,6 +48,7 @@ class StreamWriter(AbstractStreamWriter):
         self._drain_waiter = None
 
         self._on_chunk_sent = on_chunk_sent  # type: _T_OnChunkSent
+        self._on_headers_sent = on_headers_sent  # type: _T_OnHeadersSent
 
     @property
     def transport(self) -> Optional[asyncio.Transport]:
@@ -55,7 +62,7 @@ class StreamWriter(AbstractStreamWriter):
         self.chunked = True
 
     def enable_compression(self, encoding: str = "deflate") -> None:
-        zlib_mode = 16 + zlib.MAX_WBITS if encoding == "gzip" else -zlib.MAX_WBITS
+        zlib_mode = 16 + zlib.MAX_WBITS if encoding == "gzip" else zlib.MAX_WBITS
         self._compress = zlib.compressobj(wbits=zlib_mode)
 
     def _write(self, chunk: bytes) -> None:
@@ -78,6 +85,11 @@ class StreamWriter(AbstractStreamWriter):
         """
         if self._on_chunk_sent is not None:
             await self._on_chunk_sent(chunk)
+
+        if isinstance(chunk, memoryview):
+            if chunk.nbytes != len(chunk):
+                # just reshape it
+                chunk = chunk.cast("c")
 
         if self._compress is not None:
             chunk = self._compress.compress(chunk)
@@ -109,6 +121,9 @@ class StreamWriter(AbstractStreamWriter):
         self, status_line: str, headers: "CIMultiDict[str]"
     ) -> None:
         """Write request/response status and headers."""
+        if self._on_headers_sent is not None:
+            await self._on_headers_sent(headers)
+
         # status + headers
         buf = _serialize_headers(status_line, headers)
         self._write(buf)
@@ -168,7 +183,7 @@ def _py_serialize_headers(status_line: str, headers: "CIMultiDict[str]") -> byte
 _serialize_headers = _py_serialize_headers
 
 try:
-    import aiohttp._http_writer as _http_writer  # type: ignore
+    import aiohttp._http_writer as _http_writer  # type: ignore[import]
 
     _c_serialize_headers = _http_writer._serialize_headers
     if not NO_EXTENSIONS:
