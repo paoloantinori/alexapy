@@ -919,11 +919,11 @@ Variables
 
    .. code-block:: text
 
-      <alexapy.aiohttp.payload.PayloadRegistry object at 0x112b69590>
+      <alexapy.aiohttp.payload.PayloadRegistry object at 0x1065e1a50>
 
 .. autodata:: EMPTY_PAYLOAD
    :annotation:
 
    .. code-block:: text
 
-      <alexapy.aiohttp.streams.EmptyStreamReader object at 0x112b33350>
+      <alexapy.aiohttp.streams.EmptyStreamReader object at 0x1065ae810>
