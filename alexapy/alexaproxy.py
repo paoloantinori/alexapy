@@ -84,7 +84,7 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
 
         """
         self._login = login
-        self.tests = {"test_amazon_url": self._test_resp}
+        self.tests = {"test_amazon_url": self.test_amazon_url}
         self.modifiers = {
             "autofill": partial(
                 self.autofill,
