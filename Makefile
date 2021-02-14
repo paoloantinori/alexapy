@@ -24,7 +24,7 @@ pylint:
 black:
 	poetry run black alexapy --exclude aiohttp/
 docs: docstyle
-	poetry export -f requirements.txt --output docs/requirements.txt
+	poetry export --dev -f requirements.txt --output docs/requirements.txt
 	poetry run sphinx-build -b html docs docs/html
 # publish:
 # deprecated by semantic-release
