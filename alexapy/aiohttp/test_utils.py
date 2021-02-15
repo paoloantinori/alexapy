@@ -5,12 +5,13 @@ import contextlib
 import functools
 import gc
 import inspect
+import ipaddress
+import os
 import socket
 import sys
-import unittest
 from abc import ABC, abstractmethod
 from types import TracebackType
-from typing import (  # noqa
+from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
@@ -19,26 +20,23 @@ from typing import (  # noqa
     Optional,
     Type,
     Union,
+    cast,
 )
 from unittest import mock
 
+from aiosignal import Signal
 from multidict import CIMultiDict, CIMultiDictProxy
 from yarl import URL
 
 import aiohttp
-from aiohttp.client import (
-    ClientResponse,
-    _RequestContextManager,
-    _WSRequestContextManager,
-)
+from aiohttp.client import _RequestContextManager, _WSRequestContextManager
 
 from . import ClientSession, hdrs
 from .abc import AbstractCookieJar
-from .client_reqrep import ClientResponse  # noqa
-from .client_ws import ClientWebSocketResponse  # noqa
-from .helpers import sentinel
+from .client_reqrep import ClientResponse
+from .client_ws import ClientWebSocketResponse
+from .helpers import _SENTINEL, PY_38, sentinel
 from .http import HttpVersion, RawRequestMessage
-from .signals import Signal
 from .web import (
     Application,
     AppRunner,
@@ -56,13 +54,29 @@ if TYPE_CHECKING:  # pragma: no cover
 else:
     SSLContext = None
 
+if PY_38:
+    from unittest import IsolatedAsyncioTestCase as TestCase
+else:
+    from asynctest import TestCase  # type: ignore[no-redef]
 
-def get_unused_port_socket(host: str) -> socket.socket:
-    return get_port_socket(host, 0)
+REUSE_ADDRESS = os.name == "posix" and sys.platform != "cygwin"
 
 
-def get_port_socket(host: str, port: int) -> socket.socket:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def get_unused_port_socket(
+    host: str, family: socket.AddressFamily = socket.AF_INET
+) -> socket.socket:
+    return get_port_socket(host, 0, family)
+
+
+def get_port_socket(
+    host: str, port: int, family: socket.AddressFamily = socket.AF_INET
+) -> socket.socket:
+    s = socket.socket(family, socket.SOCK_STREAM)
+    if REUSE_ADDRESS:
+        # Windows has different semantics for SO_REUSEADDR,
+        # so don't set it. Ref:
+        # https://docs.microsoft.com/en-us/windows/win32/winsock/using-so-reuseaddr-and-so-exclusiveaddruse
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((host, port))
     return s
 
@@ -71,7 +85,7 @@ def unused_port() -> int:
     """Return a port that is unused on the current host."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+        return cast(int, s.getsockname()[1])
 
 
 class BaseTestServer(ABC):
@@ -80,14 +94,12 @@ class BaseTestServer(ABC):
     def __init__(
         self,
         *,
-        scheme: Union[str, object] = sentinel,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        scheme: Union[str, _SENTINEL] = sentinel,
         host: str = "127.0.0.1",
         port: Optional[int] = None,
         skip_url_asserts: bool = False,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
-        self._loop = loop
         self.runner = None  # type: Optional[BaseRunner]
         self._root = None  # type: Optional[URL]
         self.host = host
@@ -96,18 +108,23 @@ class BaseTestServer(ABC):
         self.scheme = scheme
         self.skip_url_asserts = skip_url_asserts
 
-    async def start_server(
-        self, loop: Optional[asyncio.AbstractEventLoop] = None, **kwargs: Any
-    ) -> None:
+    async def start_server(self, **kwargs: Any) -> None:
         if self.runner:
             return
-        self._loop = loop
         self._ssl = kwargs.pop("ssl", None)
         self.runner = await self._make_runner(**kwargs)
         await self.runner.setup()
         if not self.port:
             self.port = 0
-        _sock = get_port_socket(self.host, self.port)
+        absolute_host = self.host
+        try:
+            version = ipaddress.ip_address(self.host).version
+        except ValueError:
+            version = 4
+        if version == 6:
+            absolute_host = f"[{self.host}]"
+        family = socket.AF_INET6 if version == 6 else socket.AF_INET
+        _sock = get_port_socket(self.host, self.port, family=family)
         self.host, self.port = _sock.getsockname()[:2]
         site = SockSite(self.runner, sock=_sock, ssl_context=self._ssl)
         await site.start()
@@ -122,7 +139,7 @@ class BaseTestServer(ABC):
             else:
                 scheme = "http"
             self.scheme = scheme
-        self._root = URL("{}://{}:{}".format(self.scheme, self.host, self.port))
+        self._root = URL(f"{self.scheme}://{absolute_host}:{self.port}")
 
     @abstractmethod  # pragma: no cover
     async def _make_runner(self, **kwargs: Any) -> BaseRunner:
@@ -173,20 +190,8 @@ class BaseTestServer(ABC):
             self.port = None
             self._closed = True
 
-    def __enter__(self) -> None:
-        raise TypeError("Use async with instead")
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
-    ) -> None:
-        # __exit__ should exist in pair with __enter__ but never executed
-        pass  # pragma: no cover
-
     async def __aenter__(self) -> "BaseTestServer":
-        await self.start_server(loop=self._loop)
+        await self.start_server()
         return self
 
     async def __aexit__(
@@ -203,10 +208,10 @@ class TestServer(BaseTestServer):
         self,
         app: Application,
         *,
-        scheme: Union[str, object] = sentinel,
+        scheme: Union[str, _SENTINEL] = sentinel,
         host: str = "127.0.0.1",
         port: Optional[int] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         self.app = app
         super().__init__(scheme=scheme, host=host, port=port, **kwargs)
@@ -220,17 +225,17 @@ class RawTestServer(BaseTestServer):
         self,
         handler: _RequestHandler,
         *,
-        scheme: Union[str, object] = sentinel,
+        scheme: Union[str, _SENTINEL] = sentinel,
         host: str = "127.0.0.1",
         port: Optional[int] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         self._handler = handler
         super().__init__(scheme=scheme, host=host, port=port, **kwargs)
 
-    async def _make_runner(self, debug: bool = True, **kwargs: Any) -> ServerRunner:
-        srv = Server(self._handler, loop=self._loop, debug=debug, **kwargs)
-        return ServerRunner(srv, debug=debug, **kwargs)
+    async def _make_runner(self, **kwargs: Any) -> ServerRunner:
+        srv = Server(self._handler, **kwargs)
+        return ServerRunner(srv, **kwargs)
 
 
 class TestClient:
@@ -248,24 +253,26 @@ class TestClient:
         server: BaseTestServer,
         *,
         cookie_jar: Optional[AbstractCookieJar] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         if not isinstance(server, BaseTestServer):
             raise TypeError(
                 "server must be TestServer " "instance, found type: %r" % type(server)
             )
         self._server = server
-        self._loop = loop
         if cookie_jar is None:
-            cookie_jar = aiohttp.CookieJar(unsafe=True, loop=loop)
-        self._session = ClientSession(loop=loop, cookie_jar=cookie_jar, **kwargs)
+            cookie_jar = aiohttp.CookieJar(unsafe=True)
+        self._session = ClientSession(cookie_jar=cookie_jar, **kwargs)
         self._closed = False
         self._responses = []  # type: List[ClientResponse]
         self._websockets = []  # type: List[ClientWebSocketResponse]
 
     async def start_server(self) -> None:
-        await self._server.start_server(loop=self._loop)
+        await self._server.start_server()
+
+    @property
+    def scheme(self) -> Union[str, object]:
+        return self._server.scheme
 
     @property
     def host(self) -> str:
@@ -280,8 +287,8 @@ class TestClient:
         return self._server
 
     @property
-    def app(self) -> Application:
-        return getattr(self._server, "app", None)
+    def app(self) -> Optional[Application]:
+        return cast(Optional[Application], getattr(self._server, "app", None))
 
     @property
     def session(self) -> ClientSession:
@@ -375,18 +382,6 @@ class TestClient:
             await self._server.close()
             self._closed = True
 
-    def __enter__(self) -> None:
-        raise TypeError("Use async with instead")
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc: Optional[BaseException],
-        tb: Optional[TracebackType],
-    ) -> None:
-        # __exit__ should exist in pair with __enter__ but never executed
-        pass  # pragma: no cover
-
     async def __aenter__(self) -> "TestClient":
         await self.start_server()
         return self
@@ -400,7 +395,7 @@ class TestClient:
         await self.close()
 
 
-class AioHTTPTestCase(unittest.TestCase):
+class AioHTTPTestCase(TestCase):
     """A base class to allow for unittest web applications using
     aiohttp.
 
@@ -434,34 +429,31 @@ class AioHTTPTestCase(unittest.TestCase):
         raise RuntimeError("Did you forget to define get_application()?")
 
     def setUp(self) -> None:
-        self.loop = setup_test_loop()
-
-        self.app = self.loop.run_until_complete(self.get_application())
-        self.server = self.loop.run_until_complete(self.get_server(self.app))
-        self.client = self.loop.run_until_complete(self.get_client(self.server))
-
-        self.loop.run_until_complete(self.client.start_server())
+        if PY_38:
+            self.loop = asyncio.get_event_loop()
 
         self.loop.run_until_complete(self.setUpAsync())
 
     async def setUpAsync(self) -> None:
-        pass
+        self.app = await self.get_application()
+        self.server = await self.get_server(self.app)
+        self.client = await self.get_client(self.server)
+
+        await self.client.start_server()
 
     def tearDown(self) -> None:
         self.loop.run_until_complete(self.tearDownAsync())
-        self.loop.run_until_complete(self.client.close())
-        teardown_test_loop(self.loop)
 
     async def tearDownAsync(self) -> None:
-        pass
+        await self.client.close()
 
     async def get_server(self, app: Application) -> TestServer:
         """Return a TestServer instance."""
-        return TestServer(app, loop=self.loop)
+        return TestServer(app)
 
     async def get_client(self, server: TestServer) -> TestClient:
         """Return a TestClient instance."""
-        return TestClient(server, loop=self.loop)
+        return TestClient(server)
 
 
 def unittest_run_loop(func: Any, *args: Any, **kwargs: Any) -> Any:
@@ -514,7 +506,7 @@ def setup_test_loop(
     asyncio.set_event_loop(loop)
     if sys.platform != "win32" and not skip_watcher:
         policy = asyncio.get_event_loop_policy()
-        watcher = asyncio.SafeChildWatcher()  # type: ignore
+        watcher = asyncio.SafeChildWatcher()
         watcher.attach_loop(loop)
         with contextlib.suppress(NotImplementedError):
             policy.set_child_watcher(watcher)
@@ -550,7 +542,6 @@ def _create_app_mock() -> mock.MagicMock:
     app.__getitem__ = get_dict
     app.__setitem__ = set_dict
 
-    app._debug = False
     app.on_response_prepare = Signal(app)
     app.on_response_prepare.freeze()
     return app
@@ -584,8 +575,8 @@ def make_mocked_request(
     payload: Any = sentinel,
     sslcontext: Optional[SSLContext] = None,
     client_max_size: int = 1024 ** 2,
-    loop: Any = ...
-) -> Any:
+    loop: Any = ...,
+) -> Request:
     """Creates mocked web.Request testing purposes.
 
     Useful in unit tests, when spinning full web server is overkill or
@@ -619,7 +610,7 @@ def make_mocked_request(
         headers,
         raw_hdrs,
         closing,
-        False,
+        None,
         False,
         chunked,
         URL(path),
