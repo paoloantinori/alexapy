@@ -2,7 +2,7 @@
 [tool.poetry]
 name = "AlexaPy"
 version = "1.24.0"
-description = "Python API to control Amazon Echo Devices Programatically."
+description = "Python API to control Amazon Echo Devices Programmatically."
 authors = ["Keaton Taylor <keatonstaylor@gmail.com>", "Alan Tse <alandtse@gmail.com"]
 license = "Apache-2.0"
 readme = 'README.md'
