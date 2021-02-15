@@ -35,3 +35,6 @@ Additional scaffolding from [simplisafe-python](https://github.com/bachya/simpli
 
 # License
 [Apache-2.0](LICENSE). By providing a contribution, you agree the contribution is licensed under Apache-2.0.
+
+# API Reference
+[See the docs 📚](https://alexapy.readthedocs.io/en/latest/index.html).
