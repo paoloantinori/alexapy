@@ -23,18 +23,17 @@ from typing import (
 )
 
 from multidict import CIMultiDict
-from typing_extensions import Final
 
 from . import hdrs
 from .abc import AbstractStreamWriter
 from .helpers import (
-    _SENTINEL,
+    PY_36,
     content_disposition_header,
     guess_filename,
     parse_mimetype,
     sentinel,
 )
-from .streams import StreamReader
+from .streams import DEFAULT_LIMIT, StreamReader
 from .typedefs import JSONEncoder, _CIMultiDict
 
 __all__ = (
@@ -53,10 +52,11 @@ __all__ = (
     "AsyncIterablePayload",
 )
 
-TOO_LARGE_BYTES_BODY: Final[int] = 2 ** 20  # 1 MB
+TOO_LARGE_BYTES_BODY = 2 ** 20  # 1 MB
+
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import List
+    from typing import List  # noqa
 
 
 class LookupError(Exception):
@@ -89,10 +89,6 @@ class payload_type:
         return factory
 
 
-PayloadType = Type["Payload"]
-_PayloadRegistryItem = Tuple[PayloadType, Any]
-
-
 class PayloadRegistry:
     """Payload registry.
 
@@ -100,16 +96,12 @@ class PayloadRegistry:
     """
 
     def __init__(self) -> None:
-        self._first = []  # type: List[_PayloadRegistryItem]
-        self._normal = []  # type: List[_PayloadRegistryItem]
-        self._last = []  # type: List[_PayloadRegistryItem]
+        self._first = []  # type: List[Tuple[Type[Payload], Any]]
+        self._normal = []  # type: List[Tuple[Type[Payload], Any]]
+        self._last = []  # type: List[Tuple[Type[Payload], Any]]
 
     def get(
-        self,
-        data: Any,
-        *args: Any,
-        _CHAIN: "Type[chain[_PayloadRegistryItem]]" = chain,
-        **kwargs: Any,
+        self, data: Any, *args: Any, _CHAIN: Any = chain, **kwargs: Any
     ) -> "Payload":
         if isinstance(data, Payload):
             return data
@@ -120,7 +112,7 @@ class PayloadRegistry:
         raise LookupError()
 
     def register(
-        self, factory: PayloadType, type: Any, *, order: Order = Order.normal
+        self, factory: Type["Payload"], type: Any, *, order: Order = Order.normal
     ) -> None:
         if order is Order.try_first:
             self._first.append((factory, type))
@@ -129,7 +121,7 @@ class PayloadRegistry:
         elif order is Order.try_last:
             self._last.append((factory, type))
         else:
-            raise ValueError(f"Unsupported order {order!r}")
+            raise ValueError("Unsupported order {!r}".format(order))
 
 
 class Payload(ABC):
@@ -143,17 +135,16 @@ class Payload(ABC):
         headers: Optional[
             Union[_CIMultiDict, Dict[str, str], Iterable[Tuple[str, str]]]
         ] = None,
-        content_type: Union[None, str, _SENTINEL] = sentinel,
+        content_type: Optional[str] = sentinel,
         filename: Optional[str] = None,
         encoding: Optional[str] = None,
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
         self._encoding = encoding
         self._filename = filename
         self._headers = CIMultiDict()  # type: _CIMultiDict
         self._value = value
         if content_type is not sentinel and content_type is not None:
-            assert isinstance(content_type, str)
             self._headers[hdrs.CONTENT_TYPE] = content_type
         elif self._filename is not None:
             content_type = mimetypes.guess_type(self._filename)[0]
@@ -199,15 +190,11 @@ class Payload(ABC):
         return self._headers[hdrs.CONTENT_TYPE]
 
     def set_content_disposition(
-        self,
-        disptype: str,
-        quote_fields: bool = True,
-        _charset: str = "utf-8",
-        **params: Any,
+        self, disptype: str, quote_fields: bool = True, **params: Any
     ) -> None:
         """Sets ``Content-Disposition`` header."""
         self._headers[hdrs.CONTENT_DISPOSITION] = content_disposition_header(
-            disptype, quote_fields=quote_fields, _charset=_charset, **params
+            disptype, quote_fields=quote_fields, **params
         )
 
     @abstractmethod
@@ -230,18 +217,19 @@ class BytesPayload(Payload):
 
         super().__init__(value, *args, **kwargs)
 
-        if isinstance(value, memoryview):
-            self._size = value.nbytes
-        else:
-            self._size = len(value)
+        self._size = len(value)
 
         if self._size > TOO_LARGE_BYTES_BODY:
+            if PY_36:
+                kwargs = {"source": self}
+            else:
+                kwargs = {}
             warnings.warn(
                 "Sending a large body directly with raw bytes might"
                 " lock the event loop. You should probably pass an "
                 "io.BytesIO object instead",
                 ResourceWarning,
-                source=self,
+                **kwargs,
             )
 
     async def write(self, writer: AbstractStreamWriter) -> None:
@@ -255,7 +243,7 @@ class StringPayload(BytesPayload):
         *args: Any,
         encoding: Optional[str] = None,
         content_type: Optional[str] = None,
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
 
         if encoding is None:
@@ -285,8 +273,6 @@ class StringIOPayload(StringPayload):
 
 
 class IOBasePayload(Payload):
-    _value: IO[Any]
-
     def __init__(
         self, value: IO[Any], disposition: str = "attachment", *args: Any, **kwargs: Any
     ) -> None:
@@ -302,24 +288,24 @@ class IOBasePayload(Payload):
     async def write(self, writer: AbstractStreamWriter) -> None:
         loop = asyncio.get_event_loop()
         try:
-            chunk = await loop.run_in_executor(None, self._value.read, 2 ** 16)
+            chunk = await loop.run_in_executor(None, self._value.read, DEFAULT_LIMIT)
             while chunk:
                 await writer.write(chunk)
-                chunk = await loop.run_in_executor(None, self._value.read, 2 ** 16)
+                chunk = await loop.run_in_executor(
+                    None, self._value.read, DEFAULT_LIMIT
+                )
         finally:
             await loop.run_in_executor(None, self._value.close)
 
 
 class TextIOPayload(IOBasePayload):
-    _value: TextIO
-
     def __init__(
         self,
         value: TextIO,
         *args: Any,
         encoding: Optional[str] = None,
         content_type: Optional[str] = None,
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
 
         if encoding is None:
@@ -334,11 +320,7 @@ class TextIOPayload(IOBasePayload):
                 content_type = "text/plain; charset=%s" % encoding
 
         super().__init__(
-            value,
-            content_type=content_type,
-            encoding=encoding,
-            *args,
-            **kwargs,
+            value, content_type=content_type, encoding=encoding, *args, **kwargs,
         )
 
     @property
@@ -351,15 +333,12 @@ class TextIOPayload(IOBasePayload):
     async def write(self, writer: AbstractStreamWriter) -> None:
         loop = asyncio.get_event_loop()
         try:
-            chunk = await loop.run_in_executor(None, self._value.read, 2 ** 16)
+            chunk = await loop.run_in_executor(None, self._value.read, DEFAULT_LIMIT)
             while chunk:
-                data = (
-                    chunk.encode(encoding=self._encoding)
-                    if self._encoding
-                    else chunk.encode()
+                await writer.write(chunk.encode(self._encoding))
+                chunk = await loop.run_in_executor(
+                    None, self._value.read, DEFAULT_LIMIT
                 )
-                await writer.write(data)
-                chunk = await loop.run_in_executor(None, self._value.read, 2 ** 16)
         finally:
             await loop.run_in_executor(None, self._value.close)
 
@@ -392,7 +371,7 @@ class JsonPayload(BytesPayload):
         content_type: str = "application/json",
         dumps: JSONEncoder = json.dumps,
         *args: Any,
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
 
         super().__init__(
@@ -405,7 +384,7 @@ class JsonPayload(BytesPayload):
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import AsyncIterable, AsyncIterator
+    from typing import AsyncIterator, AsyncIterable
 
     _AsyncIterator = AsyncIterator[bytes]
     _AsyncIterable = AsyncIterable[bytes]

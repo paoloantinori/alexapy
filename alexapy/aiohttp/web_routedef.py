@@ -1,5 +1,4 @@
 import abc
-import dataclasses
 import os  # noqa
 from typing import (
     TYPE_CHECKING,
@@ -16,16 +15,18 @@ from typing import (
     overload,
 )
 
+import attr
+
 from . import hdrs
 from .abc import AbstractView
 from .typedefs import PathLike
 
 if TYPE_CHECKING:  # pragma: no cover
+    from .web_urldispatcher import UrlDispatcher
     from .web_request import Request
     from .web_response import StreamResponse
-    from .web_urldispatcher import AbstractRoute, UrlDispatcher
 else:
-    Request = StreamResponse = UrlDispatcher = AbstractRoute = None
+    Request = StreamResponse = UrlDispatcher = None
 
 
 __all__ = (
@@ -48,7 +49,7 @@ __all__ = (
 
 class AbstractRouteDef(abc.ABC):
     @abc.abstractmethod
-    def register(self, router: UrlDispatcher) -> List[AbstractRoute]:
+    def register(self, router: UrlDispatcher) -> None:
         pass  # pragma: no cover
 
 
@@ -56,49 +57,45 @@ _SimpleHandler = Callable[[Request], Awaitable[StreamResponse]]
 _HandlerType = Union[Type[AbstractView], _SimpleHandler]
 
 
-@dataclasses.dataclass(frozen=True, repr=False)
+@attr.s(frozen=True, repr=False, slots=True)
 class RouteDef(AbstractRouteDef):
-    method: str
-    path: str
-    handler: _HandlerType
-    kwargs: Dict[str, Any]
+    method = attr.ib(type=str)
+    path = attr.ib(type=str)
+    handler = attr.ib()  # type: _HandlerType
+    kwargs = attr.ib(type=Dict[str, Any])
 
     def __repr__(self) -> str:
         info = []
         for name, value in sorted(self.kwargs.items()):
-            info.append(f", {name}={value!r}")
+            info.append(", {}={!r}".format(name, value))
         return "<RouteDef {method} {path} -> {handler.__name__!r}" "{info}>".format(
             method=self.method, path=self.path, handler=self.handler, info="".join(info)
         )
 
-    def register(self, router: UrlDispatcher) -> List[AbstractRoute]:
+    def register(self, router: UrlDispatcher) -> None:
         if self.method in hdrs.METH_ALL:
             reg = getattr(router, "add_" + self.method.lower())
-            return [reg(self.path, self.handler, **self.kwargs)]
+            reg(self.path, self.handler, **self.kwargs)
         else:
-            return [
-                router.add_route(self.method, self.path, self.handler, **self.kwargs)
-            ]
+            router.add_route(self.method, self.path, self.handler, **self.kwargs)
 
 
-@dataclasses.dataclass(frozen=True, repr=False)
+@attr.s(frozen=True, repr=False, slots=True)
 class StaticDef(AbstractRouteDef):
-    prefix: str
-    path: PathLike
-    kwargs: Dict[str, Any]
+    prefix = attr.ib(type=str)
+    path = attr.ib()  # type: PathLike
+    kwargs = attr.ib(type=Dict[str, Any])
 
     def __repr__(self) -> str:
         info = []
         for name, value in sorted(self.kwargs.items()):
-            info.append(f", {name}={value!r}")
+            info.append(", {}={!r}".format(name, value))
         return "<StaticDef {prefix} -> {path}" "{info}>".format(
             prefix=self.prefix, path=self.path, info="".join(info)
         )
 
-    def register(self, router: UrlDispatcher) -> List[AbstractRoute]:
-        resource = router.add_static(self.prefix, self.path, **self.kwargs)
-        routes = resource.get_info().get("routes", {})
-        return list(routes.values())
+    def register(self, router: UrlDispatcher) -> None:
+        router.add_static(self.prefix, self.path, **self.kwargs)
 
 
 def route(method: str, path: str, handler: _HandlerType, **kwargs: Any) -> RouteDef:
@@ -119,7 +116,7 @@ def get(
     *,
     name: Optional[str] = None,
     allow_head: bool = True,
-    **kwargs: Any,
+    **kwargs: Any
 ) -> RouteDef:
     return route(
         hdrs.METH_GET, path, handler, name=name, allow_head=allow_head, **kwargs
@@ -164,13 +161,13 @@ class RouteTableDef(Sequence[AbstractRouteDef]):
 
     @overload
     def __getitem__(self, index: int) -> AbstractRouteDef:
-        ...
+        ...  # noqa
 
-    @overload
+    @overload  # noqa
     def __getitem__(self, index: slice) -> List[AbstractRouteDef]:
-        ...
+        ...  # noqa
 
-    def __getitem__(self, index):  # type: ignore[no-untyped-def]
+    def __getitem__(self, index):  # type: ignore  # noqa
         return self._items[index]
 
     def __iter__(self) -> Iterator[AbstractRouteDef]:
@@ -206,9 +203,6 @@ class RouteTableDef(Sequence[AbstractRouteDef]):
 
     def delete(self, path: str, **kwargs: Any) -> _Deco:
         return self.route(hdrs.METH_DELETE, path, **kwargs)
-
-    def options(self, path: str, **kwargs: Any) -> _Deco:
-        return self.route(hdrs.METH_OPTIONS, path, **kwargs)
 
     def view(self, path: str, **kwargs: Any) -> _Deco:
         return self.route(hdrs.METH_ANY, path, **kwargs)

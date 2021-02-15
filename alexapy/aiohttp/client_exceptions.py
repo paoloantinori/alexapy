@@ -1,23 +1,29 @@
 """HTTP related errors."""
 
 import asyncio
+import warnings
 from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
 
-from .http_parser import RawResponseMessage
-from .typedefs import LooseHeaders
+from .typedefs import _CIMultiDict
 
 try:
     import ssl
 
     SSLContext = ssl.SSLContext
 except ImportError:  # pragma: no cover
-    ssl = SSLContext = None  # type: ignore[assignment]
+    ssl = SSLContext = None  # type: ignore
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .client_reqrep import ClientResponse, ConnectionKey, Fingerprint, RequestInfo
+    from .client_reqrep import (
+        RequestInfo,
+        ClientResponse,
+        ConnectionKey,  # noqa
+        Fingerprint,
+    )
 else:
     RequestInfo = ClientResponse = ConnectionKey = None
+
 
 __all__ = (
     "ClientError",
@@ -56,13 +62,27 @@ class ClientResponseError(ClientError):
         request_info: RequestInfo,
         history: Tuple[ClientResponse, ...],
         *,
+        code: Optional[int] = None,
         status: Optional[int] = None,
         message: str = "",
-        headers: Optional[LooseHeaders] = None,
+        headers: Optional[_CIMultiDict] = None
     ) -> None:
         self.request_info = request_info
+        if code is not None:
+            if status is not None:
+                raise ValueError(
+                    "Both code and status arguments are provided; "
+                    "code is deprecated, use status instead"
+                )
+            warnings.warn(
+                "code argument is deprecated, use status instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if status is not None:
             self.status = status
+        elif code is not None:
+            self.status = code
         else:
             self.status = 0
         self.message = message
@@ -71,21 +91,39 @@ class ClientResponseError(ClientError):
         self.args = (request_info, history)
 
     def __str__(self) -> str:
-        return "{}, message={!r}, url={!r}".format(
+        return "%s, message=%r, url=%r" % (
             self.status,
             self.message,
             self.request_info.real_url,
         )
 
     def __repr__(self) -> str:
-        args = f"{self.request_info!r}, {self.history!r}"
+        args = "%r, %r" % (self.request_info, self.history)
         if self.status != 0:
-            args += f", status={self.status!r}"
+            args += ", status=%r" % (self.status,)
         if self.message != "":
-            args += f", message={self.message!r}"
+            args += ", message=%r" % (self.message,)
         if self.headers is not None:
-            args += f", headers={self.headers!r}"
-        return "{}({})".format(type(self).__name__, args)
+            args += ", headers=%r" % (self.headers,)
+        return "%s(%s)" % (type(self).__name__, args)
+
+    @property
+    def code(self) -> int:
+        warnings.warn(
+            "code property is deprecated, use status instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.status
+
+    @code.setter
+    def code(self, value: int) -> None:
+        warnings.warn(
+            "code property is deprecated, use status instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.status = value
 
 
 class ContentTypeError(ClientResponseError):
@@ -163,29 +201,6 @@ class ClientProxyConnectionError(ClientConnectorError):
     """
 
 
-class UnixClientConnectorError(ClientConnectorError):
-    """Unix connector error.
-
-    Raised in :py:class:`aiohttp.connector.UnixConnector`
-    if connection to unix socket can not be established.
-    """
-
-    def __init__(
-        self, path: str, connection_key: ConnectionKey, os_error: OSError
-    ) -> None:
-        self._path = path
-        super().__init__(connection_key, os_error)
-
-    @property
-    def path(self) -> str:
-        return self._path
-
-    def __str__(self) -> str:
-        return "Cannot connect to unix socket {0.path} ssl:{1} [{2}]".format(
-            self, self.ssl if self.ssl is not None else "default", self.strerror
-        )
-
-
 class ServerConnectionError(ClientConnectionError):
     """Server connection errors."""
 
@@ -193,12 +208,12 @@ class ServerConnectionError(ClientConnectionError):
 class ServerDisconnectedError(ServerConnectionError):
     """Server disconnected."""
 
-    def __init__(self, message: Union[RawResponseMessage, str, None] = None) -> None:
-        if message is None:
-            message = "Server disconnected"
-
-        self.args = (message,)
+    def __init__(self, message: Optional[str] = None) -> None:
         self.message = message
+        if message is None:
+            self.args = ()
+        else:
+            self.args = (message,)
 
 
 class ServerTimeoutError(ServerConnectionError, asyncio.TimeoutError):
@@ -243,7 +258,7 @@ class InvalidURL(ClientError, ValueError):
         return self.args[0]
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {self.url}>"
+        return "<{} {}>".format(self.__class__.__name__, self.url)
 
 
 class ClientSSLError(ClientConnectorError):
@@ -270,11 +285,11 @@ else:  # pragma: no cover
     ssl_error_bases = (ClientSSLError,)
 
 
-class ClientConnectorSSLError(*ssl_error_bases):  # type: ignore[misc]
+class ClientConnectorSSLError(*ssl_error_bases):  # type: ignore
     """Response ssl error."""
 
 
-class ClientConnectorCertificateError(*cert_errors_bases):  # type: ignore[misc]
+class ClientConnectorCertificateError(*cert_errors_bases):  # type: ignore
     """Response certificate error."""
 
     def __init__(
