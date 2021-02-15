@@ -25,6 +25,7 @@ black:
 	poetry run black alexapy --exclude aiohttp/
 docs: docstyle
 	poetry export --dev --without-hashes -f requirements.txt --output docs/requirements.txt
+	echo "alexapy" >> docs/requirements.txt
 	poetry run sphinx-build -b html docs docs/html
 # publish:
 # deprecated by semantic-release
