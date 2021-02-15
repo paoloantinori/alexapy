@@ -1,8 +1,8 @@
 import asyncio
 import logging
 import warnings
-from functools import partial
-from typing import (  # noqa
+from functools import partial, update_wrapper
+from typing import (
     TYPE_CHECKING,
     Any,
     AsyncIterator,
@@ -44,6 +44,7 @@ from .web_routedef import AbstractRouteDef
 from .web_server import Server
 from .web_urldispatcher import (
     AbstractResource,
+    AbstractRoute,
     Domain,
     MaskDomain,
     MatchedSubAppResource,
@@ -106,10 +107,10 @@ class Application(MutableMapping[str, Any]):
         logger: logging.Logger = web_logger,
         router: Optional[UrlDispatcher] = None,
         middlewares: Iterable[_Middleware] = (),
-        handler_args: Mapping[str, Any] = None,
+        handler_args: Optional[Mapping[str, Any]] = None,
         client_max_size: int = 1024 ** 2,
         loop: Optional[asyncio.AbstractEventLoop] = None,
-        debug: Any = ...  # mypy doesn't support ellipsis
+        debug: Any = ...,  # mypy doesn't support ellipsis
     ) -> None:
         if router is None:
             router = UrlDispatcher()
@@ -328,8 +329,8 @@ class Application(MutableMapping[str, Any]):
         factory = partial(MatchedSubAppResource, rule, subapp)
         return self._add_subapp(factory, subapp)
 
-    def add_routes(self, routes: Iterable[AbstractRouteDef]) -> None:
-        self.router.add_routes(routes)
+    def add_routes(self, routes: Iterable[AbstractRouteDef]) -> List[AbstractRoute]:
+        return self.router.add_routes(routes)
 
     @property
     def on_response_prepare(self) -> _RespPrepareSignal:
@@ -364,7 +365,7 @@ class Application(MutableMapping[str, Any]):
         *,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         access_log_class: Type[AbstractAccessLogger] = AccessLogger,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Server:
 
         if not issubclass(access_log_class, AbstractAccessLogger):
@@ -386,7 +387,7 @@ class Application(MutableMapping[str, Any]):
             self._handle,  # type: ignore
             request_factory=self._make_request,
             loop=self._loop,
-            **kwargs
+            **kwargs,
         )
 
     def make_handler(
@@ -394,7 +395,7 @@ class Application(MutableMapping[str, Any]):
         *,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         access_log_class: Type[AbstractAccessLogger] = AccessLogger,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Server:
 
         warnings.warn(
@@ -487,9 +488,11 @@ class Application(MutableMapping[str, Any]):
 
             if self._run_middlewares:
                 for app in match_info.apps[::-1]:
-                    for m, new_style in app._middlewares_handlers:  # type: ignore  # noqa
+                    for m, new_style in app._middlewares_handlers:  # type: ignore
                         if new_style:
-                            handler = partial(m, handler=handler)
+                            handler = update_wrapper(
+                                partial(m, handler=handler), handler
+                            )
                         else:
                             handler = await m(app, handler)  # type: ignore
 
@@ -541,7 +544,7 @@ class CleanupContext(_CleanupContextBase):
             except Exception as exc:
                 errors.append(exc)
             else:
-                errors.append(RuntimeError("{!r} has more than one 'yield'".format(it)))
+                errors.append(RuntimeError(f"{it!r} has more than one 'yield'"))
         if errors:
             if len(errors) == 1:
                 raise errors[0]

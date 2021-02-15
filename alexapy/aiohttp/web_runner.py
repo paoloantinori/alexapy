@@ -45,7 +45,7 @@ class BaseSite(ABC):
         *,
         shutdown_timeout: float = 60.0,
         ssl_context: Optional[SSLContext] = None,
-        backlog: int = 128
+        backlog: int = 128,
     ) -> None:
         if runner.server is None:
             raise RuntimeError("Call runner.setup() before making a site")
@@ -85,14 +85,14 @@ class TCPSite(BaseSite):
     def __init__(
         self,
         runner: "BaseRunner",
-        host: str = None,
-        port: int = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
         *,
         shutdown_timeout: float = 60.0,
         ssl_context: Optional[SSLContext] = None,
         backlog: int = 128,
         reuse_address: Optional[bool] = None,
-        reuse_port: Optional[bool] = None
+        reuse_port: Optional[bool] = None,
     ) -> None:
         super().__init__(
             runner,
@@ -100,8 +100,6 @@ class TCPSite(BaseSite):
             ssl_context=ssl_context,
             backlog=backlog,
         )
-        if host is None:
-            host = "0.0.0.0"
         self._host = host
         if port is None:
             port = 8443 if self._ssl_context else 8080
@@ -112,14 +110,15 @@ class TCPSite(BaseSite):
     @property
     def name(self) -> str:
         scheme = "https" if self._ssl_context else "http"
-        return str(URL.build(scheme=scheme, host=self._host, port=self._port))
+        host = "0.0.0.0" if self._host is None else self._host
+        return str(URL.build(scheme=scheme, host=host, port=self._port))
 
     async def start(self) -> None:
         await super().start()
         loop = asyncio.get_event_loop()
         server = self._runner.server
         assert server is not None
-        self._server = await loop.create_server(  # type: ignore
+        self._server = await loop.create_server(
             server,
             self._host,
             self._port,
@@ -140,7 +139,7 @@ class UnixSite(BaseSite):
         *,
         shutdown_timeout: float = 60.0,
         ssl_context: Optional[SSLContext] = None,
-        backlog: int = 128
+        backlog: int = 128,
     ) -> None:
         super().__init__(
             runner,
@@ -153,7 +152,7 @@ class UnixSite(BaseSite):
     @property
     def name(self) -> str:
         scheme = "https" if self._ssl_context else "http"
-        return "{}://unix:{}:".format(scheme, self._path)
+        return f"{scheme}://unix:{self._path}:"
 
     async def start(self) -> None:
         await super().start()
@@ -188,9 +187,7 @@ class NamedPipeSite(BaseSite):
         loop = asyncio.get_event_loop()
         server = self._runner.server
         assert server is not None
-        _server = await loop.start_serving_pipe(  # type: ignore
-            server, self._path
-        )
+        _server = await loop.start_serving_pipe(server, self._path)  # type: ignore
         self._server = _server[0]
 
 
@@ -204,7 +201,7 @@ class SockSite(BaseSite):
         *,
         shutdown_timeout: float = 60.0,
         ssl_context: Optional[SSLContext] = None,
-        backlog: int = 128
+        backlog: int = 128,
     ) -> None:
         super().__init__(
             runner,
@@ -215,7 +212,7 @@ class SockSite(BaseSite):
         self._sock = sock
         scheme = "https" if self._ssl_context else "http"
         if hasattr(socket, "AF_UNIX") and sock.family == socket.AF_UNIX:
-            name = "{}://unix:{}:".format(scheme, sock.getsockname())
+            name = f"{scheme}://unix:{sock.getsockname()}:"
         else:
             host, port = sock.getsockname()[:2]
             name = str(URL.build(scheme=scheme, host=host, port=port))
@@ -230,7 +227,7 @@ class SockSite(BaseSite):
         loop = asyncio.get_event_loop()
         server = self._runner.server
         assert server is not None
-        self._server = await loop.create_server(  # type: ignore
+        self._server = await loop.create_server(
             server, sock=self._sock, ssl=self._ssl_context, backlog=self._backlog
         )
 
@@ -249,8 +246,8 @@ class BaseRunner(ABC):
         return self._server
 
     @property
-    def addresses(self) -> List[str]:
-        ret = []  # type: List[str]
+    def addresses(self) -> List[Any]:
+        ret = []  # type: List[Any]
         for site in self._sites:
             server = site._server
             if server is not None:
@@ -314,22 +311,16 @@ class BaseRunner(ABC):
 
     def _reg_site(self, site: BaseSite) -> None:
         if site in self._sites:
-            raise RuntimeError(
-                "Site {} is already registered in runner {}".format(site, self)
-            )
+            raise RuntimeError(f"Site {site} is already registered in runner {self}")
         self._sites.append(site)
 
     def _check_site(self, site: BaseSite) -> None:
         if site not in self._sites:
-            raise RuntimeError(
-                "Site {} is not registered in runner {}".format(site, self)
-            )
+            raise RuntimeError(f"Site {site} is not registered in runner {self}")
 
     def _unreg_site(self, site: BaseSite) -> None:
         if site not in self._sites:
-            raise RuntimeError(
-                "Site {} is not registered in runner {}".format(site, self)
-            )
+            raise RuntimeError(f"Site {site} is not registered in runner {self}")
         self._sites.remove(site)
 
 
