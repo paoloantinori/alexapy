@@ -129,16 +129,3 @@ Exceptions
    .. rubric:: Inheritance
    .. inheritance-diagram:: AlexapyPyotpInvalidKey
       :parts: 1
-
-
-Variables
-=========
-
-- :py:data:`__version__`
-
-.. autodata:: __version__
-   :annotation:
-
-   .. code-block:: text
-
-      '1.20.5'
