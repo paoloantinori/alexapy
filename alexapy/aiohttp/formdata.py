@@ -1,5 +1,5 @@
 import io
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List, Optional  # noqa
 from urllib.parse import urlencode
 
 from multidict import MultiDict, MultiDictProxy
@@ -24,7 +24,6 @@ class FormData:
         self._writer = multipart.MultipartWriter("form-data")
         self._fields = []  # type: List[Any]
         self._is_multipart = False
-        self._is_processed = False
         self._quote_fields = quote_fields
         self._charset = charset
 
@@ -45,7 +44,7 @@ class FormData:
         *,
         content_type: Optional[str] = None,
         filename: Optional[str] = None,
-        content_transfer_encoding: Optional[str] = None,
+        content_transfer_encoding: Optional[str] = None
     ) -> None:
 
         if isinstance(value, io.IOBase):
@@ -54,7 +53,7 @@ class FormData:
             if filename is None and content_transfer_encoding is None:
                 filename = name
 
-        type_options: MultiDict[str] = MultiDict({"name": name})
+        type_options = MultiDict({"name": name})
         if filename is not None and not isinstance(filename, str):
             raise TypeError(
                 "filename must be an instance of str. " "Got: %s" % filename
@@ -92,14 +91,14 @@ class FormData:
 
             if isinstance(rec, io.IOBase):
                 k = guess_filename(rec, "unknown")
-                self.add_field(k, rec)  # type: ignore[arg-type]
+                self.add_field(k, rec)  # type: ignore
 
             elif isinstance(rec, (MultiDictProxy, MultiDict)):
                 to_add.extend(rec.items())
 
             elif isinstance(rec, (list, tuple)) and len(rec) == 2:
                 k, fp = rec
-                self.add_field(k, fp)  # type: ignore[arg-type]
+                self.add_field(k, fp)  # type: ignore
 
             else:
                 raise TypeError(
@@ -128,8 +127,6 @@ class FormData:
 
     def _gen_form_data(self) -> multipart.MultipartWriter:
         """Encode a list of fields using the multipart/form-data MIME format"""
-        if self._is_processed:
-            raise RuntimeError("Form data has been processed already")
         for dispparams, headers, value in self._fields:
             try:
                 if hdrs.CONTENT_TYPE in headers:
@@ -160,7 +157,6 @@ class FormData:
 
             self._writer.append_payload(part)
 
-        self._is_processed = True
         return self._writer
 
     def __call__(self) -> Payload:

@@ -20,16 +20,16 @@ from .web_log import AccessLogger
 try:
     import ssl
 
-    SSLContext = ssl.SSLContext
+    SSLContext = ssl.SSLContext  # noqa
 except ImportError:  # pragma: no cover
-    ssl = None  # type: ignore[assignment]
-    SSLContext = object  # type: ignore[misc,assignment]
+    ssl = None  # type: ignore
+    SSLContext = object  # type: ignore
 
 
 __all__ = ("GunicornWebWorker", "GunicornUVLoopWebWorker", "GunicornTokioWebWorker")
 
 
-class GunicornWebWorker(base.Worker):  # type: ignore[misc,no-any-unimported]
+class GunicornWebWorker(base.Worker):
 
     DEFAULT_AIOHTTP_LOG_FORMAT = AccessLogger.LOG_FORMAT
     DEFAULT_GUNICORN_LOG_FORMAT = GunicornAccessLogFormat.default
@@ -43,6 +43,8 @@ class GunicornWebWorker(base.Worker):  # type: ignore[misc,no-any-unimported]
 
     def init_process(self) -> None:
         # create new event_loop after fork
+        asyncio.get_event_loop().close()
+
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
@@ -55,7 +57,8 @@ class GunicornWebWorker(base.Worker):  # type: ignore[misc,no-any-unimported]
             self.loop.run_until_complete(self._task)
         except Exception:
             self.log.exception("Exception in gunicorn worker")
-        self.loop.run_until_complete(self.loop.shutdown_asyncgens())
+        if sys.version_info >= (3, 6):
+            self.loop.run_until_complete(self.loop.shutdown_asyncgens())
         self.loop.close()
 
         sys.exit(self.exit_code)
@@ -82,6 +85,7 @@ class GunicornWebWorker(base.Worker):  # type: ignore[misc,no-any-unimported]
 
         ctx = self._create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
+        runner = runner
         assert runner is not None
         server = runner.server
         assert server is not None
@@ -97,7 +101,7 @@ class GunicornWebWorker(base.Worker):  # type: ignore[misc,no-any-unimported]
         # If our parent changed then we shut down.
         pid = os.getpid()
         try:
-            while self.alive:  # type: ignore[has-type]
+            while self.alive:  # type: ignore
                 self.notify()
 
                 cnt = server.requests_count
@@ -125,9 +129,7 @@ class GunicornWebWorker(base.Worker):  # type: ignore[misc,no-any-unimported]
 
         return waiter
 
-    def _notify_waiter_done(
-        self, waiter: Optional["asyncio.Future[bool]"] = None
-    ) -> None:
+    def _notify_waiter_done(self, waiter: "asyncio.Future[bool]" = None) -> None:
         if waiter is None:
             waiter = self._notify_waiter
         if waiter is not None:
@@ -185,7 +187,7 @@ class GunicornWebWorker(base.Worker):  # type: ignore[misc,no-any-unimported]
 
     @staticmethod
     def _create_ssl_context(cfg: Any) -> "SSLContext":
-        """Creates SSLContext instance for usage in asyncio.create_server.
+        """ Creates SSLContext instance for usage in asyncio.create_server.
 
         See ssl.SSLSocket.__init__ for more details.
         """
@@ -220,6 +222,10 @@ class GunicornUVLoopWebWorker(GunicornWebWorker):
     def init_process(self) -> None:
         import uvloop
 
+        # Close any existing event loop before setting a
+        # new policy.
+        asyncio.get_event_loop().close()
+
         # Setup uvloop policy, so that every
         # asyncio.get_event_loop() will create an instance
         # of uvloop event loop.
@@ -231,6 +237,10 @@ class GunicornUVLoopWebWorker(GunicornWebWorker):
 class GunicornTokioWebWorker(GunicornWebWorker):
     def init_process(self) -> None:  # pragma: no cover
         import tokio
+
+        # Close any existing event loop before setting a
+        # new policy.
+        asyncio.get_event_loop().close()
 
         # Setup tokio policy, so that every
         # asyncio.get_event_loop() will create an instance

@@ -1,7 +1,8 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sized
-from http.cookies import BaseCookie, Morsel
+from http.cookies import BaseCookie, Morsel  # noqa
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -15,16 +16,17 @@ from typing import (
     Tuple,
 )
 
-from multidict import CIMultiDict
+from multidict import CIMultiDict  # noqa
 from yarl import URL
 
+from .helpers import get_running_loop
 from .typedefs import LooseCookies
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .web_app import Application
-    from .web_exceptions import HTTPException
     from .web_request import BaseRequest, Request
     from .web_response import StreamResponse
+    from .web_app import Application
+    from .web_exceptions import HTTPException
 else:
     BaseRequest = Request = Application = StreamResponse = None
     HTTPException = None
@@ -133,19 +135,15 @@ else:
     IterableBase = Iterable
 
 
-ClearCookiePredicate = Callable[["Morsel[str]"], bool]
-
-
 class AbstractCookieJar(Sized, IterableBase):
     """Abstract Cookie Jar."""
 
-    @abstractmethod
-    def clear(self, predicate: Optional[ClearCookiePredicate] = None) -> None:
-        """Clear all cookies if no predicate is passed."""
+    def __init__(self, *, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+        self._loop = get_running_loop(loop)
 
     @abstractmethod
-    def clear_domain(self, domain: str) -> None:
-        """Clear all cookies for domain and all subdomains."""
+    def clear(self) -> None:
+        """Clear all cookies."""
 
     @abstractmethod
     def update_cookies(self, cookies: LooseCookies, response_url: URL = URL()) -> None:
@@ -199,14 +197,4 @@ class AbstractAccessLogger(ABC):
 
     @abstractmethod
     def log(self, request: BaseRequest, response: StreamResponse, time: float) -> None:
-        """Emit log to logger."""
-
-
-class AbstractAsyncAccessLogger(ABC):
-    """Abstract asynchronous writer to access log."""
-
-    @abstractmethod
-    async def log(
-        self, request: BaseRequest, response: StreamResponse, request_start: float
-    ) -> None:
         """Emit log to logger."""

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import warnings
-from functools import partial, update_wrapper
+from functools import partial
 from typing import (  # noqa
     TYPE_CHECKING,
     Any,
@@ -22,19 +22,28 @@ from typing import (  # noqa
     cast,
 )
 
-from aiosignal import Signal
-from frozenlist import FrozenList
-from typing_extensions import final
-
 from . import hdrs
+from .abc import (
+    AbstractAccessLogger,
+    AbstractMatchInfo,
+    AbstractRouter,
+    AbstractStreamWriter,
+)
+from .frozenlist import FrozenList
+from .helpers import DEBUG
+from .http_parser import RawRequestMessage
 from .log import web_logger
+from .signals import Signal
+from .streams import StreamReader
+from .web_log import AccessLogger
 from .web_middlewares import _fix_request_current_app
+from .web_protocol import RequestHandler
 from .web_request import Request
 from .web_response import StreamResponse
 from .web_routedef import AbstractRouteDef
+from .web_server import Server
 from .web_urldispatcher import (
     AbstractResource,
-    AbstractRoute,
     Domain,
     MaskDomain,
     MatchedSubAppResource,
@@ -49,9 +58,12 @@ if TYPE_CHECKING:  # pragma: no cover
     _AppSignal = Signal[Callable[["Application"], Awaitable[None]]]
     _RespPrepareSignal = Signal[Callable[[Request, StreamResponse], Awaitable[None]]]
     _Handler = Callable[[Request], Awaitable[StreamResponse]]
-    _Middleware = Callable[[Request, _Handler], Awaitable[StreamResponse]]
+    _Middleware = Union[
+        Callable[[Request, _Handler], Awaitable[StreamResponse]],
+        Callable[["Application", _Handler], Awaitable[_Handler]],  # old-style
+    ]
     _Middlewares = FrozenList[_Middleware]
-    _MiddlewaresHandlers = Sequence[_Middleware]
+    _MiddlewaresHandlers = Optional[Sequence[Tuple[_Middleware, bool]]]
     _Subapps = List["Application"]
 else:
     # No type checker mode, skip types
@@ -60,57 +72,72 @@ else:
     _Handler = Callable
     _Middleware = Callable
     _Middlewares = FrozenList
-    _MiddlewaresHandlers = Sequence
+    _MiddlewaresHandlers = Optional[Sequence]
     _Subapps = List
 
 
-@final
 class Application(MutableMapping[str, Any]):
-    __slots__ = (
-        "logger",
-        "_debug",
-        "_router",
-        "_loop",
-        "_handler_args",
-        "_middlewares",
-        "_middlewares_handlers",
-        "_run_middlewares",
-        "_state",
-        "_frozen",
-        "_pre_frozen",
-        "_subapps",
-        "_on_response_prepare",
-        "_on_startup",
-        "_on_shutdown",
-        "_on_cleanup",
-        "_client_max_size",
-        "_cleanup_ctx",
+    ATTRS = frozenset(
+        [
+            "logger",
+            "_debug",
+            "_router",
+            "_loop",
+            "_handler_args",
+            "_middlewares",
+            "_middlewares_handlers",
+            "_run_middlewares",
+            "_state",
+            "_frozen",
+            "_pre_frozen",
+            "_subapps",
+            "_on_response_prepare",
+            "_on_startup",
+            "_on_shutdown",
+            "_on_cleanup",
+            "_client_max_size",
+            "_cleanup_ctx",
+        ]
     )
 
     def __init__(
         self,
         *,
         logger: logging.Logger = web_logger,
+        router: Optional[UrlDispatcher] = None,
         middlewares: Iterable[_Middleware] = (),
-        handler_args: Optional[Mapping[str, Any]] = None,
+        handler_args: Mapping[str, Any] = None,
         client_max_size: int = 1024 ** 2,
-        debug: Any = ...,  # mypy doesn't support ellipsis
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        debug: Any = ...  # mypy doesn't support ellipsis
     ) -> None:
+        if router is None:
+            router = UrlDispatcher()
+        else:
+            warnings.warn(
+                "router argument is deprecated", DeprecationWarning, stacklevel=2
+            )
+        assert isinstance(router, AbstractRouter), router
+
+        if loop is not None:
+            warnings.warn(
+                "loop argument is deprecated", DeprecationWarning, stacklevel=2
+            )
 
         if debug is not ...:
             warnings.warn(
-                "debug argument is no-op since 4.0 " "and scheduled for removal in 5.0",
-                DeprecationWarning,
-                stacklevel=2,
+                "debug argument is deprecated", DeprecationWarning, stacklevel=2
             )
-        self._router = UrlDispatcher()
+        self._debug = debug
+        self._router = router  # type: UrlDispatcher
+        self._loop = loop
         self._handler_args = handler_args
         self.logger = logger
 
         self._middlewares = FrozenList(middlewares)  # type: _Middlewares
 
         # initialized on freezing
-        self._middlewares_handlers = tuple()  # type: _MiddlewaresHandlers
+        self._middlewares_handlers = None  # type: _MiddlewaresHandlers
         # initialized on freezing
         self._run_middlewares = None  # type: Optional[bool]
 
@@ -129,10 +156,24 @@ class Application(MutableMapping[str, Any]):
         self._client_max_size = client_max_size
 
     def __init_subclass__(cls: Type["Application"]) -> None:
-        raise TypeError(
+        warnings.warn(
             "Inheritance class {} from web.Application "
-            "is forbidden".format(cls.__name__)
+            "is discouraged".format(cls.__name__),
+            DeprecationWarning,
+            stacklevel=2,
         )
+
+    if DEBUG:  # pragma: no cover
+
+        def __setattr__(self, name: str, val: Any) -> None:
+            if name not in self.ATTRS:
+                warnings.warn(
+                    "Setting custom web.Application.{} attribute "
+                    "is discouraged".format(name),
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            super().__setattr__(name, val)
 
     # MutableMapping API
 
@@ -144,8 +185,10 @@ class Application(MutableMapping[str, Any]):
 
     def _check_frozen(self) -> None:
         if self._frozen:
-            raise RuntimeError(
-                "Changing state of started or joined " "application is forbidden"
+            warnings.warn(
+                "Changing state of started or joined " "application is deprecated",
+                DeprecationWarning,
+                stacklevel=3,
             )
 
     def __setitem__(self, key: str, value: Any) -> None:
@@ -163,12 +206,31 @@ class Application(MutableMapping[str, Any]):
         return iter(self._state)
 
     ########
+    @property
+    def loop(self) -> asyncio.AbstractEventLoop:
+        # Technically the loop can be None
+        # but we mask it by explicit type cast
+        # to provide more convinient type annotation
+        warnings.warn("loop property is deprecated", DeprecationWarning, stacklevel=2)
+        return cast(asyncio.AbstractEventLoop, self._loop)
+
     def _set_loop(self, loop: Optional[asyncio.AbstractEventLoop]) -> None:
-        warnings.warn(
-            "_set_loop() is no-op since 4.0 " "and scheduled for removal in 5.0",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        if self._loop is not None and self._loop is not loop:
+            raise RuntimeError(
+                "web.Application instance initialized with different loop"
+            )
+
+        self._loop = loop
+
+        # set loop debug
+        if self._debug is ...:
+            self._debug = loop.get_debug()
+
+        # set loop to sub applications
+        for subapp in self._subapps:
+            subapp._set_loop(loop)
 
     @property
     def pre_frozen(self) -> bool:
@@ -214,12 +276,8 @@ class Application(MutableMapping[str, Any]):
 
     @property
     def debug(self) -> bool:
-        warnings.warn(
-            "debug property is deprecated since 4.0" "and scheduled for removal in 5.0",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return asyncio.get_event_loop().get_debug()
+        warnings.warn("debug property is deprecated", DeprecationWarning, stacklevel=2)
+        return self._debug
 
     def _reg_subapp_signals(self, subapp: "Application") -> None:
         def reg_handler(signame: str) -> None:
@@ -256,6 +314,8 @@ class Application(MutableMapping[str, Any]):
         self._reg_subapp_signals(subapp)
         self._subapps.append(subapp)
         subapp.pre_freeze()
+        if self._loop is not None:
+            subapp._set_loop(self._loop)
         return resource
 
     def add_domain(self, domain: str, subapp: "Application") -> AbstractResource:
@@ -268,8 +328,8 @@ class Application(MutableMapping[str, Any]):
         factory = partial(MatchedSubAppResource, rule, subapp)
         return self._add_subapp(factory, subapp)
 
-    def add_routes(self, routes: Iterable[AbstractRouteDef]) -> List[AbstractRoute]:
-        return self.router.add_routes(routes)
+    def add_routes(self, routes: Iterable[AbstractRouteDef]) -> None:
+        self.router.add_routes(routes)
 
     @property
     def on_response_prepare(self) -> _RespPrepareSignal:
@@ -299,6 +359,54 @@ class Application(MutableMapping[str, Any]):
     def middlewares(self) -> _Middlewares:
         return self._middlewares
 
+    def _make_handler(
+        self,
+        *,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        access_log_class: Type[AbstractAccessLogger] = AccessLogger,
+        **kwargs: Any
+    ) -> Server:
+
+        if not issubclass(access_log_class, AbstractAccessLogger):
+            raise TypeError(
+                "access_log_class must be subclass of "
+                "aiohttp.abc.AbstractAccessLogger, got {}".format(access_log_class)
+            )
+
+        self._set_loop(loop)
+        self.freeze()
+
+        kwargs["debug"] = self._debug
+        kwargs["access_log_class"] = access_log_class
+        if self._handler_args:
+            for k, v in self._handler_args.items():
+                kwargs[k] = v
+
+        return Server(
+            self._handle,  # type: ignore
+            request_factory=self._make_request,
+            loop=self._loop,
+            **kwargs
+        )
+
+    def make_handler(
+        self,
+        *,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        access_log_class: Type[AbstractAccessLogger] = AccessLogger,
+        **kwargs: Any
+    ) -> Server:
+
+        warnings.warn(
+            "Application.make_handler(...) is deprecated, " "use AppRunner API instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        return self._make_handler(
+            loop=loop, access_log_class=access_log_class, **kwargs
+        )
+
     async def startup(self) -> None:
         """Causes on_startup signal
 
@@ -318,23 +426,57 @@ class Application(MutableMapping[str, Any]):
 
         Should be called after shutdown()
         """
-        if self.on_cleanup.frozen:
-            await self.on_cleanup.send(self)
-        else:
-            # If an exception occurs in startup, ensure cleanup contexts are completed.
-            await self._cleanup_ctx._on_cleanup(self)
+        await self.on_cleanup.send(self)
 
-    def _prepare_middleware(self) -> Iterator[_Middleware]:
-        yield from reversed(self._middlewares)
-        yield _fix_request_current_app(self)
+    def _make_request(
+        self,
+        message: RawRequestMessage,
+        payload: StreamReader,
+        protocol: RequestHandler,
+        writer: AbstractStreamWriter,
+        task: "asyncio.Task[None]",
+        _cls: Type[Request] = Request,
+    ) -> Request:
+        return _cls(
+            message,
+            payload,
+            protocol,
+            writer,
+            task,
+            self._loop,
+            client_max_size=self._client_max_size,
+        )
+
+    def _prepare_middleware(self) -> Iterator[Tuple[_Middleware, bool]]:
+        for m in reversed(self._middlewares):
+            if getattr(m, "__middleware_version__", None) == 1:
+                yield m, True
+            else:
+                warnings.warn(
+                    'old-style middleware "{!r}" deprecated, ' "see #2252".format(m),
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                yield m, False
+
+        yield _fix_request_current_app(self), True
 
     async def _handle(self, request: Request) -> StreamResponse:
+        loop = asyncio.get_event_loop()
+        debug = loop.get_debug()
         match_info = await self._router.resolve(request)
+        if debug:  # pragma: no cover
+            if not isinstance(match_info, AbstractMatchInfo):
+                raise TypeError(
+                    "match_info should be AbstractMatchInfo "
+                    "instance, not {!r}".format(match_info)
+                )
         match_info.add_app(self)
+
         match_info.freeze()
 
         resp = None
-        request._match_info = match_info  # type: ignore[assignment]
+        request._match_info = match_info  # type: ignore
         expect = request.headers.get(hdrs.EXPECT)
         if expect:
             resp = await match_info.expect_handler(request)
@@ -345,9 +487,11 @@ class Application(MutableMapping[str, Any]):
 
             if self._run_middlewares:
                 for app in match_info.apps[::-1]:
-                    assert app.pre_frozen, "middleware handlers are not ready"
-                    for m in app._middlewares_handlers:
-                        handler = update_wrapper(partial(m, handler=handler), handler)
+                    for m, new_style in app._middlewares_handlers:  # type: ignore  # noqa
+                        if new_style:
+                            handler = partial(m, handler=handler)
+                        else:
+                            handler = await m(app, handler)  # type: ignore
 
             resp = await handler(request)
 
@@ -367,7 +511,7 @@ class Application(MutableMapping[str, Any]):
 class CleanupError(RuntimeError):
     @property
     def exceptions(self) -> List[BaseException]:
-        return cast(List[BaseException], self.args[1])
+        return self.args[1]
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -397,7 +541,7 @@ class CleanupContext(_CleanupContextBase):
             except Exception as exc:
                 errors.append(exc)
             else:
-                errors.append(RuntimeError(f"{it!r} has more than one 'yield'"))
+                errors.append(RuntimeError("{!r} has more than one 'yield'".format(it)))
         if errors:
             if len(errors) == 1:
                 raise errors[0]

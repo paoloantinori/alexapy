@@ -4,25 +4,10 @@ import collections
 import re
 import string
 import zlib
-from contextlib import suppress
 from enum import IntEnum
-from typing import (
-    Any,
-    Generic,
-    List,
-    NamedTuple,
-    Optional,
-    Pattern,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, List, Optional, Tuple, Type, Union  # noqa
 
 from multidict import CIMultiDict, CIMultiDictProxy, istr
-from typing_extensions import Final
 from yarl import URL
 
 from . import hdrs
@@ -58,7 +43,7 @@ __all__ = (
     "RawResponseMessage",
 )
 
-ASCIISET: Final[Set[str]] = set(string.printable)
+ASCIISET = set(string.printable)
 
 # See https://tools.ietf.org/html/rfc7230#section-3.1.1
 # and https://tools.ietf.org/html/rfc7230#appendix-B
@@ -67,23 +52,25 @@ ASCIISET: Final[Set[str]] = set(string.printable)
 #     tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
 #             "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
 #     token = 1*tchar
-METHRE: Final[Pattern[str]] = re.compile(r"[!#$%&'*+\-.^_`|~0-9A-Za-z]+")
-VERSRE: Final[Pattern[str]] = re.compile(r"HTTP/(\d+).(\d+)")
-HDRRE: Final[Pattern[bytes]] = re.compile(rb"[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
+METHRE = re.compile(r"[!#$%&'*+\-.^_`|~0-9A-Za-z]+")
+VERSRE = re.compile(r"HTTP/(\d+).(\d+)")
+HDRRE = re.compile(rb"[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\\\"]")
 
-
-class RawRequestMessage(NamedTuple):
-    method: str
-    path: str
-    version: HttpVersion
-    headers: CIMultiDictProxy[str]
-    raw_headers: RawHeaders
-    should_close: bool
-    compression: Optional[str]
-    upgrade: bool
-    chunked: bool
-    url: URL
-
+RawRequestMessage = collections.namedtuple(
+    "RawRequestMessage",
+    [
+        "method",
+        "path",
+        "version",
+        "headers",
+        "raw_headers",
+        "should_close",
+        "compression",
+        "upgrade",
+        "chunked",
+        "url",
+    ],
+)
 
 RawResponseMessage = collections.namedtuple(
     "RawResponseMessage",
@@ -99,9 +86,6 @@ RawResponseMessage = collections.namedtuple(
         "chunked",
     ],
 )
-
-
-_MsgT = TypeVar("_MsgT", RawRequestMessage, RawResponseMessage)
 
 
 class ParseState(IntEnum):
@@ -214,12 +198,11 @@ class HeadersParser:
         return (CIMultiDictProxy(headers), tuple(raw_headers))
 
 
-class HttpParser(abc.ABC, Generic[_MsgT]):
+class HttpParser(abc.ABC):
     def __init__(
         self,
-        protocol: BaseProtocol,
-        loop: asyncio.AbstractEventLoop,
-        limit: int,
+        protocol: Optional[BaseProtocol] = None,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
         max_line_size: int = 8190,
         max_headers: int = 32768,
         max_field_size: int = 8190,
@@ -251,14 +234,13 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
         self._payload = None
         self._payload_parser = None  # type: Optional[HttpPayloadParser]
         self._auto_decompress = auto_decompress
-        self._limit = limit
         self._headers_parser = HeadersParser(max_line_size, max_headers, max_field_size)
 
     @abc.abstractmethod
-    def parse_message(self, lines: List[bytes]) -> _MsgT:
+    def parse_message(self, lines: List[bytes]) -> Any:
         pass
 
-    def feed_eof(self) -> Optional[_MsgT]:
+    def feed_eof(self) -> Any:
         if self._payload_parser is not None:
             self._payload_parser.feed_eof()
             self._payload_parser = None
@@ -270,9 +252,10 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
             if self._lines:
                 if self._lines[-1] != "\r\n":
                     self._lines.append(b"")
-                with suppress(Exception):
+                try:
                     return self.parse_message(self._lines)
-        return None
+                except Exception:
+                    return None
 
     def feed_data(
         self,
@@ -282,7 +265,7 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
         CONTENT_LENGTH: istr = hdrs.CONTENT_LENGTH,
         METH_CONNECT: str = hdrs.METH_CONNECT,
         SEC_WEBSOCKET_KEY1: istr = hdrs.SEC_WEBSOCKET_KEY1,
-    ) -> Tuple[List[Tuple[_MsgT, StreamReader]], bool, bytes]:
+    ) -> Tuple[List[Any], bool, bytes]:
 
         messages = []
 
@@ -312,27 +295,20 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
                     # \r\n\r\n found
                     if self._lines[-1] == EMPTY:
                         try:
-                            msg: _MsgT = self.parse_message(self._lines)
+                            msg = self.parse_message(self._lines)
                         finally:
                             self._lines.clear()
 
-                        def get_content_lenght() -> Optional[int]:
-                            # payload length
-                            length_hdr = msg.headers.get(CONTENT_LENGTH)
-                            if length_hdr is None:
-                                return None
-
+                        # payload length
+                        length = msg.headers.get(CONTENT_LENGTH)
+                        if length is not None:
                             try:
-                                length = int(length_hdr)
+                                length = int(length)
                             except ValueError:
                                 raise InvalidHeader(CONTENT_LENGTH)
-
                             if length < 0:
                                 raise InvalidHeader(CONTENT_LENGTH)
 
-                            return length
-
-                        length = get_content_lenght()
                         # do not support old websocket spec
                         if SEC_WEBSOCKET_KEY1 in msg.headers:
                             raise InvalidHeader(SEC_WEBSOCKET_KEY1)
@@ -349,10 +325,7 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
                             and not msg.upgrade
                         ):
                             payload = StreamReader(
-                                self.protocol,
-                                timer=self.timer,
-                                loop=loop,
-                                limit=self._limit,
+                                self.protocol, timer=self.timer, loop=loop
                             )
                             payload_parser = HttpPayloadParser(
                                 payload,
@@ -368,12 +341,8 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
                             if not payload_parser.done:
                                 self._payload_parser = payload_parser
                         elif method == METH_CONNECT:
-                            assert isinstance(msg, RawRequestMessage)
                             payload = StreamReader(
-                                self.protocol,
-                                timer=self.timer,
-                                loop=loop,
-                                limit=self._limit,
+                                self.protocol, timer=self.timer, loop=loop
                             )
                             self._upgraded = True
                             self._payload_parser = HttpPayloadParser(
@@ -390,10 +359,7 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
                                 and self.read_until_eof
                             ):
                                 payload = StreamReader(
-                                    self.protocol,
-                                    timer=self.timer,
-                                    loop=loop,
-                                    limit=self._limit,
+                                    self.protocol, timer=self.timer, loop=loop
                                 )
                                 payload_parser = HttpPayloadParser(
                                     payload,
@@ -409,7 +375,7 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
                                 if not payload_parser.done:
                                     self._payload_parser = payload_parser
                             else:
-                                payload = EMPTY_PAYLOAD
+                                payload = EMPTY_PAYLOAD  # type: ignore
 
                         messages.append((msg, payload))
                 else:
@@ -495,21 +461,14 @@ class HttpParser(abc.ABC, Generic[_MsgT]):
 
         return (headers, raw_headers, close_conn, encoding, upgrade, chunked)
 
-    def set_upgraded(self, val: bool) -> None:
-        """Set connection upgraded (to websocket) mode.
 
-        :param bool val: new state.
-        """
-        self._upgraded = val
-
-
-class HttpRequestParser(HttpParser[RawRequestMessage]):
+class HttpRequestParser(HttpParser):
     """Read request status line. Exception .http_exceptions.BadStatusLine
     could be raised in case of any errors in status line.
     Returns RawRequestMessage.
     """
 
-    def parse_message(self, lines: List[bytes]) -> RawRequestMessage:
+    def parse_message(self, lines: List[bytes]) -> Any:
         # request line
         line = lines[0].decode("utf-8", "surrogateescape")
         try:
@@ -566,13 +525,13 @@ class HttpRequestParser(HttpParser[RawRequestMessage]):
         )
 
 
-class HttpResponseParser(HttpParser[RawResponseMessage]):
+class HttpResponseParser(HttpParser):
     """Read response status line and headers.
 
     BadStatusLine could be raised in case of any errors in status line.
     Returns RawResponseMessage"""
 
-    def parse_message(self, lines: List[bytes]) -> RawResponseMessage:
+    def parse_message(self, lines: List[bytes]) -> Any:
         line = lines[0].decode("utf-8", "surrogateescape")
         try:
             version, status = line.split(None, 1)
@@ -655,7 +614,7 @@ class HttpPayloadParser:
         if response_with_body and compression and self._auto_decompress:
             real_payload = DeflateBuffer(
                 payload, compression
-            )  # type: Union[StreamReader, DeflateBuffer]
+            )  # type: Union[StreamReader, DeflateBuffer]  # noqa
         else:
             real_payload = payload
 
@@ -786,23 +745,12 @@ class HttpPayloadParser:
                 # we should get another \r\n otherwise
                 # trailers needs to be skiped until \r\n\r\n
                 if self._chunk == ChunkState.PARSE_MAYBE_TRAILERS:
-                    head = chunk[:2]
-                    if head == SEP:
+                    if chunk[:2] == SEP:
                         # end of stream
                         self.payload.feed_eof()
                         return True, chunk[2:]
-                    # Both CR and LF, or only LF may not be received yet. It is
-                    # expected that CRLF or LF will be shown at the very first
-                    # byte next time, otherwise trailers should come. The last
-                    # CRLF which marks the end of response might not be
-                    # contained in the same TCP segment which delivered the
-                    # size indicator.
-                    if not head:
-                        return False, b""
-                    if head == SEP[:1]:
-                        self._chunk_tail = head
-                        return False, b""
-                    self._chunk = ChunkState.PARSE_TRAILERS
+                    else:
+                        self._chunk = ChunkState.PARSE_TRAILERS
 
                 # read and discard trailer up to the CRLF terminator
                 if self._chunk == ChunkState.PARSE_TRAILERS:
@@ -834,62 +782,36 @@ class DeflateBuffer:
             if not HAS_BROTLI:  # pragma: no cover
                 raise ContentEncodingError(
                     "Can not decode content-encoding: brotli (br). "
-                    "Please install `Brotli`"
+                    "Please install `brotlipy`"
                 )
-
-            class BrotliDecoder:
-                # Supports both 'brotlipy' and 'Brotli' packages
-                # since they share an import name. The top branches
-                # are for 'brotlipy' and bottom branches for 'Brotli'
-                def __init__(self) -> None:
-                    self._obj = brotli.Decompressor()
-
-                def decompress(self, data: bytes) -> bytes:
-                    if hasattr(self._obj, "decompress"):
-                        return cast(bytes, self._obj.decompress(data))
-                    return cast(bytes, self._obj.process(data))
-
-                def flush(self) -> bytes:
-                    if hasattr(self._obj, "flush"):
-                        return cast(bytes, self._obj.flush())
-                    return b""
-
-            self.decompressor = BrotliDecoder()  # type: Any
+            self.decompressor = brotli.Decompressor()
         else:
-            zlib_mode = 16 + zlib.MAX_WBITS if encoding == "gzip" else zlib.MAX_WBITS
+            zlib_mode = 16 + zlib.MAX_WBITS if encoding == "gzip" else -zlib.MAX_WBITS
             self.decompressor = zlib.decompressobj(wbits=zlib_mode)
 
     def set_exception(self, exc: BaseException) -> None:
         self.out.set_exception(exc)
 
     def feed_data(self, chunk: bytes, size: int) -> None:
-        if not size:
-            return
-
         self.size += size
-
-        # RFC1950
-        # bits 0..3 = CM = 0b1000 = 8 = "deflate"
-        # bits 4..7 = CINFO = 1..7 = windows size.
-        if (
-            not self._started_decoding
-            and self.encoding == "deflate"
-            and chunk[0] & 0xF != 8
-        ):
-            # Change the decoder to decompress incorrectly compressed data
-            # Actually we should issue a warning about non-RFC-compliant data.
-            self.decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
-
         try:
             chunk = self.decompressor.decompress(chunk)
         except Exception:
-            raise ContentEncodingError(
-                "Can not decode content-encoding: %s" % self.encoding
-            )
-
-        self._started_decoding = True
+            if not self._started_decoding and self.encoding == "deflate":
+                self.decompressor = zlib.decompressobj()
+                try:
+                    chunk = self.decompressor.decompress(chunk)
+                except Exception:
+                    raise ContentEncodingError(
+                        "Can not decode content-encoding: %s" % self.encoding
+                    )
+            else:
+                raise ContentEncodingError(
+                    "Can not decode content-encoding: %s" % self.encoding
+                )
 
         if chunk:
+            self._started_decoding = True
             self.out.feed_data(chunk, len(chunk))
 
     def feed_eof(self) -> None:
@@ -916,8 +838,8 @@ RawResponseMessagePy = RawResponseMessage
 
 try:
     if not NO_EXTENSIONS:
-        from ._http_parser import (  # type: ignore[import,no-redef]
-            HttpRequestParser,
+        from ._http_parser import (
+            HttpRequestParser,  # type: ignore  # noqa
             HttpResponseParser,
             RawRequestMessage,
             RawResponseMessage,

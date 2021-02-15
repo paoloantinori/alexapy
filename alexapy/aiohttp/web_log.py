@@ -3,7 +3,6 @@ import functools
 import logging
 import os
 import re
-import time as time_mod
 from collections import namedtuple
 from typing import Any, Callable, Dict, Iterable, List, Tuple  # noqa
 
@@ -143,10 +142,9 @@ class AccessLogger(AbstractAccessLogger):
 
     @staticmethod
     def _format_t(request: BaseRequest, response: StreamResponse, time: float) -> str:
-        tz = datetime.timezone(datetime.timedelta(seconds=-time_mod.timezone))
-        now = datetime.datetime.now(tz)
+        now = datetime.datetime.utcnow()
         start_time = now - datetime.timedelta(seconds=time)
-        return start_time.strftime("[%d/%b/%Y:%H:%M:%S %z]")
+        return start_time.strftime("[%d/%b/%Y:%H:%M:%S +0000]")
 
     @staticmethod
     def _format_P(request: BaseRequest, response: StreamResponse, time: float) -> str:
@@ -156,7 +154,7 @@ class AccessLogger(AbstractAccessLogger):
     def _format_r(request: BaseRequest, response: StreamResponse, time: float) -> str:
         if request is None:
             return "-"
-        return "{} {} HTTP/{}.{}".format(
+        return "%s %s HTTP/%s.%s" % (
             request.method,
             request.path_qs,
             request.version.major,
@@ -200,10 +198,10 @@ class AccessLogger(AbstractAccessLogger):
                 if key.__class__ is str:
                     extra[key] = value
                 else:
-                    k1, k2 = key  # type: ignore[misc]
-                    dct = extra.get(k1, {})  # type: ignore[var-annotated,has-type]
-                    dct[k2] = value  # type: ignore[index,has-type]
-                    extra[k1] = dct  # type: ignore[has-type,assignment]
+                    k1, k2 = key
+                    dct = extra.get(k1, {})  # type: Any
+                    dct[k2] = value
+                    extra[k1] = dct
 
             self.logger.info(self._log_format % tuple(values), extra=extra)
         except Exception:
