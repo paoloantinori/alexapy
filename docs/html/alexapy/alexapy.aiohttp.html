@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>alexapy.aiohttp &mdash; AlexaPy 1.20.5 documentation</title>
+  <title>alexapy.aiohttp &mdash; AlexaPy 1.24.0 documentation</title>
   
 
   
@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                1.20.5
+                1.24.0
               </div>
             
           
@@ -105,7 +105,6 @@
 <li class="toctree-l2"><a class="reference internal" href="alexapy.html#functions">Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="alexapy.html#classes">Classes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="alexapy.html#exceptions">Exceptions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="alexapy.html#variables">Variables</a></li>
 </ul>
 </li>
 </ul>
@@ -1202,15 +1201,15 @@ rankdir=LR;
 size=&quot;8.0, 12.0&quot;;
   &quot;HttpVersion&quot; [URL=&quot;../alexapy.aiohttp.http_writer.html#alexapy.aiohttp.http_writer.HttpVersion&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;HttpVersion(major, minor)&quot;];
 }
-<dl class="py method">
+<dl class="py attribute">
 <dt id="alexapy.aiohttp.HttpVersion.major">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">major</span></code><a class="headerlink" href="#alexapy.aiohttp.HttpVersion.major" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">major</span></code><a class="headerlink" href="#alexapy.aiohttp.HttpVersion.major" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 0</p>
 </dd></dl>
 
-<dl class="py method">
+<dl class="py attribute">
 <dt id="alexapy.aiohttp.HttpVersion.minor">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">minor</span></code><a class="headerlink" href="#alexapy.aiohttp.HttpVersion.minor" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">minor</span></code><a class="headerlink" href="#alexapy.aiohttp.HttpVersion.minor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 1</p>
 </dd></dl>
 
@@ -2525,14 +2524,12 @@ size=&quot;8.0, 12.0&quot;;
   &quot;ClientConnectionError&quot; [URL=&quot;../alexapy.aiohttp.client_exceptions.html#alexapy.aiohttp.client_exceptions.ClientConnectionError&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Base class for client socket errors.&quot;];
   &quot;ClientError&quot; -&gt; &quot;ClientConnectionError&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
   &quot;ClientError&quot; [URL=&quot;../alexapy.aiohttp.client_exceptions.html#alexapy.aiohttp.client_exceptions.ClientError&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Base class for client connection errors.&quot;];
-  &quot;Error&quot; [fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,tooltip=&quot;Base class for all future-related exceptions.&quot;];
   &quot;ServerConnectionError&quot; [URL=&quot;../alexapy.aiohttp.client_exceptions.html#alexapy.aiohttp.client_exceptions.ServerConnectionError&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Server connection errors.&quot;];
   &quot;ClientConnectionError&quot; -&gt; &quot;ServerConnectionError&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
   &quot;ServerTimeoutError&quot; [URL=&quot;../alexapy.aiohttp.client_exceptions.html#alexapy.aiohttp.client_exceptions.ServerTimeoutError&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Server timeout error.&quot;];
   &quot;ServerConnectionError&quot; -&gt; &quot;ServerTimeoutError&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
   &quot;TimeoutError&quot; -&gt; &quot;ServerTimeoutError&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
   &quot;TimeoutError&quot; [fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,tooltip=&quot;The operation exceeded the given deadline.&quot;];
-  &quot;Error&quot; -&gt; &quot;TimeoutError&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
 }
 </dd></dl>
 
@@ -2662,7 +2659,7 @@ size=&quot;8.0, 12.0&quot;;
 <code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.</span></code><code class="sig-name descname"><span class="pre">PAYLOAD_REGISTRY</span></code><a class="headerlink" href="#alexapy.aiohttp.PAYLOAD_REGISTRY" title="Permalink to this definition">¶</a></dt>
 <dd><p>Payload registry.</p>
 <p>note: we need zope.interface for more efficient adapter search</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;alexapy.aiohttp.payload.PayloadRegistry object at 0x10ead8110&gt;
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;alexapy.aiohttp.payload.PayloadRegistry object at 0x10e2973d0&gt;
 </pre></div>
 </div>
 </dd></dl>
@@ -2670,7 +2667,7 @@ size=&quot;8.0, 12.0&quot;;
 <dl class="py data">
 <dt id="alexapy.aiohttp.EMPTY_PAYLOAD">
 <code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.</span></code><code class="sig-name descname"><span class="pre">EMPTY_PAYLOAD</span></code><a class="headerlink" href="#alexapy.aiohttp.EMPTY_PAYLOAD" title="Permalink to this definition">¶</a></dt>
-<dd><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;alexapy.aiohttp.streams.EmptyStreamReader object at 0x10ea94e90&gt;
+<dd><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;alexapy.aiohttp.streams.EmptyStreamReader object at 0x10e2626d0&gt;
 </pre></div>
 </div>
 </dd></dl>

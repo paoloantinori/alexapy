@@ -69,4 +69,4 @@ Variables
 
    .. code-block:: text
 
-      <alexapy.aiohttp.streams.EmptyStreamReader object at 0x10ea94e90>
+      <alexapy.aiohttp.streams.EmptyStreamReader object at 0x10e2626d0>

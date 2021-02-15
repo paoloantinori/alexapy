@@ -306,6 +306,12 @@ Variables
                                                            'to process the request '
                                                            'because its header '
                                                            'fields are too large'),
+       <HTTPStatus.UNAVAILABLE_FOR_LEGAL_REASONS: 451>: ('Unavailable For Legal '
+                                                         'Reasons',
+                                                         'The server is denying '
+                                                         'access to the resource as '
+                                                         'a consequence of a legal '
+                                                         'demand'),
        <HTTPStatus.INTERNAL_SERVER_ERROR: 500>: ('Internal Server Error',
                                                  'Server got itself in trouble'),
        <HTTPStatus.NOT_IMPLEMENTED: 501>: ('Not Implemented',
@@ -335,7 +341,7 @@ Variables
 
    .. code-block:: text
 
-      'Python/3.7 aiohttp/3.6.2'
+      'Python/3.8 aiohttp/3.6.2'
 
 .. autodata:: HttpVersion10
    :annotation:
