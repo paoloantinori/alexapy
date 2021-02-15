@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#  SPDX-License-Identifier: Apache-2.0
-"""
-Python Package for controlling Alexa devices (echo dot, etc) programmatically.
+"""Python Package for controlling Alexa devices (echo dot, etc) programmatically.
+
+SPDX-License-Identifier: Apache-2.0
 
 This provides a login by proxy method.
+Built on https://github.com/alandtse/auth_capture_proxy
 
 For more details about this api, please refer to the documentation at
 https://gitlab.com/keatontaylor/alexapy
@@ -38,7 +37,7 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
         self._login: AlexaLogin = login
         self._config_flow_id = None
         self._callback_url = None
-        self.tests = {"test": self._test_resp}
+        self.tests = {"test_amazon_url": self.test_amazon_url}
         self.modifiers = {
             "autofill": partial(
                 self.autofill,
@@ -50,7 +49,18 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
             )
         }
 
-    async def _test_resp(self, resp, data, query) -> Optional[Union[URL, Text]]:
+    async def test_amazon_url(self, resp, data, query) -> Optional[Union[URL, Text]]:
+        """Test for Alexa success.
+
+        Args
+            resp (ClientResponse): The aiohttp response.
+            data (Dict[Text, Any]): Dictionary of all post data captured through proxy with overwrites for duplicate keys.
+            query (Dict[Text, Any]): Dictionary of all query data with overwrites for duplicate keys.
+
+        Returns
+            Optional[Union[URL, Text]]: URL for a http 302 redirect or Text to display on success. None indicates test did not pass.
+
+        """
         if resp.url.path in ["/ap/maplanding", "/spa/index.html"]:
             self._login.session.cookie_jar.update_cookies(
                 self.session.cookie_jar.filter_cookies(self._host_url.with_path("/"))
@@ -68,12 +78,11 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
     def change_login(self, login: AlexaLogin) -> None:
         """Change login.
 
-        Args
+        Args:
             login (AlexaLogin): AlexaLogin object to update after completion of proxy.
-
         """
         self._login = login
-        self.tests = {"test": self._test_resp}
+        self.tests = {"test_amazon_url": self.test_amazon_url}
         self.modifiers = {
             "autofill": partial(
                 self.autofill,

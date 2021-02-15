@@ -9,11 +9,12 @@ import sys
 import zlib
 from enum import IntEnum
 from struct import Struct
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Pattern, Set, Tuple, Union, cast
+
+from typing_extensions import Final
 
 from .base_protocol import BaseProtocol
 from .helpers import NO_EXTENSIONS
-from .log import ws_logger
 from .streams import DataQueue
 
 __all__ = (
@@ -34,6 +35,7 @@ class WSCloseCode(IntEnum):
     GOING_AWAY = 1001
     PROTOCOL_ERROR = 1002
     UNSUPPORTED_DATA = 1003
+    ABNORMAL_CLOSURE = 1006
     INVALID_TEXT = 1007
     POLICY_VIOLATION = 1008
     MESSAGE_TOO_BIG = 1009
@@ -41,9 +43,10 @@ class WSCloseCode(IntEnum):
     INTERNAL_ERROR = 1011
     SERVICE_RESTART = 1012
     TRY_AGAIN_LATER = 1013
+    BAD_GATEWAY = 1014
 
 
-ALLOWED_CLOSE_CODES = {int(i) for i in WSCloseCode}
+ALLOWED_CLOSE_CODES: Final[Set[int]] = {int(i) for i in WSCloseCode}
 
 
 class WSMsgType(IntEnum):
@@ -60,17 +63,8 @@ class WSMsgType(IntEnum):
     CLOSED = 0x101
     ERROR = 0x102
 
-    text = TEXT
-    binary = BINARY
-    ping = PING
-    pong = PONG
-    close = CLOSE
-    closing = CLOSING
-    closed = CLOSED
-    error = ERROR
 
-
-WS_KEY = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+WS_KEY: Final[bytes] = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 
 UNPACK_LEN2 = Struct("!H").unpack_from
@@ -80,8 +74,8 @@ PACK_LEN1 = Struct("!BB").pack
 PACK_LEN2 = Struct("!BBH").pack
 PACK_LEN3 = Struct("!BBQ").pack
 PACK_CLOSE_CODE = Struct("!H").pack
-MSG_SIZE = 2 ** 14
-DEFAULT_LIMIT = 2 ** 16
+MSG_SIZE: Final[int] = 2 ** 14
+DEFAULT_LIMIT: Final[int] = 2 ** 16
 
 
 _WSMessageBase = collections.namedtuple("_WSMessageBase", ["type", "data", "extra"])
@@ -108,18 +102,18 @@ class WebSocketError(Exception):
         super().__init__(code, message)
 
     def __str__(self) -> str:
-        return self.args[1]
+        return cast(str, self.args[1])
 
 
 class WSHandshakeError(Exception):
     """WebSocket protocol handshake error."""
 
 
-native_byteorder = sys.byteorder
+native_byteorder: Final[str] = sys.byteorder
 
 
 # Used by _websocket_mask_python
-_XOR_TABLE = [bytes(a ^ b for a in range(256)) for b in range(256)]
+_XOR_TABLE: Final[List[bytes]] = [bytes(a ^ b for a in range(256)) for b in range(256)]
 
 
 def _websocket_mask_python(mask: bytes, data: bytearray) -> None:
@@ -150,16 +144,16 @@ if NO_EXTENSIONS:  # pragma: no cover
     _websocket_mask = _websocket_mask_python
 else:
     try:
-        from ._websocket import _websocket_mask_cython  # type: ignore
+        from ._websocket import _websocket_mask_cython  # type: ignore[import]
 
         _websocket_mask = _websocket_mask_cython
     except ImportError:  # pragma: no cover
         _websocket_mask = _websocket_mask_python
 
-_WS_DEFLATE_TRAILING = bytes([0x00, 0x00, 0xFF, 0xFF])
+_WS_DEFLATE_TRAILING: Final[bytes] = bytes([0x00, 0x00, 0xFF, 0xFF])
 
 
-_WS_EXT_RE = re.compile(
+_WS_EXT_RE: Final[Pattern[str]] = re.compile(
     r"^(?:;\s*(?:"
     r"(server_no_context_takeover)|"
     r"(client_no_context_takeover)|"
@@ -167,10 +161,10 @@ _WS_EXT_RE = re.compile(
     r"(client_max_window_bits(?:=(\d+))?)))*$"
 )
 
-_WS_EXT_RE_SPLIT = re.compile(r"permessage-deflate([^,]+)?")
+_WS_EXT_RE_SPLIT: Final[Pattern[str]] = re.compile(r"permessage-deflate([^,]+)?")
 
 
-def ws_ext_parse(extstr: str, isserver: bool = False) -> Tuple[int, bool]:
+def ws_ext_parse(extstr: Optional[str], isserver: bool = False) -> Tuple[int, bool]:
     if not extstr:
         return 0, False
 
@@ -299,7 +293,7 @@ class WebSocketReader:
                     if close_code < 3000 and close_code not in ALLOWED_CLOSE_CODES:
                         raise WebSocketError(
                             WSCloseCode.PROTOCOL_ERROR,
-                            "Invalid close code: {}".format(close_code),
+                            f"Invalid close code: {close_code}",
                         )
                     try:
                         close_message = payload[2:].decode("utf-8")
@@ -311,7 +305,7 @@ class WebSocketReader:
                 elif payload:
                     raise WebSocketError(
                         WSCloseCode.PROTOCOL_ERROR,
-                        "Invalid close frame: {} {} {!r}".format(fin, opcode, payload),
+                        f"Invalid close frame: {fin} {opcode} {payload!r}",
                     )
                 else:
                     msg = WSMessage(WSMsgType.CLOSE, 0, "")
@@ -333,7 +327,7 @@ class WebSocketReader:
                 and self._opcode is None
             ):
                 raise WebSocketError(
-                    WSCloseCode.PROTOCOL_ERROR, "Unexpected opcode={!r}".format(opcode)
+                    WSCloseCode.PROTOCOL_ERROR, f"Unexpected opcode={opcode!r}"
                 )
             else:
                 # load text/binary
@@ -578,7 +572,7 @@ class WebSocketWriter:
         limit: int = DEFAULT_LIMIT,
         random: Any = random.Random(),
         compress: int = 0,
-        notakeover: bool = False
+        notakeover: bool = False,
     ) -> None:
         self.protocol = protocol
         self.transport = transport
@@ -595,8 +589,8 @@ class WebSocketWriter:
         self, message: bytes, opcode: int, compress: Optional[int] = None
     ) -> None:
         """Send a frame over the websocket with message as its payload."""
-        if self._closing:
-            ws_logger.warning("websocket connection is closing.")
+        if self._closing and not (opcode & WSMsgType.CLOSE):
+            raise ConnectionResetError("Cannot write to closing transport")
 
         rsv = 0
 
@@ -606,10 +600,12 @@ class WebSocketWriter:
         if (compress or self.compress) and opcode < 8:
             if compress:
                 # Do not set self._compress if compressing is for this frame
-                compressobj = zlib.compressobj(wbits=-compress)
+                compressobj = zlib.compressobj(level=zlib.Z_BEST_SPEED, wbits=-compress)
             else:  # self.compress
                 if not self._compressobj:
-                    self._compressobj = zlib.compressobj(wbits=-self.compress)
+                    self._compressobj = zlib.compressobj(
+                        level=zlib.Z_BEST_SPEED, wbits=-self.compress
+                    )
                 compressobj = self._compressobj
 
             message = compressobj.compress(message)
@@ -639,20 +635,25 @@ class WebSocketWriter:
             mask = mask.to_bytes(4, "big")
             message = bytearray(message)
             _websocket_mask(mask, message)
-            self.transport.write(header + mask + message)
+            self._write(header + mask + message)
             self._output_size += len(header) + len(mask) + len(message)
         else:
             if len(message) > MSG_SIZE:
-                self.transport.write(header)
-                self.transport.write(message)
+                self._write(header)
+                self._write(message)
             else:
-                self.transport.write(header + message)
+                self._write(header + message)
 
             self._output_size += len(header) + len(message)
 
         if self._output_size > self._limit:
             self._output_size = 0
             await self.protocol._drain_helper()
+
+    def _write(self, data: bytes) -> None:
+        if self.transport is None or self.transport.is_closing():
+            raise ConnectionResetError("Cannot write to closing transport")
+        self.transport.write(data)
 
     async def pong(self, message: bytes = b"") -> None:
         """Send pong message."""

@@ -48,6 +48,15 @@ check_vulns:
        - pyproject.toml
    - allow_failure: true
 
+docs:
+  stage: build
+  script:
+    - make docs
+  rules:
+    - changes: # Will include the job and set to when:manual if any of the follow paths match a modified file.
+        - alexapy/*
+        - docs/*
+
 bump_and_publish:
   stage: build
   variables:
@@ -61,6 +70,7 @@ bump_and_publish:
     - semantic-release publish
     - poetry config http-basic.pypi $PYPI_USERNAME $PYPI_PASSWORD
     - poetry publish --build
+    - git push origin dev
   artifacts:
     paths:
       - dist

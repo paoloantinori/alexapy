@@ -1,9 +1,9 @@
 """Low level HTTP server."""
 import asyncio
+import warnings
 from typing import Any, Awaitable, Callable, Dict, List, Optional  # noqa
 
 from .abc import AbstractStreamWriter
-from .helpers import get_running_loop
 from .http_parser import RawRequestMessage
 from .streams import StreamReader
 from .web_protocol import RequestHandler, _RequestFactory, _RequestHandler
@@ -18,10 +18,16 @@ class Server:
         handler: _RequestHandler,
         *,
         request_factory: Optional[_RequestFactory] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        **kwargs: Any
+        debug: Optional[bool] = None,
+        **kwargs: Any,
     ) -> None:
-        self._loop = get_running_loop(loop)
+        if debug is not None:
+            warnings.warn(
+                "debug argument is no-op since 4.0 " "and scheduled for removal in 5.0",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self._loop = asyncio.get_running_loop()
         self._connections = {}  # type: Dict[RequestHandler, asyncio.Transport]
         self._kwargs = kwargs
         self.requests_count = 0
@@ -55,7 +61,7 @@ class Server:
 
     async def shutdown(self, timeout: Optional[float] = None) -> None:
         coros = [conn.shutdown(timeout) for conn in self._connections]
-        await asyncio.gather(*coros, loop=self._loop)
+        await asyncio.gather(*coros)
         self._connections.clear()
 
     def __call__(self) -> RequestHandler:
