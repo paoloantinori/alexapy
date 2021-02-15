@@ -1,5 +1,7 @@
 import asyncio
+import dataclasses
 import functools
+import logging
 import random
 import sys
 import traceback
@@ -27,8 +29,6 @@ from typing import (  # noqa
     cast,
 )
 
-import attr
-
 from . import hdrs, helpers
 from .abc import AbstractResolver
 from .client_exceptions import (
@@ -39,19 +39,13 @@ from .client_exceptions import (
     ClientHttpProxyError,
     ClientProxyConnectionError,
     ServerFingerprintMismatch,
+    UnixClientConnectorError,
     cert_errors,
     ssl_errors,
 )
 from .client_proto import ResponseHandler
-from .client_reqrep import ClientRequest, Fingerprint, _merge_ssl_params
-from .helpers import (
-    PY_36,
-    CeilTimeout,
-    get_running_loop,
-    is_ip_address,
-    noop2,
-    sentinel,
-)
+from .client_reqrep import SSL_ALLOWED_TYPES, ClientRequest, Fingerprint
+from .helpers import _SENTINEL, ceil_timeout, is_ip_address, sentinel
 from .http import RESPONSES
 from .locks import EventResultOrError
 from .resolver import DefaultResolver
@@ -61,37 +55,17 @@ try:
 
     SSLContext = ssl.SSLContext
 except ImportError:  # pragma: no cover
-    ssl = None  # type: ignore
-    SSLContext = object  # type: ignore
+    ssl = None  # type: ignore[assignment]
+    SSLContext = object  # type: ignore[misc,assignment]
 
 
 __all__ = ("BaseConnector", "TCPConnector", "UnixConnector", "NamedPipeConnector")
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .client import ClientTimeout  # noqa
-    from .client_reqrep import ConnectionKey  # noqa
-    from .tracing import Trace  # noqa
-
-
-class _DeprecationWaiter:
-    __slots__ = ("_awaitable", "_awaited")
-
-    def __init__(self, awaitable: Awaitable[Any]) -> None:
-        self._awaitable = awaitable
-        self._awaited = False
-
-    def __await__(self) -> Any:
-        self._awaited = True
-        return self._awaitable.__await__()
-
-    def __del__(self) -> None:
-        if not self._awaited:
-            warnings.warn(
-                "Connector.close() is a coroutine, "
-                "please use await connector.close()",
-                DeprecationWarning,
-            )
+    from .client import ClientTimeout
+    from .client_reqrep import ConnectionKey
+    from .tracing import Trace
 
 
 class Connection:
@@ -116,16 +90,12 @@ class Connection:
             self._source_traceback = traceback.extract_stack(sys._getframe(1))
 
     def __repr__(self) -> str:
-        return "Connection<{}>".format(self._key)
+        return f"Connection<{self._key}>"
 
     def __del__(self, _warnings: Any = warnings) -> None:
         if self._protocol is not None:
-            if PY_36:
-                kwargs = {"source": self}
-            else:
-                kwargs = {}
             _warnings.warn(
-                "Unclosed connection {!r}".format(self), ResourceWarning, **kwargs
+                f"Unclosed connection {self!r}", ResourceWarning, source=self
             )
             if self._loop.is_closed():
                 return
@@ -136,13 +106,6 @@ class Connection:
             if self._source_traceback is not None:
                 context["source_traceback"] = self._source_traceback
             self._loop.call_exception_handler(context)
-
-    @property
-    def loop(self) -> asyncio.AbstractEventLoop:
-        warnings.warn(
-            "connector.loop property is deprecated", DeprecationWarning, stacklevel=2
-        )
-        return self._loop
 
     @property
     def transport(self) -> Optional[asyncio.Transport]:
@@ -189,6 +152,11 @@ class Connection:
 class _TransportPlaceholder:
     """ placeholder for BaseConnector.connect function """
 
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
+        fut = loop.create_future()
+        fut.set_result(None)
+        self.closed = fut  # type: asyncio.Future[Optional[Exception]]
+
     def close(self) -> None:
         pass
 
@@ -215,12 +183,11 @@ class BaseConnector:
     def __init__(
         self,
         *,
-        keepalive_timeout: Union[object, None, float] = sentinel,
+        keepalive_timeout: Union[_SENTINEL, None, float] = sentinel,
         force_close: bool = False,
         limit: int = 100,
         limit_per_host: int = 0,
         enable_cleanup_closed: bool = False,
-        loop: Optional[asyncio.AbstractEventLoop] = None
     ) -> None:
 
         if force_close:
@@ -232,7 +199,7 @@ class BaseConnector:
             if keepalive_timeout is sentinel:
                 keepalive_timeout = 15.0
 
-        loop = get_running_loop(loop)
+        loop = asyncio.get_running_loop()
 
         self._closed = False
         if loop.get_debug():
@@ -240,33 +207,31 @@ class BaseConnector:
 
         self._conns = (
             {}
-        )  # type: Dict[ConnectionKey, List[Tuple[ResponseHandler, float]]]  # noqa
+        )  # type: Dict[ConnectionKey, List[Tuple[ResponseHandler, float]]]
         self._limit = limit
         self._limit_per_host = limit_per_host
         self._acquired = set()  # type: Set[ResponseHandler]
         self._acquired_per_host = defaultdict(
             set
-        )  # type: DefaultDict[ConnectionKey, Set[ResponseHandler]]  # noqa
+        )  # type: DefaultDict[ConnectionKey, Set[ResponseHandler]]
         self._keepalive_timeout = cast(float, keepalive_timeout)
         self._force_close = force_close
 
         # {host_key: FIFO list of waiters}
-        self._waiters = defaultdict(deque)  # type: ignore
+        self._waiters = defaultdict(deque)  # type: ignore[var-annotated]
 
         self._loop = loop
         self._factory = functools.partial(ResponseHandler, loop=loop)
 
-        self.cookies = SimpleCookie()
+        self.cookies = SimpleCookie()  # type: SimpleCookie[str]
 
         # start keep-alive connection cleanup task
-        self._cleanup_handle = None
+        self._cleanup_handle: Optional[asyncio.TimerHandle] = None
 
         # start cleanup closed transports task
-        self._cleanup_closed_handle = None
+        self._cleanup_closed_handle: Optional[asyncio.TimerHandle] = None
         self._cleanup_closed_disabled = not enable_cleanup_closed
-        self._cleanup_closed_transports = (
-            []
-        )  # type: List[Optional[asyncio.Transport]]  # noqa
+        self._cleanup_closed_transports = []  # type: List[Optional[asyncio.Transport]]
         self._cleanup_closed()
 
     def __del__(self, _warnings: Any = warnings) -> None:
@@ -277,15 +242,9 @@ class BaseConnector:
 
         conns = [repr(c) for c in self._conns.values()]
 
-        self._close()
+        self._close_immediately()
 
-        if PY_36:
-            kwargs = {"source": self}
-        else:
-            kwargs = {}
-        _warnings.warn(
-            "Unclosed connector {!r}".format(self), ResourceWarning, **kwargs
-        )
+        _warnings.warn(f"Unclosed connector {self!r}", ResourceWarning, source=self)
         context = {
             "connector": self,
             "connections": conns,
@@ -294,17 +253,6 @@ class BaseConnector:
         if self._source_traceback is not None:
             context["source_traceback"] = self._source_traceback
         self._loop.call_exception_handler(context)
-
-    def __enter__(self) -> "BaseConnector":
-        warnings.warn(
-            '"witn Connector():" is deprecated, '
-            'use "async with Connector():" instead',
-            DeprecationWarning,
-        )
-        return self
-
-    def __exit__(self, *exc: Any) -> None:
-        self.close()
 
     async def __aenter__(self) -> "BaseConnector":
         return self
@@ -346,6 +294,9 @@ class BaseConnector:
         """Cleanup unused transports."""
         if self._cleanup_handle:
             self._cleanup_handle.cancel()
+            # _cleanup_handle should be unset, otherwise _release() will not
+            # recreate it ever!
+            self._cleanup_handle = None
 
         now = self._loop.time()
         timeout = self._keepalive_timeout
@@ -364,6 +315,11 @@ class BaseConnector:
                                 self._cleanup_closed_transports.append(transport)
                         else:
                             alive.append((proto, use_time))
+                    else:
+                        transport = proto.transport
+                        proto.close()
+                        if key.is_ssl and not self._cleanup_closed_disabled:
+                            self._cleanup_closed_transports.append(transport)
 
                 if alive:
                     connections[key] = alive
@@ -404,20 +360,27 @@ class BaseConnector:
                 self, "_cleanup_closed", self._cleanup_closed_period, self._loop
             )
 
-    def close(self) -> Awaitable[None]:
+    async def close(self) -> None:
         """Close all opened transports."""
-        self._close()
-        return _DeprecationWaiter(noop2())
+        waiters = self._close_immediately()
+        if waiters:
+            results = await asyncio.gather(*waiters, return_exceptions=True)
+            for res in results:
+                if isinstance(res, Exception):
+                    err_msg = "Error while closing connector: " + repr(res)
+                    logging.error(err_msg)
 
-    def _close(self) -> None:
+    def _close_immediately(self) -> List["asyncio.Future[None]"]:
+        waiters = []  # type: List['asyncio.Future[None]']
+
         if self._closed:
-            return
+            return waiters
 
         self._closed = True
 
         try:
             if self._loop.is_closed():
-                return
+                return waiters
 
             # cancel cleanup task
             if self._cleanup_handle:
@@ -430,13 +393,18 @@ class BaseConnector:
             for data in self._conns.values():
                 for proto, t0 in data:
                     proto.close()
+                    waiters.append(proto.closed)
 
             for proto in self._acquired:
                 proto.close()
+                waiters.append(proto.closed)
 
+            # TODO (A.Yushovskiy, 24-May-2019) collect transp. closing futures
             for transport in self._cleanup_closed_transports:
                 if transport is not None:
                     transport.abort()
+
+            return waiters
 
         finally:
             self._conns.clear()
@@ -494,13 +462,13 @@ class BaseConnector:
         key = req.connection_key
         available = self._available_connections(key)
 
-        # Wait if there are no available connections.
-        if available <= 0:
+        # Wait if there are no available connections or if there are/were
+        # waiters (i.e. don't steal connection from a waiter about to wake up)
+        if available <= 0 or key in self._waiters:
             fut = self._loop.create_future()
 
             # This connection will now count towards the limit.
-            waiters = self._waiters[key]
-            waiters.append(fut)
+            self._waiters[key].append(fut)
 
             if traces:
                 for trace in traces:
@@ -509,21 +477,18 @@ class BaseConnector:
             try:
                 await fut
             except BaseException as e:
-                # remove a waiter even if it was cancelled, normally it's
-                #  removed when it's notified
-                try:
-                    waiters.remove(fut)
-                except ValueError:  # fut may no longer be in list
-                    pass
+                if key in self._waiters:
+                    # remove a waiter even if it was cancelled, normally it's
+                    #  removed when it's notified
+                    try:
+                        self._waiters[key].remove(fut)
+                    except ValueError:  # fut may no longer be in list
+                        pass
 
                 raise e
             finally:
-                if not waiters:
-                    try:
-                        del self._waiters[key]
-                    except KeyError:
-                        # the key was evicted before.
-                        pass
+                if key in self._waiters and not self._waiters[key]:
+                    del self._waiters[key]
 
             if traces:
                 for trace in traces:
@@ -531,7 +496,7 @@ class BaseConnector:
 
         proto = self._get(key)
         if proto is None:
-            placeholder = cast(ResponseHandler, _TransportPlaceholder())
+            placeholder = cast(ResponseHandler, _TransportPlaceholder(self._loop))
             self._acquired.add(placeholder)
             self._acquired_per_host[key].add(placeholder)
 
@@ -560,8 +525,14 @@ class BaseConnector:
                     await trace.send_connection_create_end()
         else:
             if traces:
+                # Acquire the connection to prevent race conditions with limits
+                placeholder = cast(ResponseHandler, _TransportPlaceholder(self._loop))
+                self._acquired.add(placeholder)
+                self._acquired_per_host[key].add(placeholder)
                 for trace in traces:
                     await trace.send_connection_reuseconn()
+                self._acquired.remove(placeholder)
+                self._drop_acquired_per_host(key, placeholder)
 
         self._acquired.add(proto)
         self._acquired_per_host[key].add(proto)
@@ -588,6 +559,11 @@ class BaseConnector:
                         # The very last connection was reclaimed: drop the key
                         del self._conns[key]
                     return proto
+            else:
+                transport = proto.transport
+                proto.close()
+                if key.is_ssl and not self._cleanup_closed_disabled:
+                    self._cleanup_closed_transports.append(transport)
 
         # No more connections: drop the key
         del self._conns[key]
@@ -637,7 +613,7 @@ class BaseConnector:
         key: "ConnectionKey",
         protocol: ResponseHandler,
         *,
-        should_close: bool = False
+        should_close: bool = False,
     ) -> None:
         if self._closed:
             # acquired connection is already released on connector closing
@@ -675,7 +651,7 @@ class _DNSCacheTable:
     def __init__(self, ttl: Optional[float] = None) -> None:
         self._addrs_rr = (
             {}
-        )  # type: Dict[Tuple[str, int], Tuple[Iterator[Dict[str, Any]], int]]  # noqa
+        )  # type: Dict[Tuple[str, int], Tuple[Iterator[Dict[str, Any]], int]]
         self._timestamps = {}  # type: Dict[Tuple[str, int], float]
         self._ttl = ttl
 
@@ -740,50 +716,48 @@ class TCPConnector(BaseConnector):
     def __init__(
         self,
         *,
-        verify_ssl: bool = True,
-        fingerprint: Optional[bytes] = None,
         use_dns_cache: bool = True,
-        ttl_dns_cache: int = 10,
+        ttl_dns_cache: Optional[int] = 10,
         family: int = 0,
-        ssl_context: Optional[SSLContext] = None,
         ssl: Union[None, bool, Fingerprint, SSLContext] = None,
         local_addr: Optional[Tuple[str, int]] = None,
         resolver: Optional[AbstractResolver] = None,
-        keepalive_timeout: Union[None, float, object] = sentinel,
+        keepalive_timeout: Union[None, float, _SENTINEL] = sentinel,
         force_close: bool = False,
         limit: int = 100,
         limit_per_host: int = 0,
         enable_cleanup_closed: bool = False,
-        loop: Optional[asyncio.AbstractEventLoop] = None
-    ):
+    ) -> None:
         super().__init__(
             keepalive_timeout=keepalive_timeout,
             force_close=force_close,
             limit=limit,
             limit_per_host=limit_per_host,
             enable_cleanup_closed=enable_cleanup_closed,
-            loop=loop,
         )
 
-        self._ssl = _merge_ssl_params(ssl, verify_ssl, ssl_context, fingerprint)
+        if not isinstance(ssl, SSL_ALLOWED_TYPES):
+            raise TypeError(
+                "ssl should be SSLContext, bool, Fingerprint, "
+                "or None, got {!r} instead.".format(ssl)
+            )
+        self._ssl = ssl
         if resolver is None:
-            resolver = DefaultResolver(loop=self._loop)
-        self._resolver = resolver
+            resolver = DefaultResolver()
+        self._resolver: AbstractResolver = resolver
 
         self._use_dns_cache = use_dns_cache
         self._cached_hosts = _DNSCacheTable(ttl=ttl_dns_cache)
         self._throttle_dns_events = (
             {}
-        )  # type: Dict[Tuple[str, int], EventResultOrError]  # noqa
+        )  # type: Dict[Tuple[str, int], EventResultOrError]
         self._family = family
         self._local_addr = local_addr
 
-    def close(self) -> Awaitable[None]:
-        """Close all ongoing DNS calls."""
+    def _close_immediately(self) -> List["asyncio.Future[None]"]:
         for ev in self._throttle_dns_events.values():
             ev.cancel()
-
-        return super().close()
+        return super()._close_immediately()
 
     @property
     def family(self) -> int:
@@ -965,11 +939,11 @@ class TCPConnector(BaseConnector):
         req: "ClientRequest",
         timeout: "ClientTimeout",
         client_error: Type[Exception] = ClientConnectorError,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Tuple[asyncio.Transport, ResponseHandler]:
         try:
-            with CeilTimeout(timeout.sock_connect):
-                return await self._loop.create_connection(*args, **kwargs)  # type: ignore  # noqa
+            async with ceil_timeout(timeout.sock_connect):
+                return await self._loop.create_connection(*args, **kwargs)  # type: ignore[return-value]  # noqa
         except cert_errors as exc:
             raise ClientConnectorCertificateError(req.connection_key, exc) from exc
         except ssl_errors as exc:
@@ -983,22 +957,31 @@ class TCPConnector(BaseConnector):
         traces: List["Trace"],
         timeout: "ClientTimeout",
         *,
-        client_error: Type[Exception] = ClientConnectorError
+        client_error: Type[Exception] = ClientConnectorError,
     ) -> Tuple[asyncio.Transport, ResponseHandler]:
         sslcontext = self._get_ssl_context(req)
         fingerprint = self._get_fingerprint(req)
 
+        host = req.url.raw_host
+        assert host is not None
+        port = req.port
+        assert port is not None
+        host_resolved = asyncio.ensure_future(
+            self._resolve_host(host, port, traces=traces), loop=self._loop
+        )
         try:
             # Cancelling this lookup should not cancel the underlying lookup
             #  or else the cancel event will get broadcast to all the waiters
             #  across all connections.
-            host = req.url.raw_host
-            assert host is not None
-            port = req.port
-            assert port is not None
-            hosts = await asyncio.shield(
-                self._resolve_host(host, port, traces=traces), loop=self._loop
-            )
+            hosts = await asyncio.shield(host_resolved)
+        except asyncio.CancelledError:
+
+            def drop_exception(fut: "asyncio.Future[List[Dict[str, Any]]]") -> None:
+                with suppress(Exception, asyncio.CancelledError):
+                    fut.result()
+
+            host_resolved.add_done_callback(drop_exception)
+            raise
         except OSError as exc:
             # in case of proxy it is not ClientProxyConnectionError
             # it is problem of resolving proxy ip itself
@@ -1040,16 +1023,15 @@ class TCPConnector(BaseConnector):
                     continue
 
             return transp, proto
-        else:
-            assert last_exc is not None
-            raise last_exc
+        assert last_exc is not None
+        raise last_exc
 
     async def _create_proxy_connection(
         self, req: "ClientRequest", traces: List["Trace"], timeout: "ClientTimeout"
     ) -> Tuple[asyncio.Transport, ResponseHandler]:
         headers = {}  # type: Dict[str, str]
         if req.proxy_headers is not None:
-            headers = req.proxy_headers  # type: ignore
+            headers = req.proxy_headers  # type: ignore[assignment]
         headers[hdrs.HOST] = req.headers[hdrs.HOST]
 
         url = req.proxy
@@ -1093,7 +1075,7 @@ class TCPConnector(BaseConnector):
             # asyncio handles this perfectly
             proxy_req.method = hdrs.METH_CONNECT
             proxy_req.url = req.url
-            key = attr.evolve(
+            key = dataclasses.replace(
                 req.connection_key, proxy=None, proxy_auth=None, proxy_headers_hash=None
             )
             conn = Connection(self, key, proto, self._loop)
@@ -1160,17 +1142,15 @@ class UnixConnector(BaseConnector):
         self,
         path: str,
         force_close: bool = False,
-        keepalive_timeout: Union[object, float, None] = sentinel,
+        keepalive_timeout: Union[_SENTINEL, float, None] = sentinel,
         limit: int = 100,
         limit_per_host: int = 0,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         super().__init__(
             force_close=force_close,
             keepalive_timeout=keepalive_timeout,
             limit=limit,
             limit_per_host=limit_per_host,
-            loop=loop,
         )
         self._path = path
 
@@ -1183,12 +1163,12 @@ class UnixConnector(BaseConnector):
         self, req: "ClientRequest", traces: List["Trace"], timeout: "ClientTimeout"
     ) -> ResponseHandler:
         try:
-            with CeilTimeout(timeout.sock_connect):
+            async with ceil_timeout(timeout.sock_connect):
                 _, proto = await self._loop.create_unix_connection(
                     self._factory, self._path
                 )
         except OSError as exc:
-            raise ClientConnectorError(req.connection_key, exc) from exc
+            raise UnixClientConnectorError(self.path, req.connection_key, exc) from exc
 
         return cast(ResponseHandler, proto)
 
@@ -1212,19 +1192,19 @@ class NamedPipeConnector(BaseConnector):
         self,
         path: str,
         force_close: bool = False,
-        keepalive_timeout: Union[object, float, None] = sentinel,
+        keepalive_timeout: Union[_SENTINEL, float, None] = sentinel,
         limit: int = 100,
         limit_per_host: int = 0,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         super().__init__(
             force_close=force_close,
             keepalive_timeout=keepalive_timeout,
             limit=limit,
             limit_per_host=limit_per_host,
-            loop=loop,
         )
-        if not isinstance(self._loop, asyncio.ProactorEventLoop):  # type: ignore # noqa
+        if not isinstance(
+            self._loop, asyncio.ProactorEventLoop  # type: ignore[attr-defined]
+        ):
             raise RuntimeError(
                 "Named Pipes only available in proactor " "loop under windows"
             )
@@ -1239,8 +1219,8 @@ class NamedPipeConnector(BaseConnector):
         self, req: "ClientRequest", traces: List["Trace"], timeout: "ClientTimeout"
     ) -> ResponseHandler:
         try:
-            with CeilTimeout(timeout.sock_connect):
-                _, proto = await self._loop.create_pipe_connection(  # type: ignore # noqa
+            async with ceil_timeout(timeout.sock_connect):
+                _, proto = await self._loop.create_pipe_connection(  # type: ignore[attr-defined] # noqa: E501
                     self._factory, self._path
                 )
                 # the drain is required so that the connection_made is called
