@@ -20,10 +20,12 @@ from contextlib import suppress
 from math import ceil
 from pathlib import Path
 from types import TracebackType
-from typing import (  # noqa
+from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
+    Generic,
     Iterable,
     Iterator,
     List,
@@ -43,6 +45,7 @@ from urllib.request import getproxies
 import async_timeout
 import attr
 from multidict import MultiDict, MultiDictProxy
+from typing_extensions import Protocol
 from yarl import URL
 
 from . import hdrs
@@ -74,10 +77,11 @@ def all_tasks(
 
 
 if PY_37:
-    all_tasks = getattr(asyncio, "all_tasks")  # noqa
+    all_tasks = getattr(asyncio, "all_tasks")
 
 
 _T = TypeVar("_T")
+_S = TypeVar("_S")
 
 
 sentinel = object()  # type: Any
@@ -90,8 +94,8 @@ DEBUG = getattr(sys.flags, "dev_mode", False) or (
 )  # type: bool
 
 
-CHAR = set(chr(i) for i in range(0, 128))
-CTL = set(chr(i) for i in range(0, 32)) | {
+CHAR = {chr(i) for i in range(0, 128)}
+CTL = {chr(i) for i in range(0, 32)} | {
     chr(127),
 }
 SEPARATORS = {
@@ -118,23 +122,9 @@ SEPARATORS = {
 TOKEN = CHAR ^ CTL ^ SEPARATORS
 
 
-coroutines = asyncio.coroutines
-old_debug = coroutines._DEBUG  # type: ignore
-
-# prevent "coroutine noop was never awaited" warning.
-coroutines._DEBUG = False  # type: ignore
-
-
-@asyncio.coroutine
-def noop(*args, **kwargs):  # type: ignore
-    return  # type: ignore
-
-
-async def noop2(*args: Any, **kwargs: Any) -> None:
-    return
-
-
-coroutines._DEBUG = old_debug  # type: ignore
+class noop:
+    def __await__(self) -> Generator[None, None, None]:
+        yield
 
 
 class BasicAuth(namedtuple("BasicAuth", ["login", "password", "encoding"])):
@@ -194,7 +184,7 @@ class BasicAuth(namedtuple("BasicAuth", ["login", "password", "encoding"])):
 
     def encode(self) -> str:
         """Encode credentials."""
-        creds = ("%s:%s" % (self.login, self.password)).encode(self.encoding)
+        creds = (f"{self.login}:{self.password}").encode(self.encoding)
         return "Basic %s" % base64.b64encode(creds).decode(self.encoding)
 
 
@@ -246,10 +236,10 @@ def netrc_from_env() -> Optional[netrc.netrc]:
     return None
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class ProxyInfo:
-    proxy = attr.ib(type=URL)
-    proxy_auth = attr.ib(type=Optional[BasicAuth])
+    proxy: URL
+    proxy_auth: Optional[BasicAuth]
 
 
 def proxies_from_env() -> Dict[str, ProxyInfo]:
@@ -277,9 +267,11 @@ def proxies_from_env() -> Dict[str, ProxyInfo]:
     return ret
 
 
-def current_task(loop: Optional[asyncio.AbstractEventLoop] = None) -> asyncio.Task:  # type: ignore  # noqa  # Return type is intentionally Generic here
+def current_task(
+    loop: Optional[asyncio.AbstractEventLoop] = None,
+) -> "Optional[asyncio.Task[Any]]":
     if PY_37:
-        return asyncio.current_task(loop=loop)  # type: ignore
+        return asyncio.current_task(loop=loop)
     else:
         return asyncio.Task.current_task(loop=loop)
 
@@ -291,13 +283,13 @@ def get_running_loop(
         loop = asyncio.get_event_loop()
     if not loop.is_running():
         warnings.warn(
-            "The object should be created from async function",
+            "The object should be created within an async function",
             DeprecationWarning,
             stacklevel=3,
         )
         if loop.get_debug():
             internal_logger.warning(
-                "The object should be created from async function", stack_info=True
+                "The object should be created within an async function", stack_info=True
             )
     return loop
 
@@ -310,12 +302,12 @@ def isasyncgenfunction(obj: Any) -> bool:
         return False
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class MimeType:
-    type = attr.ib(type=str)
-    subtype = attr.ib(type=str)
-    suffix = attr.ib(type=str)
-    parameters = attr.ib(type=MultiDictProxy)  # type: MultiDictProxy[str]
+    type: str
+    subtype: str
+    suffix: str
+    parameters: "MultiDictProxy[str]"
 
 
 @functools.lru_cache(maxsize=56)
@@ -403,7 +395,11 @@ def content_disposition_header(
     return value
 
 
-class reify:
+class _TSelf(Protocol):
+    _cache: Dict[str, Any]
+
+
+class reify(Generic[_T]):
     """Use as a class method decorator.  It operates almost exactly like
     the Python `@property` decorator, but it puts the result of the
     method it decorates into the instance dict after the first call,
@@ -412,12 +408,12 @@ class reify:
 
     """
 
-    def __init__(self, wrapped: Callable[..., Any]) -> None:
+    def __init__(self, wrapped: Callable[..., _T]) -> None:
         self.wrapped = wrapped
         self.__doc__ = wrapped.__doc__
         self.name = wrapped.__name__
 
-    def __get__(self, inst: Any, owner: Any) -> Any:
+    def __get__(self, inst: _TSelf, owner: Optional[Type[Any]] = None) -> _T:
         try:
             try:
                 return inst._cache[self.name]
@@ -430,7 +426,7 @@ class reify:
                 return self
             raise
 
-    def __set__(self, inst: Any, value: Any) -> None:
+    def __set__(self, inst: _TSelf, value: _T) -> None:
         raise AttributeError("reified property is read-only")
 
 
@@ -544,10 +540,10 @@ def _weakref_handle(info):  # type: ignore
             getattr(ob, name)()
 
 
-def weakref_handle(ob, name, timeout, loop, ceil_timeout=True):  # type: ignore
+def weakref_handle(ob, name, timeout, loop):  # type: ignore
     if timeout is not None and timeout > 0:
         when = loop.time() + timeout
-        if ceil_timeout:
+        if timeout >= 5:
             when = ceil(when)
 
         return loop.call_at(when, _weakref_handle, (weakref.ref(ob), name))
@@ -555,7 +551,9 @@ def weakref_handle(ob, name, timeout, loop, ceil_timeout=True):  # type: ignore
 
 def call_later(cb, timeout, loop):  # type: ignore
     if timeout is not None and timeout > 0:
-        when = ceil(loop.time() + timeout)
+        when = loop.time() + timeout
+        if timeout > 5:
+            when = ceil(when)
         return loop.call_at(when, cb)
 
 
@@ -569,7 +567,7 @@ class TimeoutHandle:
         self._loop = loop
         self._callbacks = (
             []
-        )  # type: List[Tuple[Callable[..., None], Tuple[Any, ...], Dict[str, Any]]]  # noqa
+        )  # type: List[Tuple[Callable[..., None], Tuple[Any, ...], Dict[str, Any]]]
 
     def register(
         self, callback: Callable[..., None], *args: Any, **kwargs: Any
@@ -580,9 +578,12 @@ class TimeoutHandle:
         self._callbacks.clear()
 
     def start(self) -> Optional[asyncio.Handle]:
-        if self._timeout is not None and self._timeout > 0:
-            at = ceil(self._loop.time() + self._timeout)
-            return self._loop.call_at(at, self.__call__)
+        timeout = self._timeout
+        if timeout is not None and timeout > 0:
+            when = self._loop.time() + timeout
+            if timeout >= 5:
+                when = ceil(when)
+            return self._loop.call_at(when, self.__call__)
         else:
             return None
 
@@ -615,8 +616,8 @@ class TimerNoop(BaseTimerContext):
         exc_type: Optional[Type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
-    ) -> Optional[bool]:
-        return False
+    ) -> None:
+        return
 
 
 class TimerContext(BaseTimerContext):
@@ -671,9 +672,12 @@ class CeilTimeout(async_timeout.timeout):
                 raise RuntimeError(
                     "Timeout context manager should be used inside a task"
                 )
-            self._cancel_handler = self._loop.call_at(
-                ceil(self._loop.time() + self._timeout), self._cancel_task
-            )
+            now = self._loop.time()
+            delay = self._timeout
+            when = now + delay
+            if delay > 5:
+                when = ceil(when)
+            self._cancel_handler = self._loop.call_at(when, self._cancel_task)
         return self
 
 
@@ -773,4 +777,4 @@ class ChainMapProxy(Mapping[str, Any]):
 
     def __repr__(self) -> str:
         content = ", ".join(map(repr, self._maps))
-        return "ChainMapProxy({})".format(content)
+        return f"ChainMapProxy({content})"

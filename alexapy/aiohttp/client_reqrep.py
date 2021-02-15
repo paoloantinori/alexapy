@@ -1,5 +1,6 @@
 import asyncio
 import codecs
+import functools
 import io
 import re
 import sys
@@ -8,7 +9,7 @@ import warnings
 from hashlib import md5, sha1, sha256
 from http.cookies import BaseCookie, CookieError, Morsel, SimpleCookie
 from types import MappingProxyType, TracebackType
-from typing import (  # noqa
+from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
@@ -37,7 +38,7 @@ from .client_exceptions import (
     ServerFingerprintMismatch,
 )
 from .formdata import FormData
-from .helpers import (  # noqa
+from .helpers import (
     PY_36,
     BaseTimerContext,
     BasicAuth,
@@ -49,7 +50,7 @@ from .helpers import (  # noqa
 )
 from .http import SERVER_SOFTWARE, HttpVersion10, HttpVersion11, StreamWriter
 from .log import client_logger
-from .streams import StreamReader  # noqa
+from .streams import StreamReader
 from .typedefs import (
     DEFAULT_JSON_DECODER,
     JSONDecoder,
@@ -68,36 +69,34 @@ except ImportError:  # pragma: no cover
 try:
     import cchardet as chardet
 except ImportError:  # pragma: no cover
-    import chardet
+    import chardet  # type: ignore
 
 
 __all__ = ("ClientRequest", "ClientResponse", "RequestInfo", "Fingerprint")
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .client import ClientSession  # noqa
-    from .connector import Connection  # noqa
-    from .tracing import Trace  # noqa
+    from .client import ClientSession
+    from .connector import Connection
+    from .tracing import Trace
 
 
 json_re = re.compile(r"^application/(?:[\w.+-]+?\+)?json")
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class ContentDisposition:
-    type = attr.ib(type=str)  # type: Optional[str]
-    parameters = attr.ib(
-        type=MappingProxyType
-    )  # type: MappingProxyType[str, str]  # noqa
-    filename = attr.ib(type=str)  # type: Optional[str]
+    type: Optional[str]
+    parameters: "MappingProxyType[str, str]"
+    filename: Optional[str]
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class RequestInfo:
-    url = attr.ib(type=URL)
-    method = attr.ib(type=str)
-    headers = attr.ib(type=CIMultiDictProxy)  # type: CIMultiDictProxy[str]
-    real_url = attr.ib(type=URL)
+    url: URL
+    method: str
+    headers: "CIMultiDictProxy[str]"
+    real_url: URL = attr.ib()
 
     @real_url.default
     def real_url_default(self) -> URL:
@@ -197,19 +196,17 @@ def _merge_ssl_params(
     return ssl
 
 
-@attr.s(slots=True, frozen=True)
+@attr.s(auto_attribs=True, slots=True, frozen=True)
 class ConnectionKey:
     # the key should contain an information about used proxy / TLS
     # to prevent reusing wrong connections from a pool
-    host = attr.ib(type=str)
-    port = attr.ib(type=int)  # type: Optional[int]
-    is_ssl = attr.ib(type=bool)
-    ssl = attr.ib()  # type: Union[SSLContext, None, bool, Fingerprint]
-    proxy = attr.ib()  # type: Optional[URL]
-    proxy_auth = attr.ib()  # type: Optional[BasicAuth]
-    proxy_headers_hash = attr.ib(
-        type=int
-    )  # type: Optional[int] # noqa # hash(CIMultiDict)
+    host: str
+    port: Optional[int]
+    is_ssl: bool
+    ssl: Union[SSLContext, None, bool, Fingerprint]
+    proxy: Optional[URL]
+    proxy_auth: Optional[BasicAuth]
+    proxy_headers_hash: Optional[int]  # hash(CIMultiDict)
 
 
 def _is_expected_content_type(
@@ -270,7 +267,7 @@ class ClientRequest:
         session: Optional["ClientSession"] = None,
         ssl: Union[SSLContext, bool, Fingerprint, None] = None,
         proxy_headers: Optional[LooseHeaders] = None,
-        traces: Optional[List["Trace"]] = None
+        traces: Optional[List["Trace"]] = None,
     ):
 
         if loop is None:
@@ -334,7 +331,7 @@ class ClientRequest:
         if proxy_headers:
             h = hash(
                 tuple((k, v) for k, v in proxy_headers.items())
-            )  # type: Optional[int]  # noqa
+            )  # type: Optional[int]
         else:
             h = None
         return ConnectionKey(
@@ -349,7 +346,7 @@ class ClientRequest:
 
     @property
     def host(self) -> str:
-        ret = self.url.host
+        ret = self.url.raw_host
         assert ret is not None
         return ret
 
@@ -365,7 +362,7 @@ class ClientRequest:
     def update_host(self, url: URL) -> None:
         """Update destination host, port and connection type (ssl)."""
         # get host/port
-        if not url.host:
+        if not url.raw_host:
             raise InvalidURL(url)
 
         # basic auth info
@@ -379,12 +376,12 @@ class ClientRequest:
         parser HTTP version '1.1' => (1, 1)
         """
         if isinstance(version, str):
-            v = [l.strip() for l in version.split(".", 1)]
+            v = [part.strip() for part in version.split(".", 1)]
             try:
                 version = http.HttpVersion(int(v[0]), int(v[1]))
             except ValueError:
                 raise ValueError(
-                    "Can not parse http version number: {}".format(version)
+                    f"Can not parse http version number: {version}"
                 ) from None
         self.version = version
 
@@ -395,7 +392,7 @@ class ClientRequest:
         # add host
         netloc = cast(str, self.url.raw_host)
         if helpers.is_ipv6_address(netloc):
-            netloc = "[{}]".format(netloc)
+            netloc = f"[{netloc}]"
         if self.url.port is not None and not self.url.is_default_port():
             netloc += ":" + str(self.url.port)
         self.headers[hdrs.HOST] = netloc
@@ -404,7 +401,7 @@ class ClientRequest:
             if isinstance(headers, (dict, MultiDictProxy, MultiDict)):
                 headers = headers.items()  # type: ignore
 
-            for key, value in headers:
+            for key, value in headers:  # type: ignore
                 # A special case for Host header
                 if key.lower() == "host":
                     self.headers[key] = value
@@ -430,7 +427,7 @@ class ClientRequest:
         if not cookies:
             return
 
-        c = SimpleCookie()
+        c = SimpleCookie()  # type: SimpleCookie[str]
         if hdrs.COOKIE in self.headers:
             c.load(self.headers.get(hdrs.COOKIE, ""))
             del self.headers[hdrs.COOKIE]
@@ -618,8 +615,8 @@ class ClientRequest:
             connect_host = self.url.raw_host
             assert connect_host is not None
             if helpers.is_ipv6_address(connect_host):
-                connect_host = "[{}]".format(connect_host)
-            path = "{}:{}".format(connect_host, self.url.port)
+                connect_host = f"[{connect_host}]"
+            path = f"{connect_host}:{self.url.port}"
         elif self.proxy and not self.is_ssl():
             path = str(self.url)
         else:
@@ -630,7 +627,11 @@ class ClientRequest:
         protocol = conn.protocol
         assert protocol is not None
         writer = StreamWriter(
-            protocol, self.loop, on_chunk_sent=self._on_chunk_request_sent
+            protocol,
+            self.loop,
+            on_chunk_sent=functools.partial(
+                self._on_chunk_request_sent, self.method, self.url
+            ),
         )
 
         if self.compress:
@@ -696,9 +697,9 @@ class ClientRequest:
                 self._writer.cancel()
             self._writer = None
 
-    async def _on_chunk_request_sent(self, chunk: bytes) -> None:
+    async def _on_chunk_request_sent(self, method: str, url: URL, chunk: bytes) -> None:
         for trace in self._traces:
-            await trace.send_request_chunk_sent(chunk)
+            await trace.send_request_chunk_sent(method, url, chunk)
 
 
 class ClientResponse(HeadersMixin):
@@ -730,7 +731,7 @@ class ClientResponse(HeadersMixin):
         request_info: RequestInfo,
         traces: List["Trace"],
         loop: asyncio.AbstractEventLoop,
-        session: "ClientSession"
+        session: "ClientSession",
     ) -> None:
         assert isinstance(url, URL)
 
@@ -807,9 +808,7 @@ class ClientResponse(HeadersMixin):
                     kwargs = {"source": self}
                 else:
                     kwargs = {}
-                _warnings.warn(
-                    "Unclosed response {!r}".format(self), ResourceWarning, **kwargs
-                )
+                _warnings.warn(f"Unclosed response {self!r}", ResourceWarning, **kwargs)
                 context = {"client_response": self, "message": "Unclosed response"}
                 if self._source_traceback:
                     context["source_traceback"] = self._source_traceback
@@ -888,7 +887,7 @@ class ClientResponse(HeadersMixin):
             while True:
                 # read response
                 try:
-                    message, payload = await self._protocol.read()  # type: ignore  # noqa
+                    message, payload = await self._protocol.read()  # type: ignore
                 except http.HttpProcessingError as exc:
                     raise ClientResponseError(
                         self.request_info,
@@ -983,6 +982,19 @@ class ClientResponse(HeadersMixin):
         self._cleanup_writer()
         return noop()
 
+    @property
+    def ok(self) -> bool:
+        """Returns ``True`` if ``status`` is less than ``400``, ``False`` if not.
+
+        This is **not** a check for ``200 OK`` but a check that the response
+        status is under 400.
+        """
+        try:
+            self.raise_for_status()
+        except ClientResponseError:
+            return False
+        return True
+
     def raise_for_status(self) -> None:
         if 400 <= self.status:
             # reason should always be not None for a started response
@@ -1022,7 +1034,9 @@ class ClientResponse(HeadersMixin):
             try:
                 self._body = await self.content.read()
                 for trace in self._traces:
-                    await trace.send_response_chunk_received(self._body)
+                    await trace.send_response_chunk_received(
+                        self.method, self.url, self._body
+                    )
             except BaseException:
                 self.close()
                 raise
@@ -1042,9 +1056,16 @@ class ClientResponse(HeadersMixin):
             except LookupError:
                 encoding = None
         if not encoding:
-            if mimetype.type == "application" and mimetype.subtype == "json":
+            if mimetype.type == "application" and (
+                mimetype.subtype == "json" or mimetype.subtype == "rdap"
+            ):
                 # RFC 7159 states that the default encoding is UTF-8.
+                # RFC 7483 defines application/rdap+json
                 encoding = "utf-8"
+            elif self._body is None:
+                raise RuntimeError(
+                    "Cannot guess the encoding of " "a not yet read body"
+                )
             else:
                 encoding = chardet.detect(self._body)["encoding"]
         if not encoding:
@@ -1065,9 +1086,9 @@ class ClientResponse(HeadersMixin):
     async def json(
         self,
         *,
-        encoding: str = None,
+        encoding: Optional[str] = None,
         loads: JSONDecoder = DEFAULT_JSON_DECODER,
-        content_type: Optional[str] = "application/json"
+        content_type: Optional[str] = "application/json",
     ) -> Any:
         """Read and decodes JSON response."""
         if self._body is None:
@@ -1104,6 +1125,6 @@ class ClientResponse(HeadersMixin):
         exc_tb: Optional[TracebackType],
     ) -> None:
         # similar to _RequestContextManager, we do not need to check
-        # for exceptions, response object can closes connection
-        # is state is broken
+        # for exceptions, response object can close connection
+        # if state is broken
         self.release()

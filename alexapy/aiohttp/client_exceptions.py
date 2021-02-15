@@ -4,7 +4,7 @@ import asyncio
 import warnings
 from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
 
-from .typedefs import _CIMultiDict
+from .typedefs import LooseHeaders
 
 try:
     import ssl
@@ -15,15 +15,9 @@ except ImportError:  # pragma: no cover
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .client_reqrep import (
-        RequestInfo,
-        ClientResponse,
-        ConnectionKey,  # noqa
-        Fingerprint,
-    )
+    from .client_reqrep import ClientResponse, ConnectionKey, Fingerprint, RequestInfo
 else:
     RequestInfo = ClientResponse = ConnectionKey = None
-
 
 __all__ = (
     "ClientError",
@@ -65,7 +59,7 @@ class ClientResponseError(ClientError):
         code: Optional[int] = None,
         status: Optional[int] = None,
         message: str = "",
-        headers: Optional[_CIMultiDict] = None
+        headers: Optional[LooseHeaders] = None,
     ) -> None:
         self.request_info = request_info
         if code is not None:
@@ -91,21 +85,21 @@ class ClientResponseError(ClientError):
         self.args = (request_info, history)
 
     def __str__(self) -> str:
-        return "%s, message=%r, url=%r" % (
+        return "{}, message={!r}, url={!r}".format(
             self.status,
             self.message,
             self.request_info.real_url,
         )
 
     def __repr__(self) -> str:
-        args = "%r, %r" % (self.request_info, self.history)
+        args = f"{self.request_info!r}, {self.history!r}"
         if self.status != 0:
-            args += ", status=%r" % (self.status,)
+            args += f", status={self.status!r}"
         if self.message != "":
-            args += ", message=%r" % (self.message,)
+            args += f", message={self.message!r}"
         if self.headers is not None:
-            args += ", headers=%r" % (self.headers,)
-        return "%s(%s)" % (type(self).__name__, args)
+            args += f", headers={self.headers!r}"
+        return "{}({})".format(type(self).__name__, args)
 
     @property
     def code(self) -> int:
@@ -209,11 +203,11 @@ class ServerDisconnectedError(ServerConnectionError):
     """Server disconnected."""
 
     def __init__(self, message: Optional[str] = None) -> None:
-        self.message = message
         if message is None:
-            self.args = ()
-        else:
-            self.args = (message,)
+            message = "Server disconnected"
+
+        self.args = (message,)
+        self.message = message
 
 
 class ServerTimeoutError(ServerConnectionError, asyncio.TimeoutError):
@@ -258,7 +252,7 @@ class InvalidURL(ClientError, ValueError):
         return self.args[0]
 
     def __repr__(self) -> str:
-        return "<{} {}>".format(self.__class__.__name__, self.url)
+        return f"<{self.__class__.__name__} {self.url}>"
 
 
 class ClientSSLError(ClientConnectorError):

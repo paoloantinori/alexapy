@@ -2,7 +2,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sized
-from http.cookies import BaseCookie, Morsel  # noqa
+from http.cookies import BaseCookie, Morsel
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,17 +16,17 @@ from typing import (
     Tuple,
 )
 
-from multidict import CIMultiDict  # noqa
+from multidict import CIMultiDict
 from yarl import URL
 
 from .helpers import get_running_loop
 from .typedefs import LooseCookies
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .web_request import BaseRequest, Request
-    from .web_response import StreamResponse
     from .web_app import Application
     from .web_exceptions import HTTPException
+    from .web_request import BaseRequest, Request
+    from .web_response import StreamResponse
 else:
     BaseRequest = Request = Application = StreamResponse = None
     HTTPException = None

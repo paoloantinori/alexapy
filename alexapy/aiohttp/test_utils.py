@@ -5,21 +5,13 @@ import contextlib
 import functools
 import gc
 import inspect
+import os
 import socket
 import sys
 import unittest
 from abc import ABC, abstractmethod
 from types import TracebackType
-from typing import (  # noqa
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterator,
-    List,
-    Optional,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Iterator, List, Optional, Type, Union
 from unittest import mock
 
 from multidict import CIMultiDict, CIMultiDictProxy
@@ -34,8 +26,8 @@ from aiohttp.client import (
 
 from . import ClientSession, hdrs
 from .abc import AbstractCookieJar
-from .client_reqrep import ClientResponse  # noqa
-from .client_ws import ClientWebSocketResponse  # noqa
+from .client_reqrep import ClientResponse
+from .client_ws import ClientWebSocketResponse
 from .helpers import sentinel
 from .http import HttpVersion, RawRequestMessage
 from .signals import Signal
@@ -57,12 +49,20 @@ else:
     SSLContext = None
 
 
+REUSE_ADDRESS = os.name == "posix" and sys.platform != "cygwin"
+
+
 def get_unused_port_socket(host: str) -> socket.socket:
     return get_port_socket(host, 0)
 
 
 def get_port_socket(host: str, port: int) -> socket.socket:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if REUSE_ADDRESS:
+        # Windows has different semantics for SO_REUSEADDR,
+        # so don't set it. Ref:
+        # https://docs.microsoft.com/en-us/windows/win32/winsock/using-so-reuseaddr-and-so-exclusiveaddruse
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((host, port))
     return s
 
@@ -85,7 +85,7 @@ class BaseTestServer(ABC):
         host: str = "127.0.0.1",
         port: Optional[int] = None,
         skip_url_asserts: bool = False,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         self._loop = loop
         self.runner = None  # type: Optional[BaseRunner]
@@ -122,7 +122,7 @@ class BaseTestServer(ABC):
             else:
                 scheme = "http"
             self.scheme = scheme
-        self._root = URL("{}://{}:{}".format(self.scheme, self.host, self.port))
+        self._root = URL(f"{self.scheme}://{self.host}:{self.port}")
 
     @abstractmethod  # pragma: no cover
     async def _make_runner(self, **kwargs: Any) -> BaseRunner:
@@ -206,7 +206,7 @@ class TestServer(BaseTestServer):
         scheme: Union[str, object] = sentinel,
         host: str = "127.0.0.1",
         port: Optional[int] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         self.app = app
         super().__init__(scheme=scheme, host=host, port=port, **kwargs)
@@ -223,7 +223,7 @@ class RawTestServer(BaseTestServer):
         scheme: Union[str, object] = sentinel,
         host: str = "127.0.0.1",
         port: Optional[int] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         self._handler = handler
         super().__init__(scheme=scheme, host=host, port=port, **kwargs)
@@ -249,7 +249,7 @@ class TestClient:
         *,
         cookie_jar: Optional[AbstractCookieJar] = None,
         loop: Optional[asyncio.AbstractEventLoop] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         if not isinstance(server, BaseTestServer):
             raise TypeError(
@@ -514,7 +514,7 @@ def setup_test_loop(
     asyncio.set_event_loop(loop)
     if sys.platform != "win32" and not skip_watcher:
         policy = asyncio.get_event_loop_policy()
-        watcher = asyncio.SafeChildWatcher()  # type: ignore
+        watcher = asyncio.SafeChildWatcher()
         watcher.attach_loop(loop)
         with contextlib.suppress(NotImplementedError):
             policy.set_child_watcher(watcher)
@@ -584,8 +584,8 @@ def make_mocked_request(
     payload: Any = sentinel,
     sslcontext: Optional[SSLContext] = None,
     client_max_size: int = 1024 ** 2,
-    loop: Any = ...
-) -> Any:
+    loop: Any = ...,
+) -> Request:
     """Creates mocked web.Request testing purposes.
 
     Useful in unit tests, when spinning full web server is overkill or

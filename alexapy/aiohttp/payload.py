@@ -33,7 +33,7 @@ from .helpers import (
     parse_mimetype,
     sentinel,
 )
-from .streams import DEFAULT_LIMIT, StreamReader
+from .streams import StreamReader
 from .typedefs import JSONEncoder, _CIMultiDict
 
 __all__ = (
@@ -56,7 +56,7 @@ TOO_LARGE_BYTES_BODY = 2 ** 20  # 1 MB
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import List  # noqa
+    from typing import List
 
 
 class LookupError(Exception):
@@ -121,7 +121,7 @@ class PayloadRegistry:
         elif order is Order.try_last:
             self._last.append((factory, type))
         else:
-            raise ValueError("Unsupported order {!r}".format(order))
+            raise ValueError(f"Unsupported order {order!r}")
 
 
 class Payload(ABC):
@@ -138,7 +138,7 @@ class Payload(ABC):
         content_type: Optional[str] = sentinel,
         filename: Optional[str] = None,
         encoding: Optional[str] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         self._encoding = encoding
         self._filename = filename
@@ -217,7 +217,10 @@ class BytesPayload(Payload):
 
         super().__init__(value, *args, **kwargs)
 
-        self._size = len(value)
+        if isinstance(value, memoryview):
+            self._size = value.nbytes
+        else:
+            self._size = len(value)
 
         if self._size > TOO_LARGE_BYTES_BODY:
             if PY_36:
@@ -243,7 +246,7 @@ class StringPayload(BytesPayload):
         *args: Any,
         encoding: Optional[str] = None,
         content_type: Optional[str] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
 
         if encoding is None:
@@ -288,12 +291,10 @@ class IOBasePayload(Payload):
     async def write(self, writer: AbstractStreamWriter) -> None:
         loop = asyncio.get_event_loop()
         try:
-            chunk = await loop.run_in_executor(None, self._value.read, DEFAULT_LIMIT)
+            chunk = await loop.run_in_executor(None, self._value.read, 2 ** 16)
             while chunk:
                 await writer.write(chunk)
-                chunk = await loop.run_in_executor(
-                    None, self._value.read, DEFAULT_LIMIT
-                )
+                chunk = await loop.run_in_executor(None, self._value.read, 2 ** 16)
         finally:
             await loop.run_in_executor(None, self._value.close)
 
@@ -305,7 +306,7 @@ class TextIOPayload(IOBasePayload):
         *args: Any,
         encoding: Optional[str] = None,
         content_type: Optional[str] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
 
         if encoding is None:
@@ -320,7 +321,11 @@ class TextIOPayload(IOBasePayload):
                 content_type = "text/plain; charset=%s" % encoding
 
         super().__init__(
-            value, content_type=content_type, encoding=encoding, *args, **kwargs,
+            value,
+            content_type=content_type,
+            encoding=encoding,
+            *args,
+            **kwargs,
         )
 
     @property
@@ -333,12 +338,10 @@ class TextIOPayload(IOBasePayload):
     async def write(self, writer: AbstractStreamWriter) -> None:
         loop = asyncio.get_event_loop()
         try:
-            chunk = await loop.run_in_executor(None, self._value.read, DEFAULT_LIMIT)
+            chunk = await loop.run_in_executor(None, self._value.read, 2 ** 16)
             while chunk:
                 await writer.write(chunk.encode(self._encoding))
-                chunk = await loop.run_in_executor(
-                    None, self._value.read, DEFAULT_LIMIT
-                )
+                chunk = await loop.run_in_executor(None, self._value.read, 2 ** 16)
         finally:
             await loop.run_in_executor(None, self._value.close)
 
@@ -371,7 +374,7 @@ class JsonPayload(BytesPayload):
         content_type: str = "application/json",
         dumps: JSONEncoder = json.dumps,
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
 
         super().__init__(
@@ -384,7 +387,7 @@ class JsonPayload(BytesPayload):
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import AsyncIterator, AsyncIterable
+    from typing import AsyncIterable, AsyncIterator
 
     _AsyncIterator = AsyncIterator[bytes]
     _AsyncIterable = AsyncIterable[bytes]
