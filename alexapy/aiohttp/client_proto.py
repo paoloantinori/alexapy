@@ -66,7 +66,7 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
             self._drop_timeout()
 
     def is_connected(self) -> bool:
-        return self.transport is not None
+        return self.transport is not None and not self.transport.is_closing()
 
     def connection_lost(self, exc: Optional[BaseException]) -> None:
         self._drop_timeout()
@@ -137,11 +137,12 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
     def set_response_params(
         self,
         *,
-        timer: BaseTimerContext = None,
+        timer: Optional[BaseTimerContext] = None,
         skip_payload: bool = False,
         read_until_eof: bool = False,
         auto_decompress: bool = True,
-        read_timeout: Optional[float] = None
+        read_timeout: Optional[float] = None,
+        read_bufsize: int = 2 ** 16
     ) -> None:
         self._skip_payload = skip_payload
 
@@ -151,8 +152,10 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
         self._parser = HttpResponseParser(
             self,
             self._loop,
+            read_bufsize,
             timer=timer,
             payload_exception=ClientPayloadError,
+            response_with_body=not skip_payload,
             read_until_eof=read_until_eof,
             auto_decompress=auto_decompress,
         )
@@ -228,7 +231,7 @@ class ResponseHandler(BaseProtocol, DataQueue[Tuple[RawResponseMessage, StreamRe
                     self._payload = payload
 
                     if self._skip_payload or message.code in (204, 304):
-                        self.feed_data((message, EMPTY_PAYLOAD), 0)  # type: ignore  # noqa
+                        self.feed_data((message, EMPTY_PAYLOAD), 0)  # type: ignore
                     else:
                         self.feed_data((message, payload), 0)
                 if payload is not None:

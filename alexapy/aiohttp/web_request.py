@@ -10,7 +10,7 @@ import warnings
 from email.utils import parsedate
 from http.cookies import SimpleCookie
 from types import MappingProxyType
-from typing import (  # noqa
+from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
@@ -32,6 +32,7 @@ from . import hdrs
 from .abc import AbstractStreamWriter
 from .helpers import DEBUG, ChainMapProxy, HeadersMixin, reify, sentinel
 from .http_parser import RawRequestMessage
+from .http_writer import HttpVersion
 from .multipart import BodyPartReader, MultipartReader
 from .streams import EmptyStreamReader, StreamReader
 from .typedefs import (
@@ -48,24 +49,24 @@ __all__ = ("BaseRequest", "FileField", "Request")
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .web_app import Application  # noqa
-    from .web_urldispatcher import UrlMappingMatchInfo  # noqa
-    from .web_protocol import RequestHandler  # noqa
+    from .web_app import Application
+    from .web_protocol import RequestHandler
+    from .web_urldispatcher import UrlMappingMatchInfo
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class FileField:
-    name = attr.ib(type=str)
-    filename = attr.ib(type=str)
-    file = attr.ib(type=io.BufferedReader)
-    content_type = attr.ib(type=str)
-    headers = attr.ib(type=CIMultiDictProxy)  # type: CIMultiDictProxy[str]
+    name: str
+    filename: str
+    file: io.BufferedReader
+    content_type: str
+    headers: "CIMultiDictProxy[str]"
 
 
 _TCHAR = string.digits + string.ascii_letters + r"!#$%&'*+.^_`|~-"
 # '-' at the end to prevent interpretation as range in a char class
 
-_TOKEN = r"[{tchar}]+".format(tchar=_TCHAR)
+_TOKEN = fr"[{_TCHAR}]+"
 
 _QDTEXT = r"[{}]".format(
     r"".join(chr(c) for c in (0x09, 0x20, 0x21) + tuple(range(0x23, 0x7F)))
@@ -138,7 +139,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         state: Optional[Dict[str, Any]] = None,
         scheme: Optional[str] = None,
         host: Optional[str] = None,
-        remote: Optional[str] = None
+        remote: Optional[str] = None,
     ) -> None:
         if state is None:
             state = {}
@@ -153,7 +154,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         self._rel_url = message.url
         self._post = (
             None
-        )  # type: Optional[MultiDictProxy[Union[str, bytes, FileField]]]  # noqa
+        )  # type: Optional[MultiDictProxy[Union[str, bytes, FileField]]]
         self._read_bytes = None  # type: Optional[bytes]
 
         self._state = state
@@ -182,7 +183,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         headers: LooseHeaders = sentinel,
         scheme: str = sentinel,
         host: str = sentinel,
-        remote: str = sentinel
+        remote: str = sentinel,
     ) -> "BaseRequest":
         """Clone itself with replacement some attributes.
 
@@ -228,7 +229,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
             self._loop,
             client_max_size=self._client_max_size,
             state=self._state.copy(),
-            **kwargs
+            **kwargs,
         )
 
     @property
@@ -375,7 +376,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         return self._method
 
     @reify
-    def version(self) -> Tuple[int, int]:
+    def version(self) -> HttpVersion:
         """Read only property for getting HTTP version of request.
 
         Returns aiohttp.protocol.HttpVersion instance.
@@ -435,7 +436,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
 
     @reify
     def raw_path(self) -> str:
-        """ The URL including raw *PATH INFO* without the host or scheme.
+        """The URL including raw *PATH INFO* without the host or scheme.
         Warning, the path is unquoted and may contains non valid URL characters
 
         E.g., ``/my%2Fpath%7Cwith%21some%25strange%24characters``
@@ -466,9 +467,8 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         return self._message.raw_headers
 
     @staticmethod
-    def _http_date(_date_str: str) -> Optional[datetime.datetime]:
-        """Process a date string, return a datetime object
-        """
+    def _http_date(_date_str: Optional[str]) -> Optional[datetime.datetime]:
+        """Process a date string, return a datetime object"""
         if _date_str is not None:
             timetuple = parsedate(_date_str)
             if timetuple is not None:
@@ -511,7 +511,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         A read-only dictionary-like object.
         """
         raw = self.headers.get(hdrs.COOKIE, "")
-        parsed = SimpleCookie(raw)
+        parsed = SimpleCookie(raw)  # type: SimpleCookie[str]
         return MappingProxyType({key: val.value for key, val in parsed.items()})
 
     @reify
@@ -646,7 +646,13 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
                 field_ct = field.headers.get(hdrs.CONTENT_TYPE)
 
                 if isinstance(field, BodyPartReader):
-                    if field.filename and field_ct:
+                    assert field.name is not None
+
+                    # Note that according to RFC 7578, the Content-Type header
+                    # is optional, even for files, so we can't assume it's
+                    # present.
+                    # https://tools.ietf.org/html/rfc7578#section-4.4
+                    if field.filename:
                         # store file in temp file
                         tmp = tempfile.TemporaryFile()
                         chunk = await field.read_chunk(size=2 ** 16)
@@ -660,6 +666,9 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
                                 )
                             chunk = await field.read_chunk(size=2 ** 16)
                         tmp.seek(0)
+
+                        if field_ct is None:
+                            field_ct = "application/octet-stream"
 
                         ff = FileField(
                             field.name,
@@ -703,6 +712,18 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
         self._post = MultiDictProxy(out)
         return self._post
 
+    def get_extra_info(self, name: str, default: Any = None) -> Any:
+        """Extra info from protocol transport"""
+        protocol = self._protocol
+        if protocol is None:
+            return default
+
+        transport = protocol.transport
+        if transport is None:
+            return default
+
+        return transport.get_extra_info(name, default)
+
     def __repr__(self) -> str:
         ascii_encodable_path = self.path.encode("ascii", "backslashreplace").decode(
             "ascii"
@@ -719,6 +740,9 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
 
     async def _prepare_hook(self, response: StreamResponse) -> None:
         return
+
+    def _cancel(self, exc: BaseException) -> None:
+        self._payload.set_exception(exc)
 
 
 class Request(BaseRequest):
@@ -754,7 +778,7 @@ class Request(BaseRequest):
         headers: LooseHeaders = sentinel,
         scheme: str = sentinel,
         host: str = sentinel,
-        remote: str = sentinel
+        remote: str = sentinel,
     ) -> "Request":
         ret = super().clone(
             method=method,

@@ -1,17 +1,16 @@
 import asyncio
 import collections
 import warnings
-from typing import List  # noqa
-from typing import Awaitable, Callable, Generic, Optional, Tuple, TypeVar
+from typing import Awaitable, Callable, Generic, List, Optional, Tuple, TypeVar
 
 from .base_protocol import BaseProtocol
 from .helpers import BaseTimerContext, set_exception, set_result
 from .log import internal_logger
 
 try:  # pragma: no cover
-    from typing import Deque  # noqa
+    from typing import Deque
 except ImportError:
-    from typing_extensions import Deque  # noqa
+    from typing_extensions import Deque
 
 __all__ = (
     "EMPTY_PAYLOAD",
@@ -20,8 +19,6 @@ __all__ = (
     "DataQueue",
     "FlowControlDataQueue",
 )
-
-DEFAULT_LIMIT = 2 ** 16
 
 _T = TypeVar("_T")
 
@@ -41,9 +38,9 @@ class AsyncStreamIterator(Generic[_T]):
         try:
             rv = await self.read_func()
         except EofStream:
-            raise StopAsyncIteration  # NOQA
+            raise StopAsyncIteration
         if rv == b"":
-            raise StopAsyncIteration  # NOQA
+            raise StopAsyncIteration
         return rv
 
 
@@ -57,7 +54,7 @@ class ChunkTupleAsyncStreamIterator:
     async def __anext__(self) -> Tuple[bytes, bool]:
         rv = await self._stream.readchunk()
         if rv == (b"", False):
-            raise StopAsyncIteration  # NOQA
+            raise StopAsyncIteration
         return rv
 
 
@@ -109,8 +106,8 @@ class StreamReader(AsyncStreamReaderMixin):
     def __init__(
         self,
         protocol: BaseProtocol,
+        limit: int,
         *,
-        limit: int = DEFAULT_LIMIT,
         timer: Optional[BaseTimerContext] = None,
         loop: Optional[asyncio.AbstractEventLoop] = None
     ) -> None:
@@ -138,13 +135,16 @@ class StreamReader(AsyncStreamReaderMixin):
             info.append("%d bytes" % self._size)
         if self._eof:
             info.append("eof")
-        if self._low_water != DEFAULT_LIMIT:
+        if self._low_water != 2 ** 16:  # default limit
             info.append("low=%d high=%d" % (self._low_water, self._high_water))
         if self._waiter:
             info.append("w=%r" % self._waiter)
         if self._exception:
             info.append("e=%r" % self._exception)
         return "<%s>" % " ".join(info)
+
+    def get_read_buffer_limits(self) -> Tuple[int, int]:
+        return (self._low_water, self._high_water)
 
     def exception(self) -> Optional[BaseException]:
         return self._exception
@@ -213,8 +213,7 @@ class StreamReader(AsyncStreamReaderMixin):
             self._eof_waiter = None
 
     def unread_data(self, data: bytes) -> None:
-        """ rollback reading some data from stream, inserting it to buffer head.
-        """
+        """rollback reading some data from stream, inserting it to buffer head."""
         warnings.warn(
             "unread_data() is deprecated "
             "and will be removed in future releases (#3260)",
@@ -484,7 +483,7 @@ class StreamReader(AsyncStreamReaderMixin):
         return data
 
     def _read_nowait(self, n: int) -> bytes:
-        """ Read not more than n bytes, or whole buffer is n == -1 """
+        """ Read not more than n bytes, or whole buffer if n == -1 """
         chunks = []
 
         while self._buffer:
@@ -627,11 +626,7 @@ class FlowControlDataQueue(DataQueue[_T]):
     It is a destination for parsed data."""
 
     def __init__(
-        self,
-        protocol: BaseProtocol,
-        *,
-        limit: int = DEFAULT_LIMIT,
-        loop: asyncio.AbstractEventLoop
+        self, protocol: BaseProtocol, limit: int, *, loop: asyncio.AbstractEventLoop
     ) -> None:
         super().__init__(loop=loop)
 
