@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v1.24.1 (2021-02-15)
+### Fix
+* Populate more metadata for package ([`d6f3cc6`](https://gitlab.com/keatontaylor/alexapy/-/commit/d6f3cc68b0b82828078dc1dc223be340b9c274f4))
+
+### Documentation
+* Add readthedocs link ([`2a0978d`](https://gitlab.com/keatontaylor/alexapy/-/commit/2a0978d638b777ba1a98836a29299e122f1b8136))
+* Add sphinx document generation ([`8935a3b`](https://gitlab.com/keatontaylor/alexapy/-/commit/8935a3b8d53c11138fa58f0c747ace6f9adff542))
+* Update badges ([`1485f72`](https://gitlab.com/keatontaylor/alexapy/-/commit/1485f72e456a53ef41705cfd561fa16f9252f964))
+* Add download badges ([`02fdd87`](https://gitlab.com/keatontaylor/alexapy/-/commit/02fdd87542a91396910532325b77b78b7712b266))
+* Add pypi download badge ([`283703f`](https://gitlab.com/keatontaylor/alexapy/-/commit/283703f11caa06d41fdf231c869a1979ad80eaa7))
+
 ## v1.24.0 (2021-02-08)
 ### Feature
 * Add change_login function ([`0e1147b`](https://gitlab.com/keatontaylor/alexapy/-/commit/0e1147bfaeaf2c8acfe76925c627603351b54c7d))
