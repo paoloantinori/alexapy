@@ -20,9 +20,10 @@ from .http import (
     WebSocketReader,
     WebSocketWriter,
     WSMessage,
+    WSMsgType as WSMsgType,
+    ws_ext_gen,
+    ws_ext_parse,
 )
-from .http import WSMsgType as WSMsgType
-from .http import ws_ext_gen, ws_ext_parse
 from .log import ws_logger
 from .streams import EofStream, FlowControlDataQueue
 from .typedefs import JSONDecoder, JSONEncoder
@@ -39,10 +40,10 @@ __all__ = (
 THRESHOLD_CONNLOST_ACCESS = 5
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class WebSocketReady:
-    ok = attr.ib(type=bool)
-    protocol = attr.ib(type=Optional[str])
+    ok: bool
+    protocol: Optional[str]
 
     def __bool__(self) -> bool:
         return self.ok
@@ -62,7 +63,7 @@ class WebSocketResponse(StreamResponse):
         heartbeat: Optional[float] = None,
         protocols: Iterable[str] = (),
         compress: bool = True,
-        max_msg_size: int = 4 * 1024 * 1024
+        max_msg_size: int = 4 * 1024 * 1024,
     ) -> None:
         super().__init__(status=101)
         self._protocols = protocols
@@ -179,22 +180,22 @@ class WebSocketResponse(StreamResponse):
         # check supported version
         version = headers.get(hdrs.SEC_WEBSOCKET_VERSION, "")
         if version not in ("13", "8", "7"):
-            raise HTTPBadRequest(text="Unsupported version: {}".format(version))
+            raise HTTPBadRequest(text=f"Unsupported version: {version}")
 
         # check client handshake for validity
         key = headers.get(hdrs.SEC_WEBSOCKET_KEY)
         try:
             if not key or len(base64.b64decode(key)) != 16:
-                raise HTTPBadRequest(text="Handshake error: {!r}".format(key))
+                raise HTTPBadRequest(text=f"Handshake error: {key!r}")
         except binascii.Error:
-            raise HTTPBadRequest(text="Handshake error: {!r}".format(key)) from None
+            raise HTTPBadRequest(text=f"Handshake error: {key!r}") from None
 
         accept_val = base64.b64encode(
             hashlib.sha1(key.encode() + WS_KEY).digest()
         ).decode()
         response_headers = CIMultiDict(  # type: ignore
             {
-                hdrs.UPGRADE: "websocket",
+                hdrs.UPGRADE: "websocket",  # type: ignore
                 hdrs.CONNECTION: "upgrade",
                 hdrs.SEC_WEBSOCKET_ACCEPT: accept_val,
             }
@@ -215,19 +216,12 @@ class WebSocketResponse(StreamResponse):
 
         if protocol:
             response_headers[hdrs.SEC_WEBSOCKET_PROTOCOL] = protocol
-        return (
-            response_headers,  # type: ignore
-            protocol,
-            compress,
-            notakeover,
-        )
+        return (response_headers, protocol, compress, notakeover)  # type: ignore
 
     def _pre_start(self, request: BaseRequest) -> Tuple[str, WebSocketWriter]:
         self._loop = request._loop
 
         headers, protocol, compress, notakeover = self._handshake(request)
-
-        self._reset_heartbeat()
 
         self.set_status(101)
         self.headers.update(headers)
@@ -246,9 +240,12 @@ class WebSocketResponse(StreamResponse):
     ) -> None:
         self._ws_protocol = protocol
         self._writer = writer
+
+        self._reset_heartbeat()
+
         loop = self._loop
         assert loop is not None
-        self._reader = FlowControlDataQueue(request._protocol, limit=2 ** 16, loop=loop)
+        self._reader = FlowControlDataQueue(request._protocol, 2 ** 16, loop=loop)
         request.protocol.set_parser(
             WebSocketReader(self._reader, self._max_msg_size, compress=self._compress)
         )
@@ -314,7 +311,7 @@ class WebSocketResponse(StreamResponse):
         data: Any,
         compress: Optional[bool] = None,
         *,
-        dumps: JSONEncoder = json.dumps
+        dumps: JSONEncoder = json.dumps,
     ) -> None:
         await self.send_str(dumps(data), compress=compress)
 
@@ -458,9 +455,7 @@ class WebSocketResponse(StreamResponse):
     async def receive_bytes(self, *, timeout: Optional[float] = None) -> bytes:
         msg = await self.receive(timeout)
         if msg.type != WSMsgType.BINARY:
-            raise TypeError(
-                "Received message {}:{!r} is not bytes".format(msg.type, msg.data)
-            )
+            raise TypeError(f"Received message {msg.type}:{msg.data!r} is not bytes")
         return msg.data
 
     async def receive_json(
@@ -478,5 +473,9 @@ class WebSocketResponse(StreamResponse):
     async def __anext__(self) -> WSMessage:
         msg = await self.receive()
         if msg.type in (WSMsgType.CLOSE, WSMsgType.CLOSING, WSMsgType.CLOSED):
-            raise StopAsyncIteration  # NOQA
+            raise StopAsyncIteration
         return msg
+
+    def _cancel(self, exc: BaseException) -> None:
+        if self._reader is not None:
+            self._reader.set_exception(exc)

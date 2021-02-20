@@ -1,8 +1,8 @@
 #  SPDX-License-Identifier: Apache-2.0
 [tool.poetry]
 name = "AlexaPy"
-version = "1.24.1"
-description = "Python API to control Amazon Echo Devices Programatically."
+version = "1.24.0"
+description = "Python API to control Amazon Echo Devices Programmatically."
 authors = ["Keaton Taylor <keatonstaylor@gmail.com>", "Alan Tse <alandtse@gmail.com"]
 license = "Apache-2.0"
 readme = 'README.md'
@@ -22,7 +22,7 @@ requests = "*"
 certifi = "*"
 backoff = "^1.10.0"
 pyotp = "^2.4.1"
-authcaptureproxy = "^0.4.1"
+authcaptureproxy = "^0.4.2"
 
 [tool.poetry.dev-dependencies]
 aresponses = "*"

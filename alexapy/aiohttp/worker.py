@@ -20,7 +20,7 @@ from .web_log import AccessLogger
 try:
     import ssl
 
-    SSLContext = ssl.SSLContext  # noqa
+    SSLContext = ssl.SSLContext
 except ImportError:  # pragma: no cover
     ssl = None  # type: ignore
     SSLContext = object  # type: ignore
@@ -129,7 +129,9 @@ class GunicornWebWorker(base.Worker):
 
         return waiter
 
-    def _notify_waiter_done(self, waiter: "asyncio.Future[bool]" = None) -> None:
+    def _notify_waiter_done(
+        self, waiter: Optional["asyncio.Future[bool]"] = None
+    ) -> None:
         if waiter is None:
             waiter = self._notify_waiter
         if waiter is not None:
@@ -187,7 +189,7 @@ class GunicornWebWorker(base.Worker):
 
     @staticmethod
     def _create_ssl_context(cfg: Any) -> "SSLContext":
-        """ Creates SSLContext instance for usage in asyncio.create_server.
+        """Creates SSLContext instance for usage in asyncio.create_server.
 
         See ssl.SSLSocket.__init__ for more details.
         """
