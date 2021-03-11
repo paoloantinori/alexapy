@@ -1235,22 +1235,21 @@ class AlexaAPI:
     async def get_last_device_serial(
         login: AlexaLogin, items: int = 10
     ) -> Optional[Dict[Text, Any]]:
-        """Identify the last device's serial number.
+        """Identify the last device's serial number and last summary.
 
-        This will store the [last items] activity records and find the latest
+        This will search the [last items] activity records and find the latest
         entry where Echo successfully responded.
         """
         response = await AlexaAPI.get_activities(login, items)
         if response is not None:
             for last_activity in response:
                 # Ignore discarded activity records
-                # Ignore empty summary
-                if last_activity[
-                    "activityStatus"
-                ] != "DISCARDED_NON_DEVICE_DIRECTED_INTENT" and json.loads(
-                    last_activity["description"]
-                ).get(
-                    "summary"
+                # Ignore empty description and summary
+                if (
+                    last_activity["activityStatus"]
+                    != "DISCARDED_NON_DEVICE_DIRECTED_INTENT"
+                    and last_activity["description"]
+                    and json.loads(last_activity["description"]).get("summary")
                 ):
                     return {
                         "serialNumber": (
@@ -1261,6 +1260,25 @@ class AlexaAPI:
                             "summary", ""
                         ),
                     }
+                if (
+                    last_activity["activityStatus"]
+                    != "DISCARDED_NON_DEVICE_DIRECTED_INTENT"
+                    and last_activity["domainAttributes"]
+                    and json.loads(last_activity["domainAttributes"]).get("nBestList")
+                ):
+                    domain_attributes = json.loads(
+                        last_activity["domainAttributes"]
+                    ).get("nBestList", [])[0]
+                    if domain_attributes.get("entryType") and domain_attributes.get(
+                        "bookTitle"
+                    ):
+                        return {
+                            "serialNumber": (
+                                last_activity["sourceDeviceIds"][0]["serialNumber"]
+                            ),
+                            "timestamp": last_activity["creationTimestamp"],
+                            "summary": f'{domain_attributes.get("entryType")} {domain_attributes.get("bookTitle")}',
+                        }
         return None
 
     @_catch_all_exceptions
