@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.24.3 (2021-03-11)
+### Fix
+* Get summary for audio books ([`f26540e`](https://gitlab.com/keatontaylor/alexapy/-/commit/f26540ec8467c53ec0333c2c9f7dfb614570453d))
+
 ## v1.24.2 (2021-02-20)
 ### Fix
 * Correct version number ([`cdd3d94`](https://gitlab.com/keatontaylor/alexapy/-/commit/cdd3d9409bdbace26016ece7645358224759c76d))
