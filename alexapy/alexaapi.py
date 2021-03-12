@@ -9,6 +9,7 @@ https://gitlab.com/keatontaylor/alexapy
 """
 import asyncio
 import json
+from json.decoder import JSONDecodeError
 import logging
 import math
 import time
@@ -1245,30 +1246,39 @@ class AlexaAPI:
             for last_activity in response:
                 # Ignore discarded activity records
                 # Ignore empty description and summary
+                summary = ""
                 if (
                     last_activity["activityStatus"]
                     != "DISCARDED_NON_DEVICE_DIRECTED_INTENT"
                     and last_activity["description"]
-                    and json.loads(last_activity["description"]).get("summary")
                 ):
+                    try:
+                        summary = json.loads(last_activity["description"]).get(
+                            "summary", ""
+                        )
+                    except JSONDecodeError:
+                        pass
                     return {
                         "serialNumber": (
                             last_activity["sourceDeviceIds"][0]["serialNumber"]
                         ),
                         "timestamp": last_activity["creationTimestamp"],
-                        "summary": json.loads(last_activity["description"]).get(
-                            "summary", ""
-                        ),
+                        "summary": summary,
                     }
                 if (
                     last_activity["activityStatus"]
                     != "DISCARDED_NON_DEVICE_DIRECTED_INTENT"
                     and last_activity["domainAttributes"]
-                    and json.loads(last_activity["domainAttributes"]).get("nBestList")
                 ):
-                    domain_attributes = json.loads(
-                        last_activity["domainAttributes"]
-                    ).get("nBestList", [])[0]
+                    try:
+                        domain_attributes = json.loads(
+                            last_activity["domainAttributes"]
+                        ).get("nBestList", "")
+                        domain_attributes = domain_attributes[0]
+                        if isinstance(domain_attributes, dict):
+                            summary = f'{domain_attributes.get("entryType")} {domain_attributes.get("bookTitle")}'
+                    except (JSONDecodeError, TypeError):
+                        pass
                     if domain_attributes.get("entryType") and domain_attributes.get(
                         "bookTitle"
                     ):
@@ -1277,7 +1287,7 @@ class AlexaAPI:
                                 last_activity["sourceDeviceIds"][0]["serialNumber"]
                             ),
                             "timestamp": last_activity["creationTimestamp"],
-                            "summary": f'{domain_attributes.get("entryType")} {domain_attributes.get("bookTitle")}',
+                            "summary": summary,
                         }
         return None
 
