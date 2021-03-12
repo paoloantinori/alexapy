@@ -1017,7 +1017,12 @@ class AlexaLogin:
             if self._debug:
                 _LOGGER.debug("Unable to check for domain; proceeding:\n%s", response)
             return True
-        response = await response.json()
+        try:
+            response = await response.json(content_type=None)
+        except JSONDecodeError:
+            if self._debug:
+                _LOGGER.debug("Unable to check for domain; proceeding:\n%s", response)
+            return True
         domain = response.get("marketPlaceDomainName")
         if self.url not in domain:
             _LOGGER.warning(
