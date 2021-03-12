@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.24.4 (2021-03-12)
+### Fix
+* Catch json decode errors ([`dbee4aa`](https://gitlab.com/keatontaylor/alexapy/-/commit/dbee4aa63256fd2e66078ad650d335734902d37c))
+
 ## v1.24.3 (2021-03-11)
 ### Fix
 * Get summary for audio books ([`f26540e`](https://gitlab.com/keatontaylor/alexapy/-/commit/f26540ec8467c53ec0333c2c9f7dfb614570453d))
