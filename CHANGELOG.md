@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.24.5 (2021-03-16)
+### Fix
+* Bump authcaptureproxy to 0.7.0 ([`3c8839f`](https://gitlab.com/keatontaylor/alexapy/-/commit/3c8839fff00e246df6fab7fbea06902a7e3b9211))
+
 ## v1.24.4 (2021-03-12)
 ### Fix
 * Catch json decode errors ([`dbee4aa`](https://gitlab.com/keatontaylor/alexapy/-/commit/dbee4aa63256fd2e66078ad650d335734902d37c))
