@@ -1334,13 +1334,45 @@ class AlexaAPI:
         Returns json
 
         """
-        data = {"stateRequests": [{"entityId": entity_id, "entityType": "APPLIANCE"}]}
+        return await AlexaAPI.get_entity_state(login, appliance_ids=[entity_id])
+
+    @staticmethod
+    @_catch_all_exceptions
+    async def get_entity_state(
+        login: AlexaLogin,
+        entity_ids: Optional[List[Text]] = None,
+        appliance_ids: Optional[List[Text]] = None,
+    ) -> Optional[Dict[Text, Any]]:
+        """Get the current state of multiple appliances.
+
+        Note that this can take both entity_ids and appliance_ids.
+        If you have both pieces of data available, prefer the entity id. A single entity might have multiple
+        appliance ids. Its easier to ensure you don't miss data by just providing entity id instead.
+
+        Args:
+        login (AlexaLogin): Successfully logged in AlexaLogin
+        entity_ids (List[Text]): The list of entities you want information about.
+        appliance_ids: (List[Text]): The list of appliances you want information about.
+
+        Returns json
+
+        """
+        state_requests = []
+        if entity_ids is not None:
+            for entity_id in entity_ids:
+                state_requests.append({"entityId": entity_id, "entityType": "ENTITY"})
+        if appliance_ids is not None:
+            for appliance_id in appliance_ids:
+                state_requests.append(
+                    {"entityId": appliance_id, "entityType": "APPLIANCE"}
+                )
+        data = {"stateRequests": state_requests}
         response = await AlexaAPI._static_request(
             "post", login, "/api/phoenix/state", data=data
         )
         result = await response.json(content_type=None) if response else None
         _LOGGER.debug(
-            "%s: get_guard_state response: %s", hide_email(login.email), result
+            "%s: get_entity_state response: %s", hide_email(login.email), result
         )
         return result
 
@@ -1382,6 +1414,83 @@ class AlexaAPI:
 
     @staticmethod
     @_catch_all_exceptions
+    async def set_light_state(
+        login: AlexaLogin,
+        entity_id: Text,
+        power_on: bool = True,
+        brightness: Optional[int] = None,
+        color_name: Optional[Text] = None,
+        color_temperature_name: Optional[Text] = None,
+    ) -> Optional[Dict[Text, Any]]:
+        """Set state of a light.
+
+        Args:
+        login (AlexaLogin): Successfully logged in AlexaLogin
+        entity_id (Text): Entity ID of The light. Not the Application ID.
+        power_on (bool): Should the light be on or off.
+        brightness (Optional[int]): 0-100 or None to leave as is
+        color_name (Optional[Text]): The name of a color that Alexa supports in snake case.
+        color_temperature_name (Optional[Text]): The name of a color temperature name that Alexa supports in snake case.
+
+        Returns json
+
+        """
+        control_requests = [
+            {
+                "entityId": entity_id,
+                "entityType": "ENTITY",
+                "parameters": {"action": "turnOn" if power_on else "turnOff"},
+            }
+        ]
+
+        if brightness is not None and 0 <= brightness <= 100:
+            control_requests.append(
+                {
+                    "entityId": entity_id,
+                    "entityType": "ENTITY",
+                    "parameters": {
+                        "action": "setBrightness",
+                        "brightness": str(brightness),
+                    },
+                }
+            )
+
+        if color_name is not None:
+            control_requests.append(
+                {
+                    "entityId": entity_id,
+                    "entityType": "ENTITY",
+                    "parameters": {"action": "setColor", "colorName": color_name},
+                }
+            )
+
+        if color_temperature_name is not None:
+            control_requests.append(
+                {
+                    "entityId": entity_id,
+                    "entityType": "ENTITY",
+                    "parameters": {
+                        "action": "setColorTemperature",
+                        "colorTemperatureName": color_temperature_name,
+                    },
+                }
+            )
+
+        data = {"controlRequests": control_requests}
+
+        response = await AlexaAPI._static_request(
+            "put", login, "/api/phoenix/state", data=data
+        )
+        _LOGGER.debug(
+            "%s: set_light_state response: %s for data: %s ",
+            hide_email(login.email),
+            await response.json(content_type=None) if response else None,
+            json.dumps(data),
+        )
+        return await response.json(content_type=None) if response else None
+
+    @staticmethod
+    @_catch_all_exceptions
     async def get_guard_details(login: AlexaLogin) -> Optional[Dict[Text, Any]]:
         """Get Alexa Guard details.
 
@@ -1399,6 +1508,24 @@ class AlexaAPI:
             if response
             else None
         )
+
+    @staticmethod
+    @_catch_all_exceptions
+    async def get_network_details(login: AlexaLogin) -> Optional[Dict[Text, Any]]:
+        """Get the network of devices that Alexa is aware of. This is the same as calling get_guard_details().
+
+        Args:
+        login: (AlexaLogin): Successfully logged in AlexaLogin
+
+        Returns json
+        """
+        network_detail = await AlexaAPI.get_guard_details(login)
+        _LOGGER.debug(
+            "%s: get_network_details response: %s",
+            hide_email(login.email),
+            network_detail,
+        )
+        return network_detail
 
     @staticmethod
     @_catch_all_exceptions
