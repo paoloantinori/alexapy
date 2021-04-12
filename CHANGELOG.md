@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.25.0 (2021-04-12)
+### Feature
+* Add methods for device discovery and light control ([`a43f4b3`](https://gitlab.com/keatontaylor/alexapy/-/commit/a43f4b3a0aea8fd062c5908a747deda6f8cdab57))
+
 ## v1.24.5 (2021-03-16)
 ### Fix
 * Bump authcaptureproxy to 0.7.0 ([`3c8839f`](https://gitlab.com/keatontaylor/alexapy/-/commit/3c8839fff00e246df6fab7fbea06902a7e3b9211))
