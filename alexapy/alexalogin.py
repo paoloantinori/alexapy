@@ -239,6 +239,11 @@ class AlexaLogin:
                     "Error creating TOTP; %s likely invalid", hide_serial(otp_secret)
                 )
                 raise AlexapyPyotpInvalidKey(ex) from ex
+            except AttributeError:
+                self._totp = None
+                _LOGGER.warning(
+                    "Error creating TOTP; pyotp version likely outdated",
+                )
         else:
             self._totp = None
         return self._totp

@@ -53,7 +53,7 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
         """Test for Alexa success.
 
         Args
-            resp (ClientResponse): The aiohttp response.
+            resp (httpx.Response): The aiohttp response.
             data (Dict[Text, Any]): Dictionary of all post data captured through proxy with overwrites for duplicate keys.
             query (Dict[Text, Any]): Dictionary of all query data with overwrites for duplicate keys.
 
@@ -61,11 +61,11 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
             Optional[Union[URL, Text]]: URL for a http 302 redirect or Text to display on success. None indicates test did not pass.
 
         """
-        if resp.url.path in ["/ap/maplanding", "/spa/index.html"]:
-            self._login.session.cookie_jar.update_cookies(
-                self.session.cookie_jar.filter_cookies(self._host_url.with_path("/"))
+        if URL(str(resp.url)).path in ["/ap/maplanding", "/spa/index.html"]:
+            self._login.session.cookie_jar.update_cookies(self.session.cookies)
+            self._login.access_token = URL(str(resp.url)).query.get(
+                "openid.oa2.access_token"
             )
-            self._login.access_token = resp.url.query.get("openid.oa2.access_token")
             self._config_flow_id = self.init_query.get("config_flow_id")
             self._callback_url = self.init_query.get("callback_url")
             # Reset so proxy can be reused

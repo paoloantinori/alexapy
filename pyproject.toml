@@ -15,14 +15,14 @@ include = ["LICENSE"]
 python = "^3.6.1"
 bs4 = "*"
 aiohttp = "*"
-aiofiles = "^0.5.0"
+aiofiles = "^0"
 simplejson = "*"
 yarl = "*"
 requests = "*"
 certifi = "*"
-backoff = "^1.10.0"
+backoff = "^1.10"
 pyotp = "^2.4.1"
-authcaptureproxy = "0.*"
+authcaptureproxy = "^1"
 
 [tool.poetry.dev-dependencies]
 aresponses = "*"
