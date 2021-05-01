@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.25.1 (2021-05-01)
+### Fix
+* Handle pyotp missing TOTP attribute ([`2ac97bc`](https://gitlab.com/keatontaylor/alexapy/-/commit/2ac97bc13080b436d36b1559817c152c4b85164d))
+
 ## v1.25.0 (2021-04-12)
 ### Feature
 * Add methods for device discovery and light control ([`a43f4b3`](https://gitlab.com/keatontaylor/alexapy/-/commit/a43f4b3a0aea8fd062c5908a747deda6f8cdab57))
