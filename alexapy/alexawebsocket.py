@@ -326,7 +326,6 @@ class WebsocketEchoClient:
 
     async def async_on_open(self) -> None:
         """Handle Async WebSocket Open."""
-
         if not self.websocket.closed:
             await self.open_callback()
 
