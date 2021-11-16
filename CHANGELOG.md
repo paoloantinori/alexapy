@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.25.2 (2021-11-16)
+### Fix
+* Swap to protocol A:F for websocket ([`baf9f7d`](https://gitlab.com/keatontaylor/alexapy/-/commit/baf9f7dc4eb252e9bd460ba26d294a72f041d53a))
+
 ## v1.25.1 (2021-05-01)
 ### Fix
 * Handle pyotp missing TOTP attribute ([`2ac97bc`](https://gitlab.com/keatontaylor/alexapy/-/commit/2ac97bc13080b436d36b1559817c152c4b85164d))
