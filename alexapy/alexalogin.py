@@ -115,6 +115,7 @@ class AlexaLogin:
         self.set_totp(otp_secret.replace(" ", ""))
         self.access_token: Optional[Text] = oauth.get("access_token")
         self.refresh_token: Optional[Text] = oauth.get("refresh_token")
+        self.mac_dms: Optional[Text] = None
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
         self.uuid = uuid  # needed to be unique but repeateable for device registration
@@ -777,6 +778,7 @@ class AlexaLogin:
             self.refresh_token = response["success"]["tokens"]["bearer"][
                 "refresh_token"
             ]
+            self.mac_dms = response["success"]["tokens"]["mac_dms"]
             old = self.access_token
             self.access_token = response["success"]["tokens"]["bearer"]["access_token"]
             self.expires_in = datetime.datetime.now().timestamp() + int(
