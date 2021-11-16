@@ -102,12 +102,8 @@ class AlexaLogin:
             self._outputpath(f"{self._hass_domain}.{self.email}.pickle"),
             self._outputpath(f".storage/{self._hass_domain}.{self.email}.txt"),
         ]
-        self._debugpost: Text = outputpath(
-            "{}{}post.html".format(self._hass_domain, email)
-        )
-        self._debugget: Text = outputpath(
-            "{}{}get.html".format(self._hass_domain, email)
-        )
+        self._debugpost: Text = outputpath(f"{self._hass_domain}{email}post.html")
+        self._debugget: Text = outputpath(f"{self._hass_domain}{email}get.html")
         self._lastreq: Optional[aiohttp.ClientResponse] = None
         self._debug: bool = debug
         self._links: Optional[Dict[Text, Tuple[Text, Text]]] = {}
@@ -241,9 +237,7 @@ class AlexaLogin:
                 raise AlexapyPyotpInvalidKey(ex) from ex
             except AttributeError:
                 self._totp = None
-                _LOGGER.warning(
-                    "Error creating TOTP; pyotp version likely outdated",
-                )
+                _LOGGER.warning("Error creating TOTP; pyotp version likely outdated",)
         else:
             self._totp = None
         return self._totp
