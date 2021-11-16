@@ -14,7 +14,7 @@ clean:
 	rm -rf dist/ build/ .egg alexapy.egg-info/
 init: setup_env
 	poetry install
-lint: sync_deps flake8 docstyle pylint typing black
+lint: sync_deps black flake8 docstyle pylint typing
 flake8:
 	poetry run flake8 alexapy
 docstyle:

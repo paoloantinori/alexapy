@@ -28,10 +28,12 @@ good-names=id,i,j,k,ex,Run,_,fp
 # too-many-ancestors - it's too strict.
 # wrong-import-order - isort guards this
 # protected-access - Dependent on HA component class for now
+# consider-using-enumerate - unable to disable lines
 disable=
   format,
   abstract-class-little-used,
   abstract-method,
+  consider-using-enumerate,
   cyclic-import,
   duplicate-code,
   global-statement,
