@@ -14,7 +14,6 @@ include = ["LICENSE"]
 [tool.poetry.dependencies]
 python = "^3.6.1"
 bs4 = "*"
-aiohttp = "*"
 aiofiles = "^0"
 simplejson = "*"
 yarl = "*"
