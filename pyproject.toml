@@ -12,9 +12,8 @@ include = ["LICENSE"]
 
 
 [tool.poetry.dependencies]
-python = "^3.6.1"
+python = "^3.6.2"
 bs4 = "*"
-aiohttp = "*"
 aiofiles = "^0"
 simplejson = "*"
 yarl = "*"
@@ -22,7 +21,7 @@ requests = "*"
 certifi = "*"
 backoff = "^1.10"
 pyotp = "^2.4.1"
-authcaptureproxy = "^1"
+authcaptureproxy = "^1.1.1"
 cryptography = "^35.0.0"
 
 [tool.poetry.dev-dependencies]
