@@ -21,7 +21,7 @@ requests = "*"
 certifi = "*"
 backoff = "^1.10"
 pyotp = "^2.4.1"
-authcaptureproxy = "^1.1.0"
+authcaptureproxy = "^1.1.1"
 cryptography = "^35.0.0"
 
 [tool.poetry.dev-dependencies]

@@ -153,7 +153,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "authcaptureproxy"
-version = "1.1.0"
+version = "1.1.1"
 description = "A Python project to create a proxy to capture authentication information from a webpage. This is useful to capture oauth login details without access to a third-party oauth."
 category = "main"
 optional = false
@@ -1605,7 +1605,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6.2"
-content-hash = "7eae824f5dee0ae1f547eb27200fc29e21924c0a78019e4c2e5268fb6f4760f5"
+content-hash = "174120eb3a73bb3b9f4790c72252170c173672cbc804a8177779bff5969b93e7"
 
 [metadata.files]
 aiofiles = [
@@ -1731,8 +1731,8 @@ attrs = [
     {file = "attrs-21.2.0.tar.gz", hash = "sha256:ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"},
 ]
 authcaptureproxy = [
-    {file = "authcaptureproxy-1.1.0-py3-none-any.whl", hash = "sha256:016d1667c9165c9a81d60030383c83eb59f2cb4f463e947620f9c67c869e8ccd"},
-    {file = "authcaptureproxy-1.1.0.tar.gz", hash = "sha256:33fafe4016559e395f3d4ca0eb6cd0ff7ed3329fba2e9222949dd412809f1b55"},
+    {file = "authcaptureproxy-1.1.1-py3-none-any.whl", hash = "sha256:a2a5164535f73d8c35bb4840c93eb0698ddae8184b5e2aae55c078be03f65238"},
+    {file = "authcaptureproxy-1.1.1.tar.gz", hash = "sha256:739143fc3b53d1326bb5b2ff69c9778bef8c1f26ce62d09e50be341c3b335470"},
 ]
 autoapi = [
     {file = "autoapi-2.0.1.tar.gz", hash = "sha256:4003b17599020652d0738dc1c426d0abf2f58f8a1821f5500816043210b3d1d6"},
