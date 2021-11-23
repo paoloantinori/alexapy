@@ -41,4 +41,5 @@ typing:
 	poetry run mypy --ignore-missing-imports alexapy
 
 sync_deps:
+	rm -R alexapy/aiohttp
 	cp -R deps/aiohttp/aiohttp alexapy/aiohttp
