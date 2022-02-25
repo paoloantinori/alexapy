@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v1.25.3 (2021-11-23)
+### Fix
+* Bump authcaptureproxy ([`e125e0d`](https://gitlab.com/keatontaylor/alexapy/-/commit/e125e0d21d4bfdd2533ee6d304a872a7bd3035aa))
+* Update authcaptureproxy ([`b79f0a3`](https://gitlab.com/keatontaylor/alexapy/-/commit/b79f0a311084f32dd5686bfae7b1a96d6b8ccc5b))
+* Update aiohttp to 3.8.1 ([`eed0735`](https://gitlab.com/keatontaylor/alexapy/-/commit/eed07351389237933de542e79f4465dc5817bc64))
+
+## v1.25.2 (2021-11-16)
+### Fix
+* Swap to protocol A:F for websocket ([`baf9f7d`](https://gitlab.com/keatontaylor/alexapy/-/commit/baf9f7dc4eb252e9bd460ba26d294a72f041d53a))
+
 ## v1.25.1 (2021-05-01)
 ### Fix
 * Handle pyotp missing TOTP attribute ([`2ac97bc`](https://gitlab.com/keatontaylor/alexapy/-/commit/2ac97bc13080b436d36b1559817c152c4b85164d))
