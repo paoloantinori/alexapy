@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.25.4 (2022-02-25)
+### Fix
+* Bump dependencies ([`6dc1dfa`](https://gitlab.com/keatontaylor/alexapy/-/commit/6dc1dfa127ab38e5e2b29861195344c16dda45e1))
+
 ## v1.25.3 (2021-11-23)
 ### Fix
 * Bump authcaptureproxy ([`e125e0d`](https://gitlab.com/keatontaylor/alexapy/-/commit/e125e0d21d4bfdd2533ee6d304a872a7bd3035aa))
