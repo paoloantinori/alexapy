@@ -13,16 +13,18 @@ include = ["LICENSE"]
 
 [tool.poetry.dependencies]
 python = "^3.6.2"
-bs4 = "*"
+beautifulsoup4 = "*"
 aiofiles = "^0"
 simplejson = "*"
 yarl = "*"
 requests = "*"
 certifi = "*"
 backoff = "^1.10"
-pyotp = "^2.4.1"
-authcaptureproxy = "^1.1.1"
-cryptography = "^35.0.0"
+pyotp = "^2.4"
+authcaptureproxy = "^1"
+cryptography = "^35.0"
+#homeassistant = { git = "https://github.com/home-assistant/core.git", branch = "dev" }
+
 
 [tool.poetry.dev-dependencies]
 aresponses = "*"
