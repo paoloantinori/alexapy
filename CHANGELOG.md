@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v1.25.5 (2022-04-28)
+### Fix
+* Catch ServerDisconnectedError ([`e921bfa`](https://gitlab.com/keatontaylor/alexapy/-/commit/e921bfa607a1cf6714bcffbc01f2ed3f8916ca5c))
+* Loosen cryptography requirement ([`b1e6178`](https://gitlab.com/keatontaylor/alexapy/-/commit/b1e617867f29a952cb4b91e7260307488d28fec7))
+
+### Documentation
+* Rebuild sphinx docs ([`739318c`](https://gitlab.com/keatontaylor/alexapy/-/commit/739318cc0a24bf9361b31f5ac8105e3e5e5d71ca))
+
 ## v1.25.4 (2022-02-25)
 ### Fix
 * Bump dependencies ([`6dc1dfa`](https://gitlab.com/keatontaylor/alexapy/-/commit/6dc1dfa127ab38e5e2b29861195344c16dda45e1))
