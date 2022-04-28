@@ -7,12 +7,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>alexapy.aiohttp.tracing &mdash; AlexaPy 1.24.0 documentation</title>
+  <title>alexapy.aiohttp.tracing &mdash; AlexaPy 1.25.3 documentation</title>
   
 
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
 
   
@@ -30,6 +32,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
@@ -38,9 +41,7 @@
 
     
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="alexapy.aiohttp.typedefs" href="alexapy.aiohttp.typedefs.html" />
-    <link rel="prev" title="alexapy.aiohttp.test_utils" href="alexapy.aiohttp.test_utils.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -64,7 +65,7 @@
             
             
               <div class="version">
-                1.24.0
+                1.25.3
               </div>
             
           
@@ -89,10 +90,9 @@
               
             
             
-              <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="alexapy.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="alexapy.aiohttp.html"><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp</span></code></a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="alexapy.html#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexaapi.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexaapi</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexalogin.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexalogin</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexaproxy.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexaproxy</span></code></a></li>
@@ -154,10 +154,6 @@
   <ul class="wy-breadcrumbs">
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
-          <li><a href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a> &raquo;</li>
-        
-          <li><a href="alexapy.aiohttp.html"><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp</span></code></a> &raquo;</li>
         
       <li><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp.tracing</span></code></li>
     
@@ -222,28 +218,27 @@ Parameters sent by the <cite>on_request_chunk_sent</cite> signal</p></li>
 Parameters sent by the <cite>on_response_chunk_received</cite> signal</p></li>
 </ul>
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceConfig">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceConfig</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">trace_config_ctx_factory:</span> <span class="pre">Type[types.SimpleNamespace]</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'types.SimpleNamespace'&gt;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConfig" title="Permalink to this definition">¶</a></dt>
-<dd><p>First-class used to trace requests launched via ClientSession
-objects.</p>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace_config_ctx_factory:</span> <span class="pre">typing.Type[types.SimpleNamespace]</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'types.SimpleNamespace'&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>First-class used to trace requests launched via ClientSession objects.</p>
 <p class="rubric">Inheritance</p>
 digraph inheritanceb076692272 {
 bgcolor=transparent;
 rankdir=LR;
 size=&quot;8.0, 12.0&quot;;
-  &quot;TraceConfig&quot; [URL=&quot;../alexapy/alexapy.aiohttp.tracing.html#alexapy.aiohttp.tracing.TraceConfig&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;First-class used to trace requests launched via ClientSession&quot;];
+  &quot;TraceConfig&quot; [URL=&quot;../alexapy/alexapy.aiohttp.tracing.html#alexapy.aiohttp.tracing.TraceConfig&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;First-class used to trace requests launched via ClientSession objects.&quot;];
 }
 <dl class="py method">
-<dt id="alexapy.aiohttp.tracing.TraceConfig.trace_config_ctx">
-<code class="sig-name descname"><span class="pre">trace_config_ctx</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace_request_ctx</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">types.SimpleNamespace</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">types.SimpleNamespace</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConfig.trace_config_ctx" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceConfig.trace_config_ctx">
+<span class="sig-name descname"><span class="pre">trace_config_ctx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace_request_ctx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">types.SimpleNamespace</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">types.SimpleNamespace</span></span></span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConfig.trace_config_ctx" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new trace_config_ctx instance</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceRequestStartParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceRequestStartParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">CIMultiDict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestStartParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceRequestStartParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceRequestStartParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">multidict._multidict.CIMultiDict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestStartParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_request_start</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritanced48c7863a4 {
@@ -255,8 +250,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceRequestEndParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceRequestEndParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">CIMultiDict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="alexapy.aiohttp.client_reqrep.html#alexapy.aiohttp.client_reqrep.ClientResponse" title="alexapy.aiohttp.client_reqrep.ClientResponse"><span class="pre">alexapy.aiohttp.client_reqrep.ClientResponse</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestEndParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceRequestEndParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceRequestEndParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">multidict._multidict.CIMultiDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="alexapy.aiohttp.client_reqrep.html#alexapy.aiohttp.client_reqrep.ClientResponse" title="alexapy.aiohttp.client_reqrep.ClientResponse"><span class="pre">alexapy.aiohttp.client_reqrep.ClientResponse</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestEndParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_request_end</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritancead2968d707 {
@@ -268,8 +263,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceRequestExceptionParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceRequestExceptionParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">CIMultiDict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">BaseException</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestExceptionParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceRequestExceptionParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceRequestExceptionParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">multidict._multidict.CIMultiDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">BaseException</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestExceptionParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_request_exception</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritancee46aa0d8c5 {
@@ -281,8 +276,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceConnectionQueuedStartParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceConnectionQueuedStartParams</span></code><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionQueuedStartParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceConnectionQueuedStartParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceConnectionQueuedStartParams</span></span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionQueuedStartParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_connection_queued_start</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritanced9e0bbbf3c {
@@ -294,8 +289,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceConnectionQueuedEndParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceConnectionQueuedEndParams</span></code><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionQueuedEndParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceConnectionQueuedEndParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceConnectionQueuedEndParams</span></span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionQueuedEndParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_connection_queued_end</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritancecd6b456e9c {
@@ -307,8 +302,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceConnectionCreateStartParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceConnectionCreateStartParams</span></code><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionCreateStartParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceConnectionCreateStartParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceConnectionCreateStartParams</span></span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionCreateStartParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_connection_create_start</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritance8d6d05766f {
@@ -320,8 +315,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceConnectionCreateEndParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceConnectionCreateEndParams</span></code><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionCreateEndParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceConnectionCreateEndParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceConnectionCreateEndParams</span></span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionCreateEndParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_connection_create_end</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritance88bab8e509 {
@@ -333,8 +328,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceConnectionReuseconnParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceConnectionReuseconnParams</span></code><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionReuseconnParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceConnectionReuseconnParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceConnectionReuseconnParams</span></span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceConnectionReuseconnParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_connection_reuseconn</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritancef4275decd1 {
@@ -346,8 +341,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceDnsResolveHostStartParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceDnsResolveHostStartParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceDnsResolveHostStartParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceDnsResolveHostStartParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceDnsResolveHostStartParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceDnsResolveHostStartParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_dns_resolvehost_start</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritanceac069d08af {
@@ -359,8 +354,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceDnsResolveHostEndParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceDnsResolveHostEndParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceDnsResolveHostEndParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceDnsResolveHostEndParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceDnsResolveHostEndParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceDnsResolveHostEndParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_dns_resolvehost_end</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritancefe68ff3293 {
@@ -372,8 +367,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceDnsCacheHitParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceDnsCacheHitParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceDnsCacheHitParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceDnsCacheHitParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceDnsCacheHitParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceDnsCacheHitParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_dns_cache_hit</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritance4a5155435c {
@@ -385,8 +380,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceDnsCacheMissParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceDnsCacheMissParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceDnsCacheMissParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceDnsCacheMissParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceDnsCacheMissParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceDnsCacheMissParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_dns_cache_miss</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritancea44277b7eb {
@@ -398,8 +393,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceRequestRedirectParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceRequestRedirectParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">CIMultiDict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="alexapy.aiohttp.client_reqrep.html#alexapy.aiohttp.client_reqrep.ClientResponse" title="alexapy.aiohttp.client_reqrep.ClientResponse"><span class="pre">alexapy.aiohttp.client_reqrep.ClientResponse</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestRedirectParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceRequestRedirectParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceRequestRedirectParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">multidict._multidict.CIMultiDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="alexapy.aiohttp.client_reqrep.html#alexapy.aiohttp.client_reqrep.ClientResponse" title="alexapy.aiohttp.client_reqrep.ClientResponse"><span class="pre">alexapy.aiohttp.client_reqrep.ClientResponse</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestRedirectParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_request_redirect</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritancebf9111ecc7 {
@@ -411,8 +406,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceRequestChunkSentParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceRequestChunkSentParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chunk</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestChunkSentParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceRequestChunkSentParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceRequestChunkSentParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceRequestChunkSentParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_request_chunk_sent</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritance7c4d7be34a {
@@ -424,8 +419,8 @@ size=&quot;8.0, 12.0&quot;;
 </dd></dl>
 
 <dl class="py class">
-<dt id="alexapy.aiohttp.tracing.TraceResponseChunkReceivedParams">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></code><code class="sig-name descname"><span class="pre">TraceResponseChunkReceivedParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chunk</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceResponseChunkReceivedParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tracing.TraceResponseChunkReceivedParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tracing.</span></span><span class="sig-name descname"><span class="pre">TraceResponseChunkReceivedParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">yarl.URL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.tracing.TraceResponseChunkReceivedParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters sent by the <cite>on_response_chunk_received</cite> signal</p>
 <p class="rubric">Inheritance</p>
 digraph inheritanceb2e6f9fd36 {
@@ -444,10 +439,6 @@ size=&quot;8.0, 12.0&quot;;
            
           </div>
           <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="alexapy.aiohttp.typedefs.html" class="btn btn-neutral float-right" title="alexapy.aiohttp.typedefs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="alexapy.aiohttp.test_utils.html" class="btn btn-neutral float-left" title="alexapy.aiohttp.test_utils" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-    </div>
 
   <hr/>
 
