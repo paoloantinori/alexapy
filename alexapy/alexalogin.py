@@ -121,7 +121,9 @@ class AlexaLogin:
         self.uuid = uuid  # needed to be unique but repeateable for device registration
         self.oauth_login: bool = oauth_login
         _LOGGER.debug(
-            "Login created for %s - %s", obfuscate(self.email), self.url,
+            "Login created for %s - %s",
+            obfuscate(self.email),
+            self.url,
         )
         self._create_session()
 
@@ -238,7 +240,9 @@ class AlexaLogin:
                 raise AlexapyPyotpInvalidKey(ex) from ex
             except AttributeError:
                 self._totp = None
-                _LOGGER.warning("Error creating TOTP; pyotp version likely outdated",)
+                _LOGGER.warning(
+                    "Error creating TOTP; pyotp version likely outdated",
+                )
         else:
             self._totp = None
         return self._totp
@@ -643,11 +647,17 @@ class AlexaLogin:
                     "action_required"
                 ):
                     post_resp = await self._session.get(
-                        site, params=self._data, headers=self._headers, ssl=self._ssl,
+                        site,
+                        params=self._data,
+                        headers=self._headers,
+                        ssl=self._ssl,
                     )
             else:
                 post_resp = await self._session.post(
-                    site, data=self._data, headers=self._headers, ssl=self._ssl,
+                    site,
+                    data=self._data,
+                    headers=self._headers,
+                    ssl=self._ssl,
                 )
 
             # headers need to be submitted to have the referer
@@ -753,12 +763,16 @@ class AlexaLogin:
             _LOGGER.debug("Attempting to register with %s", url)
             try:
                 response = await self._session.post(
-                    "https://api." + url + "/auth/register", json=data, headers=headers,
+                    "https://api." + url + "/auth/register",
+                    json=data,
+                    headers=headers,
                 )
             except aiohttp.ClientConnectorError:
                 _LOGGER.debug("Fallback attempt to register with api.amazon.com")
                 response = await self._session.post(
-                    "https://api.amazon.com/auth/register", json=data, headers=headers,
+                    "https://api.amazon.com/auth/register",
+                    json=data,
+                    headers=headers,
                 )
             _LOGGER.debug("auth response %s with \n%s", response, dumps(data))
             if response.status == 200:
@@ -834,14 +848,18 @@ class AlexaLogin:
         }
         try:
             response = await self._session.post(
-                "https://api." + self.url + "/auth/token", data=data, headers=headers,
+                "https://api." + self.url + "/auth/token",
+                data=data,
+                headers=headers,
             )
         except aiohttp.ClientConnectionError:
             _LOGGER.debug(
                 "Fallback attempt to refresh access token with api.amazon.com"
             )
             response = await self._session.post(
-                "https://api.amazon.com/auth/token", data=data, headers=headers,
+                "https://api.amazon.com/auth/token",
+                data=data,
+                headers=headers,
             )
         _LOGGER.debug("refresh response %s with \n%s", response, dumps(data))
         if response.status != 200:
@@ -1383,7 +1401,9 @@ class AlexaLogin:
                     self._data["otpDeviceContext"] = self._options[str(authopt)]
                 except KeyError:
                     _LOGGER.debug(
-                        "Selected OTP option %s not in %s", str(authopt), self._options,
+                        "Selected OTP option %s not in %s",
+                        str(authopt),
+                        self._options,
                     )
             if verificationcode is not None and "code" in self._data:
                 self._data["code"] = verificationcode

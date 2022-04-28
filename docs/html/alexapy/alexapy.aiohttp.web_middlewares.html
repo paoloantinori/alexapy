@@ -7,12 +7,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>alexapy.aiohttp.web_middlewares &mdash; AlexaPy 1.24.0 documentation</title>
+  <title>alexapy.aiohttp.web_middlewares &mdash; AlexaPy 1.25.3 documentation</title>
   
 
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
 
   
@@ -30,6 +32,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
@@ -38,9 +41,7 @@
 
     
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="alexapy.aiohttp.web_protocol" href="alexapy.aiohttp.web_protocol.html" />
-    <link rel="prev" title="alexapy.aiohttp.web_log" href="alexapy.aiohttp.web_log.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -64,7 +65,7 @@
             
             
               <div class="version">
-                1.24.0
+                1.25.3
               </div>
             
           
@@ -89,10 +90,9 @@
               
             
             
-              <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="alexapy.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="alexapy.aiohttp.html"><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp</span></code></a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="alexapy.html#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexaapi.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexaapi</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexalogin.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexalogin</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexaproxy.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexaproxy</span></code></a></li>
@@ -155,10 +155,6 @@
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
-          <li><a href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a> &raquo;</li>
-        
-          <li><a href="alexapy.aiohttp.html"><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp</span></code></a> &raquo;</li>
-        
       <li><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp.web_middlewares</span></code></li>
     
     
@@ -194,21 +190,21 @@ Undocumented.</p></li>
 Middleware factory which produces a middleware that normalizes</p></li>
 </ul>
 <dl class="py function">
-<dt id="alexapy.aiohttp.web_middlewares.middleware">
-<code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.web_middlewares.</span></code><code class="sig-name descname"><span class="pre">middleware</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">_Func</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">_Func</span><a class="headerlink" href="#alexapy.aiohttp.web_middlewares.middleware" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.web_middlewares.middleware">
+<span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.web_middlewares.</span></span><span class="sig-name descname"><span class="pre">middleware</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">alexapy.aiohttp.web_middlewares._Func</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">alexapy.aiohttp.web_middlewares._Func</span></span></span><a class="headerlink" href="#alexapy.aiohttp.web_middlewares.middleware" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="alexapy.aiohttp.web_middlewares.normalize_path_middleware">
-<code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.web_middlewares.</span></code><code class="sig-name descname"><span class="pre">normalize_path_middleware</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">*</span></em>, <em class="sig-param"><span class="pre">append_slash:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">remove_slash:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></em>, <em class="sig-param"><span class="pre">merge_slashes:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">redirect_class:</span> <span class="pre">Type[alexapy.aiohttp.web_exceptions._HTTPMove]</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'alexapy.aiohttp.web_exceptions.HTTPPermanentRedirect'&gt;</span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="alexapy.aiohttp.web_request.html#alexapy.aiohttp.web_request.Request" title="alexapy.aiohttp.web_request.Request"><span class="pre">alexapy.aiohttp.web_request.Request</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="alexapy.aiohttp.web_request.html#alexapy.aiohttp.web_request.Request" title="alexapy.aiohttp.web_request.Request"><span class="pre">alexapy.aiohttp.web_request.Request</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Awaitable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="alexapy.aiohttp.web_response.html#alexapy.aiohttp.web_response.StreamResponse" title="alexapy.aiohttp.web_response.StreamResponse"><span class="pre">alexapy.aiohttp.web_response.StreamResponse</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Awaitable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="alexapy.aiohttp.web_response.html#alexapy.aiohttp.web_response.StreamResponse" title="alexapy.aiohttp.web_response.StreamResponse"><span class="pre">alexapy.aiohttp.web_response.StreamResponse</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#alexapy.aiohttp.web_middlewares.normalize_path_middleware" title="Permalink to this definition">¶</a></dt>
-<dd><p>Middleware factory which produces a middleware that normalizes
-the path of a request. By normalizing it means:</p>
-<blockquote>
-<div><ul class="simple">
+<dt class="sig sig-object py" id="alexapy.aiohttp.web_middlewares.normalize_path_middleware">
+<span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.web_middlewares.</span></span><span class="sig-name descname"><span class="pre">normalize_path_middleware</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_slash:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_slash:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_slashes:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redirect_class:</span> <span class="pre">typing.Type[alexapy.aiohttp.web_exceptions._HTTPMove]</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'alexapy.aiohttp.web_exceptions.HTTPPermanentRedirect'&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="alexapy.aiohttp.web_request.html#alexapy.aiohttp.web_request.Request" title="alexapy.aiohttp.web_request.Request"><span class="pre">alexapy.aiohttp.web_request.Request</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="alexapy.aiohttp.web_request.html#alexapy.aiohttp.web_request.Request" title="alexapy.aiohttp.web_request.Request"><span class="pre">alexapy.aiohttp.web_request.Request</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Awaitable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="alexapy.aiohttp.web_response.html#alexapy.aiohttp.web_response.StreamResponse" title="alexapy.aiohttp.web_response.StreamResponse"><span class="pre">alexapy.aiohttp.web_response.StreamResponse</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Awaitable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="alexapy.aiohttp.web_response.html#alexapy.aiohttp.web_response.StreamResponse" title="alexapy.aiohttp.web_response.StreamResponse"><span class="pre">alexapy.aiohttp.web_response.StreamResponse</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#alexapy.aiohttp.web_middlewares.normalize_path_middleware" title="Permalink to this definition">¶</a></dt>
+<dd><p>Factory for producing a middleware that normalizes the path of a request.</p>
+<dl class="simple">
+<dt>Normalizing means:</dt><dd><ul class="simple">
 <li><p>Add or remove a trailing slash to the path.</p></li>
 <li><p>Double slashes are replaced by one.</p></li>
 </ul>
-</div></blockquote>
+</dd>
+</dl>
 <p>The middleware returns as soon as it finds a path that resolves
 correctly. The order if both merge and append/remove are enabled is</p>
 <blockquote>
@@ -240,10 +236,6 @@ path into one.</p>
            
           </div>
           <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="alexapy.aiohttp.web_protocol.html" class="btn btn-neutral float-right" title="alexapy.aiohttp.web_protocol" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="alexapy.aiohttp.web_log.html" class="btn btn-neutral float-left" title="alexapy.aiohttp.web_log" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-    </div>
 
   <hr/>
 

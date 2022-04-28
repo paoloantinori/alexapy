@@ -17,7 +17,11 @@ from typing import Optional, Text, Union
 
 import aiofiles.os as aioos
 
-from alexapy.aiohttp import ClientConnectionError, ContentTypeError
+from alexapy.aiohttp import (
+    ClientConnectionError,
+    ContentTypeError,
+    ServerDisconnectedError,
+)
 import alexapy.alexalogin
 
 from .const import EXCEPTION_TEMPLATE
@@ -135,7 +139,7 @@ def _catch_all_exceptions(func):
                 break
         try:
             return await func(*args, **kwargs)
-        except (ClientConnectionError, KeyError) as ex:
+        except (ClientConnectionError, KeyError, ServerDisconnectedError) as ex:
             _LOGGER.warning(
                 "%s.%s(%s, %s): A connection error occured: %s",
                 func.__module__[func.__module__.find(".") + 1 :],

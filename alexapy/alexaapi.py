@@ -133,7 +133,8 @@ class AlexaAPI:
                     await self._login.save_cookiefile()
                 else:
                     _LOGGER.debug(
-                        "%s: Unable to refresh oauth", hide_email(self._login.email),
+                        "%s: Unable to refresh oauth",
+                        hide_email(self._login.email),
                     )
                     self._login.access_token = None
                     self._login.refresh_token = None
@@ -247,7 +248,8 @@ class AlexaAPI:
                     await login.save_cookiefile()
                 else:
                     _LOGGER.debug(
-                        "%s: Unable to refresh oauth", hide_email(login.email),
+                        "%s: Unable to refresh oauth",
+                        hide_email(login.email),
                     )
                     login.access_token = None
                     login.refresh_token = None
@@ -307,7 +309,11 @@ class AlexaAPI:
         return response
 
     @_catch_all_exceptions
-    async def run_behavior(self, node_data, queue_delay: float = 1.5,) -> None:
+    async def run_behavior(
+        self,
+        node_data,
+        queue_delay: float = 1.5,
+    ) -> None:
         """Queue node_data for running a behavior in sequence.
 
         Amazon sequences and routines are based on node_data.
@@ -350,7 +356,8 @@ class AlexaAPI:
                         "deviceSerialNumber"
                     ):
                         _LOGGER.debug(
-                            "%s: Creating Parallel node", hide_email(self._login.email),
+                            "%s: Creating Parallel node",
+                            hide_email(self._login.email),
                         )
                         sequence_json["startNode"][
                             "@type"
@@ -635,13 +642,15 @@ class AlexaAPI:
                 new_nodes.append(node)
             sequence["startNode"]["nodesToExecute"] = new_nodes
             await self.run_behavior(
-                sequence["startNode"]["nodesToExecute"], queue_delay=queue_delay,
+                sequence["startNode"]["nodesToExecute"],
+                queue_delay=queue_delay,
             )
         else:
             # Single entry with no nodesToExecute
             _populate_device_info(sequence["startNode"])
             await self.run_behavior(
-                sequence["startNode"], queue_delay=queue_delay,
+                sequence["startNode"],
+                queue_delay=queue_delay,
             )
 
     @_catch_all_exceptions
@@ -1578,7 +1587,9 @@ class AlexaAPI:
 
         """
         response = await AlexaAPI._static_request(
-            "get", login, "/api/dnd/device-status-list",
+            "get",
+            login,
+            "/api/dnd/device-status-list",
         )
         return await response.json(content_type=None) if response else None
 
@@ -1625,7 +1636,9 @@ class AlexaAPI:
                 completed = False
             elif response.status == 200:
                 _LOGGER.debug(
-                    "%s: Succesfully deleted %s", hide_email(email), activity["id"],
+                    "%s: Succesfully deleted %s",
+                    hide_email(email),
+                    activity["id"],
                 )
         return completed
 
@@ -1690,5 +1703,9 @@ class AlexaAPI:
         Returns json
 
         """
-        response = await AlexaAPI._static_request("get", login, "/api/ping",)
+        response = await AlexaAPI._static_request(
+            "get",
+            login,
+            "/api/ping",
+        )
         return await response if response else None
