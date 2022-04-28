@@ -22,7 +22,7 @@ certifi = "*"
 backoff = "^1.10"
 pyotp = "^2.4"
 authcaptureproxy = "^1"
-cryptography = "^35.0"
+cryptography = ">=35.0"
 #homeassistant = { git = "https://github.com/home-assistant/core.git", branch = "dev" }
 
 
