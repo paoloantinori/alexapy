@@ -7,12 +7,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>alexapy.aiohttp.tcp_helpers &mdash; AlexaPy 1.24.0 documentation</title>
+  <title>alexapy.aiohttp.tcp_helpers &mdash; AlexaPy 1.25.3 documentation</title>
   
 
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
 
   
@@ -30,6 +32,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
@@ -38,9 +41,7 @@
 
     
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="alexapy.aiohttp.test_utils" href="alexapy.aiohttp.test_utils.html" />
-    <link rel="prev" title="alexapy.aiohttp.streams" href="alexapy.aiohttp.streams.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -64,7 +65,7 @@
             
             
               <div class="version">
-                1.24.0
+                1.25.3
               </div>
             
           
@@ -89,10 +90,9 @@
               
             
             
-              <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="alexapy.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="alexapy.aiohttp.html"><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp</span></code></a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="alexapy.html#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexaapi.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexaapi</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexalogin.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexalogin</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="alexapy.alexaproxy.html"><code class="docutils literal notranslate"><span class="pre">alexapy.alexaproxy</span></code></a></li>
@@ -155,10 +155,6 @@
     
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
         
-          <li><a href="alexapy.html"><code class="docutils literal notranslate"><span class="pre">alexapy</span></code></a> &raquo;</li>
-        
-          <li><a href="alexapy.aiohttp.html"><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp</span></code></a> &raquo;</li>
-        
       <li><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp.tcp_helpers</span></code></li>
     
     
@@ -193,22 +189,17 @@
 Undocumented.</p></li>
 <li><p><a class="reference internal" href="#alexapy.aiohttp.tcp_helpers.tcp_nodelay" title="alexapy.aiohttp.tcp_helpers.tcp_nodelay"><code class="xref py py-func docutils literal notranslate"><span class="pre">tcp_nodelay()</span></code></a>:
 Undocumented.</p></li>
-<li><p><a class="reference internal" href="#alexapy.aiohttp.tcp_helpers.tcp_cork" title="alexapy.aiohttp.tcp_helpers.tcp_cork"><code class="xref py py-func docutils literal notranslate"><span class="pre">tcp_cork()</span></code></a>:
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">tcp_cork()</span></code>:
 Undocumented.</p></li>
 </ul>
 <dl class="py function">
-<dt id="alexapy.aiohttp.tcp_helpers.tcp_keepalive">
-<code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tcp_helpers.</span></code><code class="sig-name descname"><span class="pre">tcp_keepalive</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transport</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">asyncio.transports.Transport</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">None</span><a class="headerlink" href="#alexapy.aiohttp.tcp_helpers.tcp_keepalive" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tcp_helpers.tcp_keepalive">
+<span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tcp_helpers.</span></span><span class="sig-name descname"><span class="pre">tcp_keepalive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transport</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">asyncio.transports.Transport</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#alexapy.aiohttp.tcp_helpers.tcp_keepalive" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="alexapy.aiohttp.tcp_helpers.tcp_nodelay">
-<code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tcp_helpers.</span></code><code class="sig-name descname"><span class="pre">tcp_nodelay</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transport</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">asyncio.transports.Transport</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">None</span><a class="headerlink" href="#alexapy.aiohttp.tcp_helpers.tcp_nodelay" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="alexapy.aiohttp.tcp_helpers.tcp_cork">
-<code class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tcp_helpers.</span></code><code class="sig-name descname"><span class="pre">tcp_cork</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transport</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">asyncio.transports.Transport</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">None</span><a class="headerlink" href="#alexapy.aiohttp.tcp_helpers.tcp_cork" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="alexapy.aiohttp.tcp_helpers.tcp_nodelay">
+<span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.tcp_helpers.</span></span><span class="sig-name descname"><span class="pre">tcp_nodelay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transport</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">asyncio.transports.Transport</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#alexapy.aiohttp.tcp_helpers.tcp_nodelay" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -219,10 +210,6 @@ Undocumented.</p></li>
            
           </div>
           <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="alexapy.aiohttp.test_utils.html" class="btn btn-neutral float-right" title="alexapy.aiohttp.test_utils" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="alexapy.aiohttp.streams.html" class="btn btn-neutral float-left" title="alexapy.aiohttp.streams" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-    </div>
 
   <hr/>
 
