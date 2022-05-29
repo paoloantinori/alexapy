@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.25.6 (2022-05-29)
+### Fix
+* Raise error if mac_dms not detected ([`eec1683`](https://gitlab.com/keatontaylor/alexapy/-/commit/eec1683988c98571bb7ad3e09712528fe01ba15d))
+
 ## v1.25.5 (2022-04-28)
 ### Fix
 * Catch ServerDisconnectedError ([`e921bfa`](https://gitlab.com/keatontaylor/alexapy/-/commit/e921bfa607a1cf6714bcffbc01f2ed3f8916ca5c))
