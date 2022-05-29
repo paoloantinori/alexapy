@@ -27,6 +27,7 @@ from typing import Any, Coroutine, Dict, Text, Union, cast
 from typing import Callable  # noqa pylint: disable=unused-import
 
 from alexapy import aiohttp
+from alexapy.errors import AlexapyLoginError
 
 from .alexalogin import AlexaLogin  # noqa pylint
 
@@ -230,20 +231,7 @@ class WebsocketEchoClient:
             )
         else:
             _LOGGER.warning("mac_dms not detected; websocket likely won't connect")
-        # url_array: List[Text] = login.url.split(".")
-        # ubid_id: Text = f"ubid-acb{url_array[len(url_array)-1]}"
-        # if ubid_id in self._cookies:
-        #     url += str(self._cookies[ubid_id])
-        # elif "ubid-main" in self._cookies:
-        #     url += str(self._cookies["ubid-main"])
-        # else:
-        #     _LOGGER.warning(
-        #         "Websocket is missing ubid-main and %s cookies;"
-        #         " please report this if anything isn't working.",
-        #         ubid_id,
-        #     )
-        # url += "-" + str(int(time.time())) + "000"
-        # url = "ws://localhost:8080/ws"
+            raise AlexapyLoginError("mac_dms not detected; relogin required")
         self.open_callback: Callable[[], Coroutine[Any, Any, None]] = open_callback
         self.msg_callback: Callable[[Message], Coroutine[Any, Any, None]] = msg_callback
         self.close_callback: Callable[[], Coroutine[Any, Any, None]] = close_callback
