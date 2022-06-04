@@ -35,6 +35,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
@@ -175,7 +176,7 @@
            <div itemprop="articleBody">
             
   <div class="section" id="module-alexapy.aiohttp.streams">
-<span id="alexapy-aiohttp-streams"></span><h1><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp.streams</span></code><a class="headerlink" href="#module-alexapy.aiohttp.streams" title="Permalink to this headline">¶</a></h1>
+<span id="alexapy-aiohttp-streams"></span><h1><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp.streams</span></code><a class="headerlink" href="#module-alexapy.aiohttp.streams" title="Permalink to this heading">¶</a></h1>
 <div class="contents local topic" id="contents">
 <ul class="simple">
 <li><p><a class="reference internal" href="#classes" id="id1">Classes</a></p></li>
@@ -184,7 +185,7 @@
 </ul>
 </div>
 <div class="section" id="classes">
-<h2><a class="toc-backref" href="#id1">Classes</a><a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id1">Classes</a><a class="headerlink" href="#classes" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="#alexapy.aiohttp.streams.StreamReader" title="alexapy.aiohttp.streams.StreamReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">StreamReader</span></code></a>:
 An enhancement of asyncio.StreamReader.</p></li>
@@ -195,7 +196,7 @@ FlowControlDataQueue resumes and pauses an underlying stream.</p></li>
 </ul>
 <dl class="py class">
 <dt class="sig sig-object py" id="alexapy.aiohttp.streams.StreamReader">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.streams.</span></span><span class="sig-name descname"><span class="pre">StreamReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protocol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">alexapy.aiohttp.base_protocol.BaseProtocol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">alexapy.aiohttp.helpers.BaseTimerContext</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">asyncio.events.AbstractEventLoop</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.streams.StreamReader" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.streams.</span></span><span class="sig-name descname"><span class="pre">StreamReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protocol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">BaseProtocol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">BaseTimerContext</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">AbstractEventLoop</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.streams.StreamReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>An enhancement of asyncio.StreamReader.</p>
 <p>Supports asynchronous iteration by line, chunk or as available:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
@@ -247,7 +248,7 @@ always False.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="alexapy.aiohttp.streams.DataQueue">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.streams.</span></span><span class="sig-name descname"><span class="pre">DataQueue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">asyncio.events.AbstractEventLoop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.streams.DataQueue" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.streams.</span></span><span class="sig-name descname"><span class="pre">DataQueue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractEventLoop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.streams.DataQueue" title="Permalink to this definition">¶</a></dt>
 <dd><p>DataQueue is a general-purpose blocking queue with one reader.</p>
 <p class="rubric">Inheritance</p>
 digraph inheritance21d6498206 {
@@ -262,7 +263,7 @@ size=&quot;8.0, 12.0&quot;;
 
 <dl class="py class">
 <dt class="sig sig-object py" id="alexapy.aiohttp.streams.FlowControlDataQueue">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.streams.</span></span><span class="sig-name descname"><span class="pre">FlowControlDataQueue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protocol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">alexapy.aiohttp.base_protocol.BaseProtocol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">asyncio.events.AbstractEventLoop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.streams.FlowControlDataQueue" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.streams.</span></span><span class="sig-name descname"><span class="pre">FlowControlDataQueue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protocol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">BaseProtocol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractEventLoop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.streams.FlowControlDataQueue" title="Permalink to this definition">¶</a></dt>
 <dd><p>FlowControlDataQueue resumes and pauses an underlying stream.</p>
 <p>It is a destination for parsed data.</p>
 <p class="rubric">Inheritance</p>
@@ -280,7 +281,7 @@ size=&quot;8.0, 12.0&quot;;
 
 </div>
 <div class="section" id="exceptions">
-<h2><a class="toc-backref" href="#id2">Exceptions</a><a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id2">Exceptions</a><a class="headerlink" href="#exceptions" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="#alexapy.aiohttp.streams.EofStream" title="alexapy.aiohttp.streams.EofStream"><code class="xref py py-exc docutils literal notranslate"><span class="pre">EofStream</span></code></a>:
 eof stream indication.</p></li>
@@ -300,7 +301,7 @@ size=&quot;8.0, 12.0&quot;;
 
 </div>
 <div class="section" id="variables">
-<h2><a class="toc-backref" href="#id3">Variables</a><a class="headerlink" href="#variables" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id3">Variables</a><a class="headerlink" href="#variables" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="#alexapy.aiohttp.streams.EMPTY_PAYLOAD" title="alexapy.aiohttp.streams.EMPTY_PAYLOAD"><code class="xref py py-data docutils literal notranslate"><span class="pre">EMPTY_PAYLOAD</span></code></a></p></li>
 </ul>

@@ -35,6 +35,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
@@ -175,14 +176,14 @@
            <div itemprop="articleBody">
             
   <div class="section" id="module-alexapy.aiohttp.resolver">
-<span id="alexapy-aiohttp-resolver"></span><h1><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp.resolver</span></code><a class="headerlink" href="#module-alexapy.aiohttp.resolver" title="Permalink to this headline">¶</a></h1>
+<span id="alexapy-aiohttp-resolver"></span><h1><code class="docutils literal notranslate"><span class="pre">alexapy.aiohttp.resolver</span></code><a class="headerlink" href="#module-alexapy.aiohttp.resolver" title="Permalink to this heading">¶</a></h1>
 <div class="contents local topic" id="contents">
 <ul class="simple">
 <li><p><a class="reference internal" href="#classes" id="id1">Classes</a></p></li>
 </ul>
 </div>
 <div class="section" id="classes">
-<h2><a class="toc-backref" href="#id1">Classes</a><a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id1">Classes</a><a class="headerlink" href="#classes" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="#alexapy.aiohttp.resolver.ThreadedResolver" title="alexapy.aiohttp.resolver.ThreadedResolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThreadedResolver</span></code></a>:
 Use Executor for synchronous getaddrinfo() calls, which defaults to</p></li>
@@ -193,7 +194,7 @@ Use Executor for synchronous getaddrinfo() calls, which defaults to</p></li>
 </ul>
 <dl class="py class">
 <dt class="sig sig-object py" id="alexapy.aiohttp.resolver.ThreadedResolver">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.resolver.</span></span><span class="sig-name descname"><span class="pre">ThreadedResolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">asyncio.events.AbstractEventLoop</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.resolver.ThreadedResolver" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.resolver.</span></span><span class="sig-name descname"><span class="pre">ThreadedResolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">AbstractEventLoop</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.resolver.ThreadedResolver" title="Permalink to this definition">¶</a></dt>
 <dd><p>Threaded resolver.</p>
 <p>Uses an Executor for synchronous getaddrinfo() calls.
 concurrent.futures.ThreadPoolExecutor is used by default.</p>
@@ -224,7 +225,7 @@ size=&quot;8.0, 12.0&quot;;
 
 <dl class="py class">
 <dt class="sig sig-object py" id="alexapy.aiohttp.resolver.AsyncResolver">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.resolver.</span></span><span class="sig-name descname"><span class="pre">AsyncResolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">asyncio.events.AbstractEventLoop</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.resolver.AsyncResolver" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.resolver.</span></span><span class="sig-name descname"><span class="pre">AsyncResolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">AbstractEventLoop</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#alexapy.aiohttp.resolver.AsyncResolver" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use the <cite>aiodns</cite> package to make asynchronous DNS lookups</p>
 <p class="rubric">Inheritance</p>
 digraph inheritanced400f4c588 {
@@ -254,7 +255,7 @@ size=&quot;8.0, 12.0&quot;;
 <dl class="py attribute">
 <dt class="sig sig-object py" id="alexapy.aiohttp.resolver.DefaultResolver">
 <span class="sig-prename descclassname"><span class="pre">alexapy.aiohttp.resolver.</span></span><span class="sig-name descname"><span class="pre">DefaultResolver</span></span><a class="headerlink" href="#alexapy.aiohttp.resolver.DefaultResolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <a class="reference internal" href="#alexapy.aiohttp.resolver.ThreadedResolver" title="alexapy.aiohttp.resolver.ThreadedResolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">alexapy.aiohttp.resolver.ThreadedResolver</span></code></a></p>
+<dd><p>alias of <a class="reference internal" href="#alexapy.aiohttp.resolver.ThreadedResolver" title="alexapy.aiohttp.resolver.ThreadedResolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThreadedResolver</span></code></a></p>
 </dd></dl>
 
 </div>
