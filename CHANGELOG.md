@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.0 (2022-06-04)
+### Feature
+* Allow loading of mac_dms during init ([`be21338`](https://gitlab.com/keatontaylor/alexapy/-/commit/be213384bbcdd4d211945b13b2c625d4c2769236))
+
+### Documentation
+* Update api docs ([`04e18bf`](https://gitlab.com/keatontaylor/alexapy/-/commit/04e18bf0127ad4a806aa4da851076460341d43b5))
+
 ## v1.25.6 (2022-05-29)
 ### Fix
 * Raise error if mac_dms not detected ([`eec1683`](https://gitlab.com/keatontaylor/alexapy/-/commit/eec1683988c98571bb7ad3e09712528fe01ba15d))
