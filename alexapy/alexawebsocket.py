@@ -318,7 +318,6 @@ class WebsocketEchoClient:
             await self.open_callback()
 
     def _encode_ws_handshake(self) -> bytes:
-        # pylint: disable=no-self-use
         _LOGGER.debug("Encoding WebSocket Handshake MSG.")
         msg = "0xa6f6a951 " if not self._mac_dms else "0xfe88bc52 "
         msg += "0x0000009c "
@@ -333,7 +332,6 @@ class WebsocketEchoClient:
         return bytes(msg, "utf-8")
 
     def _encode_gw_handshake(self, messageid=None) -> bytes:
-        # pylint: disable=no-self-use
         _LOGGER.debug("Encoding Gateway Handshake MSG.")
         if messageid:
             self._message_id = messageid
@@ -358,7 +356,6 @@ class WebsocketEchoClient:
         return bytes(complete_buffer)
 
     def _encode_gw_register(self, messageid=None) -> bytes:
-        # pylint: disable=no-self-use
         _LOGGER.debug("Encoding Gateway Register MSG.")
         if messageid:
             self._message_id = messageid
@@ -383,7 +380,6 @@ class WebsocketEchoClient:
         return bytes(complete_buffer)
 
     def _encode_ping(self, messageid=None) -> bytes:
-        # pylint: disable=no-self-use
         def encode(buffer: bytearray, seed: int, byte_offset: int, length: int) -> None:
             view = memoryview(buffer)[byte_offset : byte_offset + length]
             idx = 0

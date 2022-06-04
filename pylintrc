@@ -31,7 +31,7 @@ good-names=id,i,j,k,ex,Run,_,fp
 # consider-using-enumerate - unable to disable lines
 disable=
   format,
-  abstract-class-little-used,
+#  abstract-class-little-used,
   abstract-method,
   consider-using-enumerate,
   cyclic-import,
@@ -42,7 +42,7 @@ disable=
   locally-disabled,
   not-context-manager,
   protected-access,
-  redefined-variable-type,
+ # redefined-variable-type,
   too-few-public-methods,
   too-many-ancestors,
   too-many-arguments,

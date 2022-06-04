@@ -1305,7 +1305,7 @@ class AlexaLogin:
             if self._data and "" in self._data.values():
                 missing = [k for (k, v) in self._data.items() if v == ""]
                 _LOGGER.debug(
-                    "If credentials correct, please report" " these missing values: %s",
+                    "If credentials correct, please report these missing values: %s",
                     missing,
                 )
         self.status = status
