@@ -115,7 +115,7 @@ class AlexaLogin:
         self.set_totp(otp_secret.replace(" ", ""))
         self.access_token: Optional[Text] = oauth.get("access_token")
         self.refresh_token: Optional[Text] = oauth.get("refresh_token")
-        self.mac_dms: Optional[Text] = None
+        self.mac_dms: Optional[Text] = oauth.get("mac_dms")
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
         self.uuid = uuid  # needed to be unique but repeateable for device registration
@@ -1305,7 +1305,7 @@ class AlexaLogin:
             if self._data and "" in self._data.values():
                 missing = [k for (k, v) in self._data.items() if v == ""]
                 _LOGGER.debug(
-                    "If credentials correct, please report" " these missing values: %s",
+                    "If credentials correct, please report these missing values: %s",
                     missing,
                 )
         self.status = status
