@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.1 (2022-06-25)
+### Fix
+* Bump authcaptureproxy to 1.1.4 ([`36e1204`](https://gitlab.com/keatontaylor/alexapy/-/commit/36e1204cccbabb41c2e432055b9d45bb5cbec01a))
+
 ## v1.26.0 (2022-06-04)
 ### Feature
 * Allow loading of mac_dms during init ([`be21338`](https://gitlab.com/keatontaylor/alexapy/-/commit/be213384bbcdd4d211945b13b2c625d4c2769236))
