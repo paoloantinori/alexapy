@@ -14,14 +14,14 @@ include = ["LICENSE"]
 [tool.poetry.dependencies]
 python = "^3.8"
 beautifulsoup4 = "*"
-aiofiles = "^0"
+aiofiles = ">0, <1"
 simplejson = "*"
 yarl = "*"
 requests = "*"
 certifi = "*"
 backoff = ">=1.10"
 pyotp = ">=2.4"
-authcaptureproxy = "^1"
+authcaptureproxy = "^1.1.4"
 cryptography = ">=35.0"
 #homeassistant = { git = "https://github.com/home-assistant/core.git", branch = "dev" }
 
@@ -35,7 +35,7 @@ pydocstyle = "*"
 pylint = "*"
 pytest-aiohttp = "*"
 pytest-cov = "*"
-python-semantic-release = ">=7.28"
+python-semantic-release = "7.28.1"
 tox = "*"
 safety = ">=1.8.7"
 black = {version = ">19.10b0", allow-prereleases = true}
