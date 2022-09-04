@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.2 (2022-09-04)
+### Fix
+* Return none if 500 detected ([`5bf16ca`](https://gitlab.com/keatontaylor/alexapy/-/commit/5bf16ca5718c5328366fe9239f1546fa94ba4947))
+
 ## v1.26.1 (2022-06-25)
 ### Fix
 * Bump authcaptureproxy to 1.1.4 ([`36e1204`](https://gitlab.com/keatontaylor/alexapy/-/commit/36e1204cccbabb41c2e432055b9d45bb5cbec01a))
