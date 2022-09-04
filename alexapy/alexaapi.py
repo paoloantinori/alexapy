@@ -195,6 +195,9 @@ class AlexaAPI:
             raise AlexapyLoginError(response.reason)
         if response.status == 429:
             raise AlexapyTooManyRequestsError(response.reason)
+        if response.status == 500:
+            _LOGGER.debug("Returning none due to 500")
+            return None
         return response
 
     async def _post_request(
@@ -306,6 +309,9 @@ class AlexaAPI:
             raise AlexapyLoginError(response.reason)
         if response.status == 429:
             raise AlexapyTooManyRequestsError(response.reason)
+        if response.status == 500:
+            _LOGGER.debug("Returning none due to 500")
+            return None
         return response
 
     @_catch_all_exceptions
