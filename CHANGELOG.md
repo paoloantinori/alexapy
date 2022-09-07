@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.3 (2022-09-07)
+### Fix
+* Fix reauth caused by alexa bad response ([`cde67a4`](https://gitlab.com/keatontaylor/alexapy/-/commit/cde67a45f7ecc85d24ff41bbaf7c7c96dde93b25))
+
 ## v1.26.2 (2022-09-04)
 ### Fix
 * Return none if 500 detected ([`5bf16ca`](https://gitlab.com/keatontaylor/alexapy/-/commit/5bf16ca5718c5328366fe9239f1546fa94ba4947))
