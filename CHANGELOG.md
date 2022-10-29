@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.4 (2022-10-29)
+### Fix
+* Handle None response for clear_history ([`2ef3538`](https://gitlab.com/keatontaylor/alexapy/-/commit/2ef3538879be25980fb1cd6550b972ab8466c7d9))
+
 ## v1.26.3 (2022-09-07)
 ### Fix
 * Fix reauth caused by alexa bad response ([`cde67a4`](https://gitlab.com/keatontaylor/alexapy/-/commit/cde67a45f7ecc85d24ff41bbaf7c7c96dde93b25))
