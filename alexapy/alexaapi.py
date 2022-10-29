@@ -1633,7 +1633,13 @@ class AlexaAPI:
                 login,
                 f"/api/activities/{urllib.parse.quote_plus(activity['id'])}",
             )
-            if response.status == 404:
+            if response is None:
+                _LOGGER.debug(
+                    ("%s:Unable to connect to Alexa to delete %s"),
+                    hide_email(email),
+                    activity["id"],
+                )
+            elif response.status == 404:
                 _LOGGER.warning(
                     (
                         "%s:Unable to delete %s: %s: \n"
