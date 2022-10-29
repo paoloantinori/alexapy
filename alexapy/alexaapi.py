@@ -103,6 +103,29 @@ class AlexaAPI:
             return True
         return False
 
+    @classmethod
+    async def _process_response(
+        cls, response: ClientResponse, login: AlexaLogin
+    ) -> Optional[ClientResponse]:
+        """Process a response from _request or static_request.
+
+        Args:
+            ClientResponse (response): Response from _request
+
+        Returns:
+            None | ClientResponse: Response from server
+        """
+        login.stats["api_calls"] += 1
+        if response.status == 401:
+            login.status["login_successful"] = False
+            raise AlexapyLoginError(response.reason)
+        if response.status == 429:
+            raise AlexapyTooManyRequestsError(response.reason)
+        if response.status >= 400:
+            _LOGGER.debug("Returning None due to status: %s", response.status)
+            return None
+        return response
+
     @backoff.on_exception(
         backoff.expo,
         (AlexapyTooManyRequestsError, AlexapyConnectionError, ClientConnectionError),
@@ -189,16 +212,7 @@ class AlexaAPI:
             response.reason,
             response.content_type,
         )
-        self._login.stats["api_calls"] += 1
-        if response.status == 401:
-            self._login.status["login_successful"] = False
-            raise AlexapyLoginError(response.reason)
-        if response.status == 429:
-            raise AlexapyTooManyRequestsError(response.reason)
-        if response.status == 500:
-            _LOGGER.debug("Returning none due to 500")
-            return None
-        return response
+        return await self._process_response(response, self._login)
 
     async def _post_request(
         self, uri: Text, data: Optional[Dict[Text, Any]] = None
@@ -303,16 +317,7 @@ class AlexaAPI:
             response.reason,
             response.content_type,
         )
-        login.stats["api_calls"] += 1
-        if response.status == 401:
-            login.status["login_successful"] = False
-            raise AlexapyLoginError(response.reason)
-        if response.status == 429:
-            raise AlexapyTooManyRequestsError(response.reason)
-        if response.status == 500:
-            _LOGGER.debug("Returning none due to 500")
-            return None
-        return response
+        return await AlexaAPI._process_response(response, login)
 
     @_catch_all_exceptions
     async def run_behavior(
@@ -1223,7 +1228,7 @@ class AlexaAPI:
             "/api/activities",
             query={"startTime": "", "size": items, "offset": 1},
         )
-        result = await response.json(content_type=None)
+        result = await response.json(content_type=None) if response else None
         return result["activities"] if result and result.get("activities") else None
 
     @staticmethod
@@ -1610,7 +1615,7 @@ class AlexaAPI:
         import urllib.parse  # pylint: disable=import-outside-toplevel
 
         completed = True
-        result = await response.json(content_type=None)
+        result = await response.json(content_type=None) if response else None
         response_json = (
             result["activities"] if result and result.get("activities") else None
         )
@@ -1628,7 +1633,13 @@ class AlexaAPI:
                 login,
                 f"/api/activities/{urllib.parse.quote_plus(activity['id'])}",
             )
-            if response.status == 404:
+            if response is None:
+                _LOGGER.debug(
+                    ("%s:Unable to connect to Alexa to delete %s"),
+                    hide_email(email),
+                    activity["id"],
+                )
+            elif response.status == 404:
                 _LOGGER.warning(
                     (
                         "%s:Unable to delete %s: %s: \n"
