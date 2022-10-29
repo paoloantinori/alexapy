@@ -2,6 +2,45 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.4 (2022-10-29)
+### Fix
+* Handle None response for clear_history ([`2ef3538`](https://gitlab.com/keatontaylor/alexapy/-/commit/2ef3538879be25980fb1cd6550b972ab8466c7d9))
+
+## v1.26.3 (2022-09-07)
+### Fix
+* Fix reauth caused by alexa bad response ([`cde67a4`](https://gitlab.com/keatontaylor/alexapy/-/commit/cde67a45f7ecc85d24ff41bbaf7c7c96dde93b25))
+
+## v1.26.2 (2022-09-04)
+### Fix
+* Return none if 500 detected ([`5bf16ca`](https://gitlab.com/keatontaylor/alexapy/-/commit/5bf16ca5718c5328366fe9239f1546fa94ba4947))
+
+## v1.26.1 (2022-06-25)
+### Fix
+* Bump authcaptureproxy to 1.1.4 ([`36e1204`](https://gitlab.com/keatontaylor/alexapy/-/commit/36e1204cccbabb41c2e432055b9d45bb5cbec01a))
+
+## v1.26.0 (2022-06-04)
+### Feature
+* Allow loading of mac_dms during init ([`be21338`](https://gitlab.com/keatontaylor/alexapy/-/commit/be213384bbcdd4d211945b13b2c625d4c2769236))
+
+### Documentation
+* Update api docs ([`04e18bf`](https://gitlab.com/keatontaylor/alexapy/-/commit/04e18bf0127ad4a806aa4da851076460341d43b5))
+
+## v1.25.6 (2022-05-29)
+### Fix
+* Raise error if mac_dms not detected ([`eec1683`](https://gitlab.com/keatontaylor/alexapy/-/commit/eec1683988c98571bb7ad3e09712528fe01ba15d))
+
+## v1.25.5 (2022-04-28)
+### Fix
+* Catch ServerDisconnectedError ([`e921bfa`](https://gitlab.com/keatontaylor/alexapy/-/commit/e921bfa607a1cf6714bcffbc01f2ed3f8916ca5c))
+* Loosen cryptography requirement ([`b1e6178`](https://gitlab.com/keatontaylor/alexapy/-/commit/b1e617867f29a952cb4b91e7260307488d28fec7))
+
+### Documentation
+* Rebuild sphinx docs ([`739318c`](https://gitlab.com/keatontaylor/alexapy/-/commit/739318cc0a24bf9361b31f5ac8105e3e5e5d71ca))
+
+## v1.25.4 (2022-02-25)
+### Fix
+* Bump dependencies ([`6dc1dfa`](https://gitlab.com/keatontaylor/alexapy/-/commit/6dc1dfa127ab38e5e2b29861195344c16dda45e1))
+
 ## v1.25.3 (2021-11-23)
 ### Fix
 * Bump authcaptureproxy ([`e125e0d`](https://gitlab.com/keatontaylor/alexapy/-/commit/e125e0d21d4bfdd2533ee6d304a872a7bd3035aa))
