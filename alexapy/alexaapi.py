@@ -1297,7 +1297,7 @@ class AlexaAPI:
                         domain_attributes = domain_attributes[0]
                         if isinstance(domain_attributes, dict):
                             summary = f'{domain_attributes.get("entryType")} {domain_attributes.get("bookTitle")}'
-                    except (JSONDecodeError, TypeError):
+                    except (IndexError, JSONDecodeError, TypeError):
                         pass
                     if domain_attributes.get("entryType") and domain_attributes.get(
                         "bookTitle"
