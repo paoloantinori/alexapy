@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.5 (2023-03-06)
+### Fix
+* Catch IndexError in domainAttributes ([`8543c6c`](https://gitlab.com/keatontaylor/alexapy/-/commit/8543c6ca90e7a27a3bb7cfffb6300e4d36d0d37c))
+
 ## v1.26.4 (2022-10-29)
 ### Fix
 * Handle None response for clear_history ([`2ef3538`](https://gitlab.com/keatontaylor/alexapy/-/commit/2ef3538879be25980fb1cd6550b972ab8466c7d9))
