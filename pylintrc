@@ -56,7 +56,8 @@ disable=
   too-many-boolean-expressions,
   unnecessary-pass,
   unused-argument,
-  wrong-import-order
+  wrong-import-order,
+  unsubscriptable-object
 enable=
   use-symbolic-message-instead
 
