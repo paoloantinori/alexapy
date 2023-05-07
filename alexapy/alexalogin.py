@@ -31,7 +31,7 @@ from simplejson import JSONDecodeError as SimpleJSONDecodeError
 from yarl import URL
 
 from alexapy import aiohttp
-from alexapy.aiohttp.client_exceptions import ContentTypeError
+from aiohttp.client_exceptions import ContentTypeError
 
 from .const import APP_NAME, EXCEPTION_TEMPLATE, LOCALE_KEY, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey

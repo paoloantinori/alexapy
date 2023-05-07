@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Text
 import backoff
 from yarl import URL
 
-from alexapy.aiohttp import ClientConnectionError, ClientResponse
+from aiohttp import ClientConnectionError, ClientResponse
 
 from .alexalogin import AlexaLogin
 from .errors import (

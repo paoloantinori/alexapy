@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
 import logging
-from alexapy.aiohttp.http_websocket import ALLOWED_CLOSE_CODES, WSCloseCode
+from aiohttp.http_websocket import ALLOWED_CLOSE_CODES, WSCloseCode
 from typing import Any, Coroutine, Dict, Text, Union, cast
 from typing import Callable  # noqa pylint: disable=unused-import
 

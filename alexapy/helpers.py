@@ -17,7 +17,7 @@ from typing import Optional, Text, Union
 
 import aiofiles.os as aioos
 
-from alexapy.aiohttp import (
+from aiohttp import (
     ClientConnectionError,
     ContentTypeError,
     ServerDisconnectedError,
