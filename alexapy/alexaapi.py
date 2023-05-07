@@ -168,12 +168,15 @@ class AlexaAPI:
             elif query is None:
                 query = {"_": math.floor(time.time() * 1000)}
         url: URL = URL(self._url + uri).update_query(query)
-        # _LOGGER.debug("%s: Trying %s: %s : with uri: %s data %s query %s",
-        #               method,
-        #               url,
-        #               uri,
-        #               data,
-        #               query)
+        _LOGGER.debug(
+            "%s: Trying %s: %s : with uri: %s data %s query %s",
+            hide_email(self._login.email),
+            method,
+            url,
+            uri,
+            data,
+            query,
+        )
         if self._login.close_requested:
             _LOGGER.debug(
                 "%s: Login object has been asked to close; ignoring %s request to %s with %s %s",
