@@ -215,24 +215,24 @@ class AlexaAPI:
         return await self._process_response(response, self._login)
 
     async def _post_request(
-        self, uri: Text, data: Optional[Dict[Text, Any]] = None
+        self, uri: Text, data: Optional[Dict[Text, Any]] = None, query: Optional[Dict[Text, Any]] = None
     ) -> ClientResponse:
-        return await self._request("post", uri, data)
+        return await self._request("post", uri, data, query)
 
     async def _put_request(
-        self, uri: Text, data: Optional[Dict[Text, Text]] = None
+        self, uri: Text, data: Optional[Dict[Text, Any]] = None, query: Optional[Dict[Text, Any]] = None
     ) -> ClientResponse:
-        return await self._request("put", uri, data)
+        return await self._request("put", uri, data, query)
 
     async def _get_request(
-        self, uri: Text, data: Optional[Dict[Text, Text]] = None
+        self, uri: Text, data: Optional[Dict[Text, Any]] = None, query: Optional[Dict[Text, Any]] = None
     ) -> ClientResponse:
-        return await self._request("get", uri, data)
+        return await self._request("get", uri, data, query)
 
     async def _del_request(
-        self, uri: Text, data: Optional[Dict[Text, Text]] = None
+        self, uri: Text, data: Optional[Dict[Text, Any]] = None, query: Optional[Dict[Text, Any]] = None
     ) -> ClientResponse:
-        return await self._request("delete", uri, data)
+        return await self._request("delete", uri, data, query)
 
     @staticmethod
     @backoff.on_exception(
@@ -1033,11 +1033,12 @@ class AlexaAPI:
     async def set_media(self, data: Dict[Text, Any]) -> None:
         """Select the media player."""
         await self._post_request(
-            "/api/np/command?deviceSerialNumber="
-            + self._device.device_serial_number
-            + "&deviceType="
-            + self._device._device_type,
+            "/api/np/command",
             data=data,
+            query={
+                "deviceSerialNumber": self._device.device_serial_number,
+                "deviceType": self._device._device_type,
+            },
         )
 
     @_catch_all_exceptions
@@ -1118,11 +1119,13 @@ class AlexaAPI:
     async def get_state(self) -> Optional[Dict[Text, Any]]:
         """Get playing state."""
         response = await self._get_request(
-            "/api/np/player?deviceSerialNumber="
-            + self._device.device_serial_number
-            + "&deviceType="
-            + self._device._device_type
-            + "&screenWidth=2560"
+            "/api/np/player",
+            query={
+                "deviceSerialNumber": self._device.device_serial_number,
+                "deviceType": self._device._device_type,
+                "screenWidth": 2560
+            },
+
         )
         return await response.json(content_type=None) if response else None
 
