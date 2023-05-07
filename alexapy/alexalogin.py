@@ -308,7 +308,7 @@ class AlexaLogin:
                             _LOGGER.debug(
                                 "Pickled cookie loaded: %s %s", type(cookies), cookies
                             )
-                except (pickle.UnpicklingError):
+                except pickle.UnpicklingError:
                     try:
                         cookies = http.cookiejar.MozillaCookieJar(cookiefile)
                         cookies.load(ignore_discard=True, ignore_expires=True)

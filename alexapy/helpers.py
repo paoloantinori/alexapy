@@ -161,7 +161,7 @@ def _catch_all_exceptions(func):
             if login:
                 login.status["login_successful"] = False
             raise AlexapyLoginError from ex
-        except (ContentTypeError) as ex:
+        except ContentTypeError as ex:
             _LOGGER.warning(
                 "%s.%s(%s, %s): A login error occured; Amazon may want you to change your password: %s",
                 func.__module__[func.__module__.find(".") + 1 :],
