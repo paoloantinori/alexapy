@@ -21,7 +21,7 @@ requests = "*"
 certifi = "*"
 backoff = ">=1.10"
 pyotp = ">=2.4"
-authcaptureproxy = "^1.1.4"
+authcaptureproxy = "^1.1.5"
 cryptography = ">=35.0"
 #homeassistant = { git = "https://github.com/home-assistant/core.git", branch = "dev" }
 aiohttp = "^3.8.4"
@@ -68,7 +68,6 @@ exclude = '''
     | dist
   )/
   | deps
-  | alexapy/aiohttp           # also separately exclude a file named deps in
                      # the root of the project
 )
 '''
