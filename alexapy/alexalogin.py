@@ -20,18 +20,17 @@ import os
 import pickle
 import re
 import secrets
-from typing import Any, Callable, Dict, List, Optional, Text, Tuple, Union
+from typing import Any, Callable, Optional, Union
 from urllib.parse import urlencode, urlparse
 
 import aiofiles
 from aiofiles import os as aioos
+import aiohttp
+from aiohttp.client_exceptions import ContentTypeError
 from bs4 import BeautifulSoup
 import pyotp
 from simplejson import JSONDecodeError as SimpleJSONDecodeError
 from yarl import URL
-
-from alexapy import aiohttp
-from alexapy.aiohttp.client_exceptions import ContentTypeError
 
 from .const import APP_NAME, EXCEPTION_TEMPLATE, LOCALE_KEY, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey
@@ -63,14 +62,14 @@ class AlexaLogin:
 
     def __init__(
         self,
-        url: Text,
-        email: Text,
-        password: Text,
-        outputpath: Callable[[Text], Text],
+        url: str,
+        email: str,
+        password: str,
+        outputpath: Callable[[str], str],
         debug: bool = False,
-        otp_secret: Text = "",
-        oauth: Optional[Dict[Any, Any]] = None,
-        uuid: Optional[Text] = None,
+        otp_secret: str = "",
+        oauth: Optional[dict[Any, Any]] = None,
+        uuid: Optional[str] = None,
         oauth_login: bool = True,
     ) -> None:
         # pylint: disable=too-many-arguments,import-outside-toplevel
@@ -80,42 +79,42 @@ class AlexaLogin:
         import certifi
 
         oauth = oauth or {}
-        self._hass_domain: Text = "alexa_media"
-        self._prefix: Text = "https://alexa."
-        self._url: Text = url
-        self._email: Text = email
-        self._password: Text = password
+        self._hass_domain: str = "alexa_media"
+        self._prefix: str = "https://alexa."
+        self._url: str = url
+        self._email: str = email
+        self._password: str = password
         self._session: Optional[aiohttp.ClientSession] = None
         self._ssl = ssl.create_default_context(
             purpose=ssl.Purpose.SERVER_AUTH, cafile=certifi.where()
         )
-        self._headers: Dict[Text, Text] = {}
-        self._data: Optional[Dict[Text, Text]] = None
-        self.status: Optional[Dict[Text, Union[Text, bool]]] = {}
-        self.stats: Optional[Dict[Text, Union[Text, bool]]] = {
+        self._headers: dict[str, str] = {}
+        self._data: Optional[dict[str, str]] = None
+        self.status: Optional[dict[str, Union[str, bool]]] = {}
+        self.stats: Optional[dict[str, Union[str, bool]]] = {
             "login_timestamp": datetime.datetime(1, 1, 1),
             "api_calls": 0,
         }
         self._outputpath = outputpath
-        self._cookiefile: List[Text] = [
+        self._cookiefile: list[str] = [
             self._outputpath(f".storage/{self._hass_domain}.{self.email}.pickle"),
             self._outputpath(f"{self._hass_domain}.{self.email}.pickle"),
             self._outputpath(f".storage/{self._hass_domain}.{self.email}.txt"),
         ]
-        self._debugpost: Text = outputpath(f"{self._hass_domain}{email}post.html")
-        self._debugget: Text = outputpath(f"{self._hass_domain}{email}get.html")
+        self._debugpost: str = outputpath(f"{self._hass_domain}{email}post.html")
+        self._debugget: str = outputpath(f"{self._hass_domain}{email}get.html")
         self._lastreq: Optional[aiohttp.ClientResponse] = None
         self._debug: bool = debug
-        self._links: Optional[Dict[Text, Tuple[Text, Text]]] = {}
-        self._options: Optional[Dict[Text, Text]] = {}
-        self._site: Optional[Text] = None
+        self._links: Optional[dict[str, tuple[str, str]]] = {}
+        self._options: Optional[dict[str, str]] = {}
+        self._site: Optional[str] = None
         self._close_requested = False
-        self._customer_id: Optional[Text] = None
+        self._customer_id: Optional[str] = None
         self._totp: Optional[pyotp.TOTP] = None
         self.set_totp(otp_secret.replace(" ", ""))
-        self.access_token: Optional[Text] = oauth.get("access_token")
-        self.refresh_token: Optional[Text] = oauth.get("refresh_token")
-        self.mac_dms: Optional[Text] = oauth.get("mac_dms")
+        self.access_token: Optional[str] = oauth.get("access_token")
+        self.refresh_token: Optional[str] = oauth.get("refresh_token")
+        self.mac_dms: Optional[str] = oauth.get("mac_dms")
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
         self.uuid = uuid  # needed to be unique but repeateable for device registration
@@ -128,32 +127,32 @@ class AlexaLogin:
         self._create_session()
 
     @property
-    def email(self) -> Text:
+    def email(self) -> str:
         """Return email or mobile account for this Login."""
         return self._email
 
     @email.setter
-    def email(self, value: Optional[Text]) -> None:
+    def email(self, value: Optional[str]) -> None:
         """Set email."""
         self._email = value
 
     @property
-    def password(self) -> Text:
+    def password(self) -> str:
         """Return password for this Login."""
         return self._password
 
     @password.setter
-    def password(self, value: Optional[Text]) -> None:
+    def password(self, value: Optional[str]) -> None:
         """Set password."""
         self._password = value
 
     @property
-    def customer_id(self) -> Optional[Text]:
+    def customer_id(self) -> Optional[str]:
         """Return customer_id for this Login."""
         return self._customer_id
 
     @customer_id.setter
-    def customer_id(self, value: Optional[Text]) -> None:
+    def customer_id(self, value: Optional[str]) -> None:
         self._customer_id = value
 
     @property
@@ -162,7 +161,7 @@ class AlexaLogin:
         return self._session
 
     @property
-    def url(self) -> Text:
+    def url(self) -> str:
         """Return url for this Login."""
         return self._url
 
@@ -171,7 +170,7 @@ class AlexaLogin:
         """Return start url for this Login."""
         if self.oauth_login:
             site: URL = URL("https://www.amazon.com/ap/signin")
-            deviceid: Text = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
+            deviceid: str = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
             query = {
                 "openid.return_to": "https://www.amazon.com/ap/maplanding",
                 "openid.assoc_handle": "amzn_dp_project_dee_ios",
@@ -209,7 +208,7 @@ class AlexaLogin:
         return self._close_requested
 
     @property
-    def links(self) -> Text:
+    def links(self) -> str:
         """Return string list of links from last page for this Login."""
         result = ""
         assert self._links is not None
@@ -217,7 +216,7 @@ class AlexaLogin:
             result += f"link{key}:{value[0]}\n"
         return result
 
-    def set_totp(self, otp_secret: Text) -> Optional[pyotp.TOTP]:
+    def set_totp(self, otp_secret: str) -> Optional[pyotp.TOTP]:
         """Enable a TOTP generator for the login.
 
         Args
@@ -247,7 +246,7 @@ class AlexaLogin:
             self._totp = None
         return self._totp
 
-    def get_totp_token(self) -> Text:
+    def get_totp_token(self) -> str:
         """Generate Timed based OTP token.
 
         Returns
@@ -255,13 +254,13 @@ class AlexaLogin:
 
         """
         if self._totp:
-            token: Text = self._totp.now()
+            token: str = self._totp.now()
             _LOGGER.debug("Generating OTP %s", token)
             return token
         _LOGGER.debug("Unable to generate OTP; 2FA app key not configured")
         return ""
 
-    async def load_cookie(self, cookies_txt: Text = "") -> Optional[Dict[Text, Text]]:
+    async def load_cookie(self, cookies_txt: str = "") -> Optional[dict[str, str]]:
         # pylint: disable=import-outside-toplevel
         """Load cookie from disk."""
         from collections import defaultdict
@@ -308,7 +307,7 @@ class AlexaLogin:
                             _LOGGER.debug(
                                 "Pickled cookie loaded: %s %s", type(cookies), cookies
                             )
-                except (pickle.UnpicklingError):
+                except pickle.UnpicklingError:
                     try:
                         cookies = http.cookiejar.MozillaCookieJar(cookiefile)
                         cookies.load(ignore_discard=True, ignore_expires=True)
@@ -421,7 +420,7 @@ class AlexaLogin:
                 await delete_cookie(cookiefile)
 
     @classmethod
-    def get_inputs(cls, soup: BeautifulSoup, searchfield=None) -> Dict[str, str]:
+    def get_inputs(cls, soup: BeautifulSoup, searchfield=None) -> dict[str, str]:
         """Parse soup for form with searchfield."""
         searchfield = searchfield or {"name": "signIn"}
         data = {}
@@ -437,13 +436,13 @@ class AlexaLogin:
                 pass
         return data
 
-    async def test_loggedin(self, cookies: Union[Dict[str, str], None] = None) -> bool:
+    async def test_loggedin(self, cookies: Union[dict[str, str], None] = None) -> bool:
         # pylint: disable=import-outside-toplevel
         """Function that will test the connection is logged in.
 
         Tests:
-        - Attempts to get authenticaton and compares to expected login email
-        Returns false if unsuccesful getting json or the emails don't match
+        - Attempts to get authentication and compares to expected login email
+        Returns false if unsuccessful getting json or the emails don't match
         Returns false if no csrf found; necessary to issue commands
         """
         if self._debug:
@@ -545,7 +544,7 @@ class AlexaLogin:
             #  initiate session
             self._session = aiohttp.ClientSession(headers=self._headers)
 
-    def _get_cookies_from_session(self, site: Text = "") -> Dict[Text, Text]:
+    def _get_cookies_from_session(self, site: str = "") -> dict[str, str]:
         """Return cookies from aiohttp session."""
         assert self._session
         if not site:
@@ -555,8 +554,8 @@ class AlexaLogin:
         cookies = cookie_jar.filter_cookies(URL(f"https://{site}"))
         return cookies
 
-    def _print_session_cookies(self) -> Text:
-        result: Text = ""
+    def _print_session_cookies(self) -> str:
+        result: str = ""
         if not self._session.cookie_jar:
             result = "Session cookie jar is empty."
         for cookie in self._session.cookie_jar:
@@ -566,8 +565,8 @@ class AlexaLogin:
     @_catch_all_exceptions
     async def login(
         self,
-        cookies: Optional[Dict[Text, Text]] = None,
-        data: Optional[Dict[Text, Optional[Text]]] = None,
+        cookies: Optional[dict[str, str]] = None,
+        data: Optional[dict[str, Optional[str]]] = None,
     ) -> None:
         # pylint: disable=too-many-branches,too-many-locals,
         # pylint: disable=too-many-statements
@@ -616,7 +615,7 @@ class AlexaLogin:
             )
             self._lastreq = resp
             site = await self._process_resp(resp)
-        html: Text = await resp.text()
+        html: str = await resp.text()
         if self._debug:
             async with aiofiles.open(self._debugget, mode="wb") as localfile:
                 await localfile.write(await resp.read())
@@ -709,9 +708,7 @@ class AlexaLogin:
             return False
         frc = base64.b64encode(secrets.token_bytes(313)).decode("ascii")
         map_md = base64.b64encode(
-            '{"device_user_dictionary":[],"device_registration_data":{"software_version":"1"},"app_identifier":{"app_version":"2.2.223830","bundle_id":"com.amazon.echo"}}'.encode(
-                "utf8"
-            )
+            b'{"device_user_dictionary":[],"device_registration_data":{"software_version":"1"},"app_identifier":{"app_version":"2.2.223830","bundle_id":"com.amazon.echo"}}'
         ).decode("utf8")
 
         if self.url.lower() != "amazon.com":
@@ -889,7 +886,7 @@ class AlexaLogin:
         """Generate new session cookies using refresh token.
 
         Returns
-            bool: True if succesful
+            bool: True if successful
 
         """
         if not self.refresh_token:
@@ -1053,7 +1050,7 @@ class AlexaLogin:
         _LOGGER.debug("Domain %s matches reported account domain: %s", self.url, domain)
         return True
 
-    async def _process_resp(self, resp) -> Text:
+    async def _process_resp(self, resp) -> str:
         if resp.history:
             for item in resp.history:
                 _LOGGER.debug("%s: redirected from\n%s", item.method, item.url)
@@ -1085,7 +1082,7 @@ class AlexaLogin:
         self._headers["Referer"] = str(url)
         return url
 
-    async def _process_page(self, html: str, site: Text) -> Text:
+    async def _process_page(self, html: str, site: str) -> str:
         # pylint: disable=too-many-branches,too-many-locals,
         # pylint: disable=too-many-statements
         # pylint: disable=import-outside-toplevel
@@ -1138,7 +1135,7 @@ class AlexaLogin:
         site_url = URL(site)
         soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
 
-        status: Dict[Text, Union[Text, bool]] = {}
+        status: dict[str, Union[str, bool]] = {}
 
         #  Find tags to determine which path
         login_tag = soup.find("form", {"name": "signIn"})
@@ -1266,7 +1263,7 @@ class AlexaLogin:
             status["force_get"] = True
             status["ap_error_href"] = href
         elif javascript_authentication_tag:
-            message: Text = ""
+            message: str = ""
 
             message = soup.find("span").getText()
             for div in soup.findAll("div", {"id": "channelDetails"}):
@@ -1313,7 +1310,7 @@ class AlexaLogin:
         if status.get("approval_status") == "TransactionCompleted":
             site = self._data.get("openid.return_to")
         elif form_tag and "login_successful" not in status:
-            formsite: Text = form_tag.get("action")
+            formsite: str = form_tag.get("action")
             if self._debug:
                 _LOGGER.debug("Found form to process: %s", form_tag)
             if formsite and formsite == "verify":
@@ -1345,23 +1342,23 @@ class AlexaLogin:
                 _LOGGER.debug("Found post url to %s", site)
         return str(site)
 
-    def _populate_data(self, site: Text, data: Dict[str, Optional[str]]) -> bool:
+    def _populate_data(self, site: str, data: dict[str, Optional[str]]) -> bool:
         """Populate self._data with info from data."""
         _LOGGER.debug(
             "Preparing form submission to %s with input data: %s", site, obfuscate(data)
         )
         # pull data from configurator
-        password: Optional[Text] = data.get("password", "")
-        captcha: Optional[Text] = data.get("captcha", "")
+        password: Optional[str] = data.get("password", "")
+        captcha: Optional[str] = data.get("captcha", "")
         if data.get("otp_secret"):
             self.set_totp(data.get("otp_secret", ""))
-        securitycode: Optional[Text] = data.get("securitycode", "")
+        securitycode: Optional[str] = data.get("securitycode", "")
         if not securitycode and self._totp:
             _LOGGER.debug("No 2FA code supplied but will generate.")
             securitycode = self.get_totp_token()
-        claimsoption: Optional[Text] = data.get("claimsoption", "")
-        authopt: Optional[Text] = data.get("authselectoption", "")
-        verificationcode: Optional[Text] = data.get("verificationcode", "")
+        claimsoption: Optional[str] = data.get("claimsoption", "")
+        authopt: Optional[str] = data.get("authselectoption", "")
+        verificationcode: Optional[str] = data.get("verificationcode", "")
 
         #  add username and password to self._data for post request
         #  self._data is scraped from the form page in _process_page

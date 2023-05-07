@@ -56,7 +56,8 @@ disable=
   too-many-boolean-expressions,
   unnecessary-pass,
   unused-argument,
-  wrong-import-order
+  wrong-import-order,
+  unsubscriptable-object
 enable=
   use-symbolic-message-instead
 
@@ -71,4 +72,5 @@ ignored-classes=_CountingAttr
 expected-line-ending-format=LF
 
 [EXCEPTIONS]
-overgeneral-exceptions=BaseException,Exception
+overgeneral-exceptions=builtins.BaseException,
+                       builtins.Exception

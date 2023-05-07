@@ -11,22 +11,22 @@ https://gitlab.com/keatontaylor/alexapy
 """
 import asyncio
 import base64
+from collections.abc import Coroutine
+import datetime
+import json
+import logging
 import math
 import random
 import time
+from typing import Any, Union, cast
+from typing import Callable  # noqa pylint: disable=unused-import
 import uuid
-import json
-import datetime
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import hashes
+
+import aiohttp
+from aiohttp.http_websocket import ALLOWED_CLOSE_CODES, WSCloseCode
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-import logging
-from alexapy.aiohttp.http_websocket import ALLOWED_CLOSE_CODES, WSCloseCode
-from typing import Any, Coroutine, Dict, Text, Union, cast
-from typing import Callable  # noqa pylint: disable=unused-import
-
-from alexapy import aiohttp
 from alexapy.errors import AlexapyLoginError
 
 from .alexalogin import AlexaLogin  # noqa pylint
@@ -40,17 +40,17 @@ class Content:
 
     def __init__(self) -> None:
         """Init for data."""
-        self.message_type: Text = ""
-        self.protocol_version: Text = ""
-        self.connection_uuid: Text = ""
+        self.message_type: str = ""
+        self.protocol_version: str = ""
+        self.connection_uuid: str = ""
         self.established: int = 0
         self.timestamp_ini: int = 0
         self.timestamp_ack: int = 0
-        self.submessage_type: Text = ""
+        self.submessage_type: str = ""
         self.channel: int = 0
-        self.dest_id_urn: Text = ""
-        self.device_id_urn: Text = ""
-        self.payload: Text = ""
+        self.dest_id_urn: str = ""
+        self.device_id_urn: str = ""
+        self.payload: str = ""
         self.payload_data: bytearray = bytearray()
 
 
@@ -61,21 +61,21 @@ class Message:
     def __init__(self, data: bytes) -> None:
         # pylint: disable=too-many-nested-blocks
         """Init for data."""
-        self.service: Text = ""
+        self.service: str = ""
         self.content: Content = Content()
-        self.content_tune: Text = ""
-        self.message_type: Text = ""
+        self.content_tune: str = ""
+        self.message_type: str = ""
         self.channel: int = 0
         self.checksum: int = 0
         self.message_id: int = 0
-        self.more_flag: Text = ""
+        self.more_flag: str = ""
         self.seq: int = 0
-        self.json_payload: Dict[Text, Union[Text, Dict[Text, Text]]] = {}
+        self.json_payload: dict[str, Union[str, dict[str, str]]] = {}
 
         def read_hex(index: int, length: int) -> int:
             return int(data[index : index + length], 16)
 
-        def read_string(index: int, length: int) -> Text:
+        def read_string(index: int, length: int) -> str:
             return data[index : index + length].decode("ascii")
 
         idx = 0
@@ -178,26 +178,26 @@ class WebsocketEchoClient:
         msg_callback: Callable[[Message], Coroutine[Any, Any, None]],
         open_callback: Callable[[], Coroutine[Any, Any, None]],
         close_callback: Callable[[], Coroutine[Any, Any, None]],
-        error_callback: Callable[[Text], Coroutine[Any, Any, None]],
+        error_callback: Callable[[str], Coroutine[Any, Any, None]],
     ) -> None:
         # pylint: disable=too-many-arguments
         """Init for threading and WebSocket Connection."""
         if login.url.lower() == "amazon.com":
-            subdomain = "dp-gw-na-js"  # type: Text
+            subdomain: str = "dp-gw-na-js"
         else:
             subdomain = "dp-gw-na"
         url = f"wss://{subdomain}.{login.url}/tcomm/"
         assert login.session is not None
         self._session = login.session
         self._mac_dms = login.mac_dms
-        self._cookies: Dict[Text, Text] = (
+        self._cookies: dict[str, str] = (
             login.session._cookie_jar if login.session._cookie_jar else {}
         )
         self._headers = {}  # login._headers
         self._ssl = login._ssl
         self._message_id = math.floor(1e9 * random.random())
         self._message_count = 0
-        cookies = ""  # type: Text
+        cookies: str = ""
         # assert self._cookies is not None
         for key, cookie in self._cookies.filter_cookies(login.url).items():
             cookies += f"{key}={cookie.value}; "
@@ -235,10 +235,8 @@ class WebsocketEchoClient:
         self.open_callback: Callable[[], Coroutine[Any, Any, None]] = open_callback
         self.msg_callback: Callable[[Message], Coroutine[Any, Any, None]] = msg_callback
         self.close_callback: Callable[[], Coroutine[Any, Any, None]] = close_callback
-        self.error_callback: Callable[
-            [Text], Coroutine[Any, Any, None]
-        ] = error_callback
-        self._wsurl: Text = url
+        self.error_callback: Callable[[str], Coroutine[Any, Any, None]] = error_callback
+        self._wsurl: str = url
         self.websocket: aiohttp.ClientWebSocketResponse
         self._loop: asyncio.AbstractEventLoop
 
@@ -293,7 +291,7 @@ class WebsocketEchoClient:
             _LOGGER.debug("Send Second Ping: %s", msg.hex())
             await asyncio.sleep(0.5)
 
-    def on_error(self, error: Text = "Unspecified") -> None:
+    def on_error(self, error: str = "Unspecified") -> None:
         """Handle WebSocket Error."""
         _LOGGER.debug("WebSocket Error: %s", error)
         asyncio.run_coroutine_threadsafe(self.error_callback(error), self._loop)
@@ -432,7 +430,7 @@ class WebsocketEchoClient:
         _LOGGER.debug(complete_buffer)
         return bytes(complete_buffer)
 
-    def _create_request_signature(self, method: Text, path: Text, body) -> Text:
+    def _create_request_signature(self, method: str, path: str, body) -> str:
         """Create request signature.
 
         Args:
@@ -462,7 +460,7 @@ class WebsocketEchoClient:
 
 
 # Checksum from https://github.com/Apollon77/alexa-remote/blob/master/alexa-wsmqtt.js#L571-L587
-def compute_checksum(text: Union[Text, bytearray], f: int, k: int) -> int:
+def compute_checksum(text: Union[str, bytearray], f: int, k: int) -> int:
     # pylint: disable=invalid-name
     """Compute checksum of text or byte array.
 
@@ -508,7 +506,7 @@ def compute_checksum(text: Union[Text, bytearray], f: int, k: int) -> int:
     return c(temp_l)
 
 
-def copy_string_to_bytearray(target: bytearray, string: Text, offset: int = 0):
+def copy_string_to_bytearray(target: bytearray, string: str, offset: int = 0):
     """Copy string into bytearray.
 
     Args:
