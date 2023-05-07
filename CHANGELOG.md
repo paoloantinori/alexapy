@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.6 (2023-05-07)
+### Fix
+* Use aiohttp query building instead of manual ([`1ca80be`](https://gitlab.com/keatontaylor/alexapy/-/commit/1ca80bee8a6d588760687567b4ecdb6915a81b22))
+
 ## v1.26.5 (2023-03-06)
 ### Fix
 * Catch IndexError in domainAttributes ([`8543c6c`](https://gitlab.com/keatontaylor/alexapy/-/commit/8543c6ca90e7a27a3bb7cfffb6300e4d36d0d37c))
