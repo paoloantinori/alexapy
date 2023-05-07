@@ -10,7 +10,7 @@ https://gitlab.com/keatontaylor/alexapy
 """
 from functools import partial
 import logging
-from typing import Optional, Text, Union
+from typing import Optional, Union
 
 import authcaptureproxy
 from bs4 import BeautifulSoup
@@ -25,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
     """Class to handle proxy login connections to Alexa."""
 
-    def __init__(self, login: AlexaLogin, base_url: Text) -> None:
+    def __init__(self, login: AlexaLogin, base_url: str) -> None:
         """Initialize proxy object.
 
         Args:
@@ -49,7 +49,7 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
             )
         }
 
-    async def test_amazon_url(self, resp, data, query) -> Optional[Union[URL, Text]]:
+    async def test_amazon_url(self, resp, data, query) -> Optional[Union[URL, str]]:
         """Test for Alexa success.
 
         Args
@@ -94,7 +94,7 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
             )
         }
 
-    def autofill(self, items: dict, html: Text) -> Text:
+    def autofill(self, items: dict, html: str) -> str:
         """Autofill input tags in form in html.
 
         Args

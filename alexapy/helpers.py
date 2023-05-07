@@ -13,15 +13,11 @@ from json import JSONDecodeError
 import logging
 import os
 from types import MappingProxyType
-from typing import Optional, Text, Union
+from typing import Optional, Union
 
 import aiofiles.os as aioos
+from aiohttp import ClientConnectionError, ContentTypeError, ServerDisconnectedError
 
-from alexapy.aiohttp import (
-    ClientConnectionError,
-    ContentTypeError,
-    ServerDisconnectedError,
-)
 import alexapy.alexalogin
 
 from .const import EXCEPTION_TEMPLATE
@@ -34,7 +30,7 @@ from .errors import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def hide_email(email: Text) -> Text:
+def hide_email(email: str) -> str:
     """Obfuscate email."""
     part = email.split("@")
     if len(part) > 1:
@@ -42,7 +38,7 @@ def hide_email(email: Text) -> Text:
     return hide_serial(email)
 
 
-def hide_password(value: Text) -> Text:
+def hide_password(value: str) -> str:
     """Obfuscate password."""
     return f"REDACTED {len(value)} CHARS"
 
@@ -141,7 +137,7 @@ def _catch_all_exceptions(func):
             return await func(*args, **kwargs)
         except (ClientConnectionError, KeyError, ServerDisconnectedError) as ex:
             _LOGGER.warning(
-                "%s.%s(%s, %s): A connection error occured: %s",
+                "%s.%s(%s, %s): A connection error occurred: %s",
                 func.__module__[func.__module__.find(".") + 1 :],
                 func.__name__,
                 obfuscate(args),
@@ -151,7 +147,7 @@ def _catch_all_exceptions(func):
             raise AlexapyConnectionError from ex
         except (JSONDecodeError, CookieError) as ex:
             _LOGGER.warning(
-                "%s.%s(%s, %s): A login error occured: %s",
+                "%s.%s(%s, %s): A login error occurred: %s",
                 func.__module__[func.__module__.find(".") + 1 :],
                 func.__name__,
                 obfuscate(args),
@@ -161,9 +157,9 @@ def _catch_all_exceptions(func):
             if login:
                 login.status["login_successful"] = False
             raise AlexapyLoginError from ex
-        except (ContentTypeError) as ex:
+        except ContentTypeError as ex:
             _LOGGER.warning(
-                "%s.%s(%s, %s): A login error occured; Amazon may want you to change your password: %s",
+                "%s.%s(%s, %s): A login error occurred; Amazon may want you to change your password: %s",
                 func.__module__[func.__module__.find(".") + 1 :],
                 func.__name__,
                 obfuscate(args),
@@ -175,7 +171,7 @@ def _catch_all_exceptions(func):
             raise AlexapyLoginError from ex
         except CancelledError as ex:
             _LOGGER.warning(
-                "%s.%s(%s, %s): Timeout error occured accessing AlexaAPI: %s",
+                "%s.%s(%s, %s): Timeout error occurred accessing AlexaAPI: %s",
                 func.__module__[func.__module__.find(".") + 1 :],
                 func.__name__,
                 obfuscate(args),
@@ -185,9 +181,9 @@ def _catch_all_exceptions(func):
             return None
         except AlexapyLoginCloseRequested:
             raise
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             _LOGGER.warning(
-                "%s.%s(%s, %s): An error occured accessing AlexaAPI: %s",
+                "%s.%s(%s, %s): An error occurred accessing AlexaAPI: %s",
                 func.__module__[func.__module__.find(".") + 1 :],
                 func.__name__,
                 obfuscate(args),
@@ -200,7 +196,7 @@ def _catch_all_exceptions(func):
     return wrapper
 
 
-async def delete_cookie(cookiefile: Text) -> None:
+async def delete_cookie(cookiefile: str) -> None:
     """Delete a cookie.
 
     Args:

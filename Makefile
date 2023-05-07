@@ -14,7 +14,7 @@ clean:
 	rm -rf dist/ build/ .egg alexapy.egg-info/
 init: setup_env
 	poetry install
-lint: sync_deps black flake8 docstyle pylint typing
+lint: black flake8 docstyle pylint typing
 flake8:
 	poetry run flake8 alexapy
 docstyle:
@@ -22,7 +22,7 @@ docstyle:
 pylint:
 	poetry run pylint alexapy
 black:
-	poetry run black alexapy --exclude aiohttp/
+	poetry run black alexapy
 docs: docstyle
 	poetry export --dev --without-hashes -f requirements.txt --output docs/requirements.txt
 	echo "alexapy" >> docs/requirements.txt
@@ -39,7 +39,3 @@ test:
 	#poetry run py.test
 typing:
 	poetry run mypy --ignore-missing-imports alexapy
-
-sync_deps:
-	rm -R alexapy/aiohttp
-	cp -R deps/aiohttp/aiohttp alexapy/aiohttp
