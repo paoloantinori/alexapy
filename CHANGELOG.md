@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.7 (2023-05-08)
+### Fix
+* Catch ValueError when reading cookies ([`32f930e`](https://gitlab.com/keatontaylor/alexapy/-/commit/32f930eeaf0a3b37d6aacb6020cf4ac6c0999c96))
+
 ## v1.26.6 (2023-05-07)
 ### Fix
 * Use aiohttp query building instead of manual ([`1ca80be`](https://gitlab.com/keatontaylor/alexapy/-/commit/1ca80bee8a6d588760687567b4ecdb6915a81b22))
