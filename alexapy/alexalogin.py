@@ -346,7 +346,13 @@ class AlexaLogin:
                         cookie_jar.load(cookiefile)
                         return_cookies = self._get_cookies_from_session()
                         numcookies = len(return_cookies)
-                    except (OSError, EOFError, TypeError, AttributeError) as ex:
+                    except (
+                        OSError,
+                        EOFError,
+                        TypeError,
+                        AttributeError,
+                        ValueError,
+                    ) as ex:
                         _LOGGER.debug(
                             "Error loading aiohttpcookie from %s: %s",
                             cookiefile,
