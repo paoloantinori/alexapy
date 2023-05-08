@@ -2,6 +2,22 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.8 (2023-05-08)
+### Fix
+* Bump min python to 3.10 ([`c34cecf`](https://gitlab.com/keatontaylor/alexapy/-/commit/c34cecf1147217589ebdd3d36ab830c983d22922))
+
+## v1.26.7 (2023-05-08)
+### Fix
+* Catch ValueError when reading cookies ([`32f930e`](https://gitlab.com/keatontaylor/alexapy/-/commit/32f930eeaf0a3b37d6aacb6020cf4ac6c0999c96))
+
+## v1.26.6 (2023-05-07)
+### Fix
+* Use aiohttp query building instead of manual ([`1ca80be`](https://gitlab.com/keatontaylor/alexapy/-/commit/1ca80bee8a6d588760687567b4ecdb6915a81b22))
+
+## v1.26.5 (2023-03-06)
+### Fix
+* Catch IndexError in domainAttributes ([`8543c6c`](https://gitlab.com/keatontaylor/alexapy/-/commit/8543c6ca90e7a27a3bb7cfffb6300e4d36d0d37c))
+
 ## v1.26.4 (2022-10-29)
 
 ### Fix
