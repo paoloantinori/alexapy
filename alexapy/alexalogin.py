@@ -119,6 +119,7 @@ class AlexaLogin:
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
         self.uuid = uuid  # needed to be unique but repeateable for device registration
         self.oauth_login: bool = oauth_login
+        self.proxy_url: str = ""
         _LOGGER.debug(
             "Login created for %s - %s",
             obfuscate(self.email),
