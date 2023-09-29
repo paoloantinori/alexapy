@@ -3,7 +3,10 @@
 name = "AlexaPy"
 version = "1.26.9"
 description = "Python API to control Amazon Echo Devices Programmatically."
-authors = ["Keaton Taylor <keatonstaylor@gmail.com>", "Alan Tse <alandtse@gmail.com"]
+authors = [
+  "Keaton Taylor <keatonstaylor@gmail.com>",
+  "Alan Tse <alandtse@gmail.com",
+]
 license = "Apache-2.0"
 readme = 'README.md'
 repository = "https://gitlab.com/keatontaylor/alexapy"
@@ -12,7 +15,7 @@ include = ["LICENSE"]
 
 
 [tool.poetry.dependencies]
-python = ">=3.10, <4"
+python = ">=3.11, <4"
 beautifulsoup4 = "*"
 aiofiles = "^23.1.0"
 simplejson = "*"
@@ -23,8 +26,9 @@ backoff = ">=1.10"
 pyotp = ">=2.4"
 authcaptureproxy = "^1.2"
 cryptography = ">=35.0"
-#homeassistant = { git = "https://github.com/home-assistant/core.git", branch = "dev" }
+homeassistant = ">=2022.11.0b0"
 aiohttp = "^3.8.4"
+httpx = { extras = ["http2"], version = ">=0.24.0" }
 
 
 [tool.poetry.dev-dependencies]
@@ -39,8 +43,8 @@ pytest-cov = "*"
 python-semantic-release = "7.28.1"
 tox = "*"
 safety = ">=1.8.7"
-black = {version = ">19.10b0", allow-prereleases = true}
-Sphinx = ">=3.5.0"
+black = { version = ">19.10b0", allow-prereleases = true }
+Sphinx = ">=3.5.0,<7.0.0"
 autoapi = ">=2.0.1"
 sphinx-rtd-theme = "^0.5.1"
 m2r2 = ">=0.2.7"
@@ -52,6 +56,11 @@ pipdeptree = "^2.2.1"
 [tool.poetry.group.dev.dependencies]
 pyupgrade = "^3.4.0"
 pre-commit = "^3.3.1"
+
+[tool.codespell]
+skip = '*.csv,*.json,^docs,.*\.lock'
+count = ''
+quiet-level = 3
 
 [tool.black]
 line-length = 88

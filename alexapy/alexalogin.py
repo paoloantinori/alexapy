@@ -4,15 +4,17 @@ SPDX-License-Identifier: Apache-2.0
 
 Login class.
 
+This file could not have been written without referencing MIT code from https://github.com/Apollon77/alexa-remote.
+
 For more details about this api, please refer to the documentation at
 https://gitlab.com/keatontaylor/alexapy
 """
 
 import asyncio
 import base64
-import binascii
 from binascii import Error
 import datetime
+import hashlib
 from http.cookies import SimpleCookie
 from json import JSONDecodeError, dumps
 import logging
@@ -22,6 +24,7 @@ import re
 import secrets
 from typing import Any, Callable, Optional, Union
 from urllib.parse import urlencode, urlparse
+from uuid import uuid4
 
 import aiofiles
 from aiofiles import os as aioos
@@ -32,7 +35,7 @@ import pyotp
 from simplejson import JSONDecodeError as SimpleJSONDecodeError
 from yarl import URL
 
-from .const import APP_NAME, EXCEPTION_TEMPLATE, LOCALE_KEY, USER_AGENT
+from .const import APP_NAME, CALL_VERSION, EXCEPTION_TEMPLATE, LOCALE_KEY, USER_AGENT
 from .errors import AlexapyPyotpInvalidKey
 from .helpers import (
     _catch_all_exceptions,
@@ -117,8 +120,27 @@ class AlexaLogin:
         self.mac_dms: Optional[str] = oauth.get("mac_dms")
         self.expires_in: Optional[float] = oauth.get("expires_in")
         self._oauth_lock: asyncio.Lock = asyncio.Lock()
-        self.uuid = uuid  # needed to be unique but repeateable for device registration
+        self.uuid = (
+            uuid if uuid else uuid4().hex.upper()
+        )  # needed to be unique but repeateable for device registration
+        self.deviceid: str = (
+            self.uuid.encode() + b"23413249564c5635564d32573831"
+        ).hex()
+        self.code_verifier: str = oauth.get(
+            "code_verifier",
+            base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b"=").decode(),
+        )
+        self.code_challenge: str = oauth.get(
+            "code_challenge",
+            base64.urlsafe_b64encode(
+                hashlib.sha256(self.code_verifier.encode()).digest()
+            )
+            .rstrip(b"=")
+            .decode(),
+        )
+        self.authorization_code: Optional[str] = oauth.get("authorization_code")
         self.oauth_login: bool = oauth_login
+        self.proxy_url: str = ""
         _LOGGER.debug(
             "Login created for %s - %s",
             obfuscate(self.email),
@@ -170,7 +192,6 @@ class AlexaLogin:
         """Return start url for this Login."""
         if self.oauth_login:
             site: URL = URL("https://www.amazon.com/ap/signin")
-            deviceid: str = f"{binascii.hexlify(secrets.token_hex(16).encode()).decode()}23413249564c5635564d32573831"
             query = {
                 "openid.return_to": "https://www.amazon.com/ap/maplanding",
                 "openid.assoc_handle": "amzn_dp_project_dee_ios",
@@ -180,12 +201,14 @@ class AlexaLogin:
                 "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
                 "openid.mode": "checkid_setup",
                 "openid.ns.oa2": "http://www.amazon.com/ap/ext/oauth/2",
-                "openid.oa2.client_id": f"device:{deviceid}",
+                "openid.oa2.client_id": f"device:{self.deviceid}",
                 "openid.ns.pape": "http://specs.openid.net/extensions/pape/1.0",
-                "openid.oa2.response_type": "token",
+                "openid.oa2.response_type": "code",
                 "openid.ns": "http://specs.openid.net/auth/2.0",
                 "openid.pape.max_auth_age": "0",
                 "openid.oa2.scope": "device_auth_access",
+                "openid.oa2.code_challenge_method": "S256",
+                "openid.oa2.code_challenge": self.code_challenge,
                 "language": LOCALE_KEY.get(self.url.replace("amazon", ""))
                 if LOCALE_KEY.get(self.url.replace("amazon", ""))
                 else "en_US",
@@ -459,6 +482,7 @@ class AlexaLogin:
         if not self._session:
             self._create_session()
         await self.get_tokens()
+        await self.register_capabilities()
         await self.exchange_token_for_cookies()
         await self.get_csrf()
         get_resp = await self._session.get(
@@ -707,15 +731,16 @@ class AlexaLogin:
         Returns:
             bool: True if successful.
         """
-        if not self.access_token:
-            _LOGGER.warning(
-                "No access token found; falling back to credential login instead of oauth."
-            )
-            return False
-        frc = base64.b64encode(secrets.token_bytes(313)).decode("ascii")
-        map_md = base64.b64encode(
-            b'{"device_user_dictionary":[],"device_registration_data":{"software_version":"1"},"app_identifier":{"app_version":"2.2.223830","bundle_id":"com.amazon.echo"}}'
-        ).decode("utf8")
+        frc = base64.b64encode(secrets.token_bytes(313)).decode("ascii").rstrip("=")
+        map_md_raw = {
+            "device_user_dictionary": [],
+            "device_registration_data": {"software_version": "1"},
+            "app_identifier": {
+                "app_version": CALL_VERSION,
+                "bundle_id": "com.amazon.echo",
+            },
+        }
+        map_md = base64.b64encode(dumps(map_md_raw).encode()).decode().rstrip("=")
 
         if self.url.lower() != "amazon.com":
             urls = [self.url, "amazon.com"]
@@ -728,41 +753,36 @@ class AlexaLogin:
             cookies["map-md"] = map_md
             headers = {
                 "Content-Type": "application/json",
-                "Accept-Charset": "utf-8",
-                "x-amzn-identity-auth-domain": f"api.{url}",
-                "Connection": "keep-alive",
-                "Accept": "*/*",
-                "User-Agent": USER_AGENT,
-                "Accept-Language": "en-US",
-                # "Cookie": "; ".join(
-                #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
-                # ),
             }
             cookies_list = []
-            for k, value in cookies.items():
-                # if k == "csrf":
-                #     continue
-                cookies_list.append({"Value": value.value, "Name": k})
             data = {
                 "requested_extensions": ["device_info", "customer_info"],
                 "cookies": {"website_cookies": cookies_list, "domain": f".{url}"},
                 "registration_data": {
                     "domain": "Device",
-                    "app_version": "2.2.223830.0",
+                    "app_version": CALL_VERSION,
                     "device_type": "A2IVLV5VM2W81",
-                    "device_name": f"%FIRST_NAME%'s%DUPE_STRATEGY_1ST%{APP_NAME}",
-                    "os_version": "11.4.1",
-                    "device_serial": "2cf947a5a093d686a30c33cb07a703fd"
-                    if not self.uuid
-                    else self.uuid,
+                    "device_name": f"%FIRST_NAME%\u0027s%DUPE_STRATEGY_1ST%{APP_NAME}",
+                    "os_version": "16.6",
+                    "device_serial": self.uuid,
                     "device_model": "iPhone",
                     "app_name": APP_NAME,
                     "software_version": "1",
                 },
-                "auth_data": {"access_token": self.access_token},
+                "auth_data": {},
                 "user_context_map": {"frc": frc},
                 "requested_token_type": ["bearer", "mac_dms", "website_cookies"],
             }
+            if self.access_token:
+                data["auth_data"] = {"access_token": self.access_token}
+            elif self.code_verifier and self.authorization_code:
+                data["auth_data"] = {
+                    "client_id": self.deviceid,
+                    "authorization_code": self.authorization_code,
+                    "code_verifier": self.code_verifier,
+                    "code_algorithm": "SHA-256",
+                    "client_domain": "DeviceLegacy",
+                }
             _LOGGER.debug("Attempting to register with %s", url)
             try:
                 response = await self._session.post(
@@ -803,13 +823,299 @@ class AlexaLogin:
             )
             if old != self.access_token:
                 _LOGGER.debug(
-                    "New access token received which expires at %s in %s",
+                    "New access token(%s) received which expires at %s in %s",
+                    len(self.access_token),
                     datetime.datetime.fromtimestamp(self.expires_in),
                     datetime.datetime.fromtimestamp(self.expires_in)
                     - datetime.datetime.now(),
                 )
             return True
         return False
+
+    async def register_capabilities(self) -> bool:
+        """Register capabilities of virtual device.
+
+        Required for HTTP2/Push.
+        https://developer.amazon.com/en-US/docs/alexa/alexa-voice-service/capabilities-api.html
+
+        Returns
+            bool: Return True if successful.
+
+        """
+        data = {
+            "legacyFlags": {
+                "SUPPORTS_COMMS": True,
+                "SUPPORTS_ARBITRATION": True,
+                "SCREEN_WIDTH": 1170,
+                "SUPPORTS_SCRUBBING": True,
+                "SPEECH_SYNTH_SUPPORTS_TTS_URLS": False,
+                "SUPPORTS_HOME_AUTOMATION": True,
+                "SUPPORTS_DROPIN_OUTBOUND": True,
+                "FRIENDLY_NAME_TEMPLATE": "VOX",
+                "SUPPORTS_SIP_OUTBOUND_CALLING": True,
+                "VOICE_PROFILE_SWITCHING_DISABLED": True,
+                "SUPPORTS_LYRICS_IN_CARD": False,
+                "SUPPORTS_DATAMART_NAMESPACE": "Vox",
+                "SUPPORTS_VIDEO_CALLING": True,
+                "SUPPORTS_PFM_CHANGED": True,
+                "SUPPORTS_TARGET_PLATFORM": "TABLET",
+                "SUPPORTS_SECURE_LOCKSCREEN": False,
+                "AUDIO_PLAYER_SUPPORTS_TTS_URLS": False,
+                "SUPPORTS_KEYS_IN_HEADER": False,
+                "SUPPORTS_MIXING_BEHAVIOR_FOR_AUDIO_PLAYER": False,
+                "AXON_SUPPORT": True,
+                "SUPPORTS_TTS_SPEECHMARKS": True,
+            },
+            "envelopeVersion": "20160207",
+            "capabilities": [
+                {
+                    "version": "0.1",
+                    "interface": "CardRenderer",
+                    "type": "AlexaInterface",
+                },
+                {"interface": "Navigation", "type": "AlexaInterface", "version": "1.1"},
+                {
+                    "type": "AlexaInterface",
+                    "version": "2.0",
+                    "interface": "Alexa.Comms.PhoneCallController",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "version": "1.1",
+                    "interface": "ExternalMediaPlayer",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "interface": "Alerts",
+                    "configurations": {
+                        "maximumAlerts": {"timers": 2, "overall": 99, "alarms": 2}
+                    },
+                    "version": "1.3",
+                },
+                {
+                    "version": "1.0",
+                    "interface": "Alexa.Display.Window",
+                    "type": "AlexaInterface",
+                    "configurations": {
+                        "templates": [
+                            {
+                                "type": "STANDARD",
+                                "id": "app_window_template",
+                                "configuration": {
+                                    "sizes": [
+                                        {
+                                            "id": "fullscreen",
+                                            "type": "DISCRETE",
+                                            "value": {
+                                                "value": {
+                                                    "height": 1440,
+                                                    "width": 3200,
+                                                },
+                                                "unit": "PIXEL",
+                                            },
+                                        }
+                                    ],
+                                    "interactionModes": ["mobile_mode", "auto_mode"],
+                                },
+                            }
+                        ]
+                    },
+                },
+                {
+                    "type": "AlexaInterface",
+                    "interface": "AccessoryKit",
+                    "version": "0.1",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "interface": "Alexa.AudioSignal.ActiveNoiseControl",
+                    "version": "1.0",
+                    "configurations": {
+                        "ambientSoundProcessingModes": [
+                            {"name": "ACTIVE_NOISE_CONTROL"},
+                            {"name": "PASSTHROUGH"},
+                        ]
+                    },
+                },
+                {
+                    "interface": "PlaybackController",
+                    "type": "AlexaInterface",
+                    "version": "1.0",
+                },
+                {"version": "1.0", "interface": "Speaker", "type": "AlexaInterface"},
+                {
+                    "version": "1.0",
+                    "interface": "SpeechSynthesizer",
+                    "type": "AlexaInterface",
+                },
+                {
+                    "version": "1.0",
+                    "interface": "AudioActivityTracker",
+                    "type": "AlexaInterface",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "interface": "Alexa.Camera.LiveViewController",
+                    "version": "1.0",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "version": "1.0",
+                    "interface": "Alexa.Input.Text",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "interface": "Alexa.PlaybackStateReporter",
+                    "version": "1.0",
+                },
+                {
+                    "version": "1.1",
+                    "interface": "Geolocation",
+                    "type": "AlexaInterface",
+                },
+                {
+                    "interface": "Alexa.Health.Fitness",
+                    "version": "1.0",
+                    "type": "AlexaInterface",
+                },
+                {"interface": "Settings", "type": "AlexaInterface", "version": "1.0"},
+                {
+                    "configurations": {
+                        "interactionModes": [
+                            {
+                                "dialog": "SUPPORTED",
+                                "interactionDistance": {"value": 18, "unit": "INCHES"},
+                                "video": "SUPPORTED",
+                                "keyboard": "SUPPORTED",
+                                "id": "mobile_mode",
+                                "uiMode": "MOBILE",
+                                "touch": "SUPPORTED",
+                            },
+                            {
+                                "video": "UNSUPPORTED",
+                                "dialog": "SUPPORTED",
+                                "interactionDistance": {"value": 36, "unit": "INCHES"},
+                                "uiMode": "AUTO",
+                                "touch": "SUPPORTED",
+                                "id": "auto_mode",
+                                "keyboard": "UNSUPPORTED",
+                            },
+                        ]
+                    },
+                    "type": "AlexaInterface",
+                    "interface": "Alexa.InteractionMode",
+                    "version": "1.0",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "configurations": {
+                        "catalogs": [
+                            {
+                                "type": "IOS_APP_STORE",
+                                "identifierTypes": [
+                                    "URI_HTTP_SCHEME",
+                                    "URI_CUSTOM_SCHEME",
+                                ],
+                            }
+                        ]
+                    },
+                    "version": "0.2",
+                    "interface": "Alexa.Launcher",
+                },
+                {"interface": "System", "version": "1.0", "type": "AlexaInterface"},
+                {
+                    "interface": "Alexa.IOComponents",
+                    "type": "AlexaInterface",
+                    "version": "1.4",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "interface": "Alexa.FavoritesController",
+                    "version": "1.0",
+                },
+                {
+                    "version": "1.0",
+                    "type": "AlexaInterface",
+                    "interface": "Alexa.Mobile.Push",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "interface": "InteractionModel",
+                    "version": "1.1",
+                },
+                {
+                    "interface": "Alexa.PlaylistController",
+                    "type": "AlexaInterface",
+                    "version": "1.0",
+                },
+                {
+                    "interface": "SpeechRecognizer",
+                    "type": "AlexaInterface",
+                    "version": "2.1",
+                },
+                {
+                    "interface": "AudioPlayer",
+                    "type": "AlexaInterface",
+                    "version": "1.3",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "version": "3.1",
+                    "interface": "Alexa.RTCSessionController",
+                },
+                {
+                    "interface": "VisualActivityTracker",
+                    "version": "1.1",
+                    "type": "AlexaInterface",
+                },
+                {
+                    "interface": "Alexa.PlaybackController",
+                    "version": "1.0",
+                    "type": "AlexaInterface",
+                },
+                {
+                    "type": "AlexaInterface",
+                    "interface": "Alexa.SeekController",
+                    "version": "1.0",
+                },
+                {
+                    "interface": "Alexa.Comms.MessagingController",
+                    "type": "AlexaInterface",
+                    "version": "1.0",
+                },
+            ],
+        }
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept-Language": "en-US",
+            "Accept-Charset": "utf-8",
+            "Connection": "keep-alive",
+            "Content-type": "application/json; charset=UTF-8",
+            "authorization": f"Bearer {self.access_token}",
+        }
+
+        response = await self._session.put(
+            "https://api.amazonalexa.com/v1/devices/@self/capabilities",
+            json=data,
+            headers=headers,
+        )
+        _LOGGER.debug(
+            "capabilities response %s with \n%s\n%s",
+            response,
+            dumps(data),
+            dumps(headers),
+        )
+        if response.status != 204:
+            if self._debug:
+                _LOGGER.debug(
+                    "Failed to register capabilities: %s\n%s",
+                    response,
+                    await response.text(),
+                )
+            else:
+                _LOGGER.debug("Failed to register capabilities")
+            return False
+        return True
 
     async def refresh_access_token(self) -> bool:
         """Refresh access token and expires in using refresh token.
@@ -823,8 +1129,8 @@ class AlexaLogin:
             return False
         data = {
             "app_name": APP_NAME,
-            "app_version": "2.2.223830.0",
-            "di.sdk.version": "6.10.0",
+            "app_version": CALL_VERSION,
+            "di.sdk.version": "6.12.4",
             "source_token": self.refresh_token,
             "package_name": "com.amazon.echo",
             "di.hw.version": "iPhone",
@@ -832,28 +1138,14 @@ class AlexaLogin:
             "requested_token_type": "access_token",
             "source_token_type": "refresh_token",
             "di.os.name": "iOS",
-            "di.os.version": "11.4.1",
-            "current_version": "6.10.0",
-        }
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Accept-Charset": "utf-8",
-            "x-amzn-identity-auth-domain": "api.amazon.com",
-            "Connection": "keep-alive",
-            "Accept": "*/*",
-            "User-Agent": USER_AGENT,
-            "Accept-Language": LOCALE_KEY.get(self.url.replace("amazon", ""))
-            if LOCALE_KEY.get(self.url.replace("amazon", ""))
-            else "en_US",
-            # "Cookie": "; ".join(
-            #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
-            # ),
+            "di.os.version": "16.6",
+            "current_version": "6.12.4",
+            "previous_version": "6.12.4",
         }
         try:
             response = await self._session.post(
                 "https://api." + self.url + "/auth/token",
                 data=data,
-                headers=headers,
             )
         except aiohttp.ClientConnectionError:
             _LOGGER.debug(
@@ -862,7 +1154,6 @@ class AlexaLogin:
             response = await self._session.post(
                 "https://api.amazon.com/auth/token",
                 data=data,
-                headers=headers,
             )
         _LOGGER.debug("refresh response %s with \n%s", response, dumps(data))
         if response.status != 200:
@@ -880,7 +1171,8 @@ class AlexaLogin:
                 response.get("expires_in")
             )
             _LOGGER.debug(
-                "Successfully updated access_token which expires at %s in %s",
+                "Successfully refreshed access_token(%s) which expires at %s in %s",
+                len(self.access_token),
                 datetime.datetime.fromtimestamp(self.expires_in),
                 datetime.datetime.fromtimestamp(self.expires_in)
                 - datetime.datetime.now(),
@@ -899,31 +1191,23 @@ class AlexaLogin:
             _LOGGER.debug("No refresh token found to get access token")
             return False
         data = {
-            "di.os.name": "iOS",
-            "app_version": "2.2.223830.0",
+            "app_name": APP_NAME,
+            "app_version": CALL_VERSION,
+            "di.sdk.version": "6.12.4",
             "domain": f".{self.url}",
             "source_token": self.refresh_token,
+            "package_name": "com.amazon.echo",
+            "di.hw.version": "iPhone",
+            "platform": "iOS",
             "requested_token_type": "auth_cookies",
             "source_token_type": "refresh_token",
-            "di.hw.version": "iPhone",
-            "di.sdk.version": "6.10.0",
-            # "cookies": {},
-            "app_name": APP_NAME,
-            "di.os.version": "11.4.1",
+            "di.os.name": "iOS",
+            "di.os.version": "16.6",
+            "current_version": "6.12.4",
+            "previous_version": "6.12.4",
         }
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
-            "Accept-Charset": "utf-8",
-            # "x-amzn-identity-auth-domain": f"api.{self.url}",
-            "Connection": "keep-alive",
-            "Accept": "*/*",
-            "User-Agent": USER_AGENT,
-            "Accept-Language": LOCALE_KEY.get(self.url.replace("amazon", ""))
-            if LOCALE_KEY.get(self.url.replace("amazon", ""))
-            else "en_US",
-            # "Cookie": "; ".join(
-            #     [str(x) + "=" + str(y) for x, y in self._cookies.items()]
-            # ),
         }
         try:
             response = await self._session.post(
@@ -1032,7 +1316,7 @@ class AlexaLogin:
             "Accept-Language": "en-US",
         }
         response = await self._session.get(
-            f"{self._prefix}{self.url}/api/users/me?platform=ios&version=2.2.223830.0",
+            f"{self._prefix}{self.url}/api/users/me?platform=ios&version={CALL_VERSION}",
             headers=headers,
         )
         if response.status != 200:

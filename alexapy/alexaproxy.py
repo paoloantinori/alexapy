@@ -63,6 +63,9 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
         """
         if URL(str(resp.url)).path in ["/ap/maplanding", "/spa/index.html"]:
             self._login.session.cookie_jar.update_cookies(self.session.cookies)
+            self._login.authorization_code = URL(str(resp.url)).query.get(
+                "openid.oa2.authorization_code"
+            )
             self._login.access_token = URL(str(resp.url)).query.get(
                 "openid.oa2.access_token"
             )
@@ -74,6 +77,10 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
             if self._callback_url:
                 return URL(self._callback_url)
             return f"Successfully logged in as {self._login.email} for flow {self._config_flow_id}. Please close the window."
+        if URL(str(resp.url)).path in [
+            "/"
+        ]:  # sometimes the redirect after the captcha fails, redirect manually
+            return self._login.proxy_url
 
     def change_login(self, login: AlexaLogin) -> None:
         """Change login.
