@@ -14,10 +14,8 @@ from collections.abc import Coroutine
 import datetime
 import json
 import logging
-from typing import Any
-from typing import Callable  # noqa pylint: disable=unused-import
+from typing import Any, Callable, Optional
 
-from homeassistant.core import HomeAssistant  # noqa pylint: disable=import-error
 import httpx
 
 from alexapy.errors import AlexapyLoginError
@@ -37,12 +35,12 @@ class HTTP2EchoClient:
 
     def __init__(
         self,
-        hass: HomeAssistant,
         login: AlexaLogin,
         msg_callback: Callable[[Any], Coroutine[Any, Any, None]],
         open_callback: Callable[[], Coroutine[Any, Any, None]],
         close_callback: Callable[[], Coroutine[Any, Any, None]],
         error_callback: Callable[[str], Coroutine[Any, Any, None]],
+        loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         # pylint: disable=too-many-arguments
         """Init for threading and HTTP2 Push Connection."""
@@ -65,7 +63,7 @@ class HTTP2EchoClient:
         self.boundary: str = ""
 
         self._loop: asyncio.AbstractEventLoop = (
-            hass.loop if hass and hass.loop else asyncio.get_event_loop()
+            loop if loop else asyncio.get_event_loop()
         )
         self._last_ping = datetime.datetime(1, 1, 1)
         self._tasks = set()
