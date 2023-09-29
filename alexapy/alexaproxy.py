@@ -63,6 +63,9 @@ class AlexaProxy(authcaptureproxy.AuthCaptureProxy):
         """
         if URL(str(resp.url)).path in ["/ap/maplanding", "/spa/index.html"]:
             self._login.session.cookie_jar.update_cookies(self.session.cookies)
+            self._login.authorization_code = URL(str(resp.url)).query.get(
+                "openid.oa2.authorization_code"
+            )
             self._login.access_token = URL(str(resp.url)).query.get(
                 "openid.oa2.access_token"
             )

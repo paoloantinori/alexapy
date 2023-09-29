@@ -14,6 +14,7 @@ import logging
 from pathlib import Path
 
 from .alexaapi import AlexaAPI
+from .alexahttp2 import HTTP2EchoClient
 from .alexalogin import AlexaLogin
 from .alexaproxy import AlexaProxy
 from .alexawebsocket import WebsocketEchoClient
@@ -50,6 +51,7 @@ __all__ = [
     "AlexapyLoginError",
     "AlexaProxy",
     "AlexapyPyotpInvalidKey",
+    "HTTP2EchoClient",
     "WebsocketEchoClient",
     "hide_email",
     "hide_serial",

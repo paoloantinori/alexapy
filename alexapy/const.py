@@ -10,8 +10,9 @@ https://gitlab.com/keatontaylor/alexapy
 
 EXCEPTION_TEMPLATE = "An exception of type {0} occurred. Arguments:\n{1!r}"
 
+CALL_VERSION = "2.2.556530.0"
 APP_NAME = "Alexa Media Player"
-USER_AGENT = f"AmazonWebView/{APP_NAME}/2.2.223830.0/iOS/11.4.1/iPhone"
+USER_AGENT = f"AmazonWebView/Amazon Alexa/{CALL_VERSION}/iOS/16.6/iPhone"
 LOCALE_KEY = {
     ".de": "de_DE",
     ".com.au": "en_AU",
