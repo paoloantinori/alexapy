@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.26.9 (2023-08-08)
+### Fix
+* Bump aiofiles to ^23.1.0 ([`5a86019`](https://gitlab.com/keatontaylor/alexapy/-/commit/5a8601974c120987512a05424f55db5b6b392278))
+
 ## v1.26.8 (2023-05-08)
 ### Fix
 * Bump min python to 3.10 ([`c34cecf`](https://gitlab.com/keatontaylor/alexapy/-/commit/c34cecf1147217589ebdd3d36ab830c983d22922))
