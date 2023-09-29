@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.1 (2023-09-29)
+### Fix
+* Remove dependency on ha ([`8cb0835`](https://gitlab.com/keatontaylor/alexapy/-/commit/8cb08354807eae835a8feb00564742ecb7895995))
+
 ## v1.27.0 (2023-09-29)
 ### Documentation
 * Build docs ([`cb2ef60`](https://gitlab.com/keatontaylor/alexapy/-/commit/cb2ef603e763ec80023d74d326f65443aa865604))
