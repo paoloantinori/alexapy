@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.0 (2023-09-29)
+### Documentation
+* Build docs ([`cb2ef60`](https://gitlab.com/keatontaylor/alexapy/-/commit/cb2ef603e763ec80023d74d326f65443aa865604))
+
 ## v1.26.9 (2023-08-08)
 ### Fix
 * Bump aiofiles to ^23.1.0 ([`5a86019`](https://gitlab.com/keatontaylor/alexapy/-/commit/5a8601974c120987512a05424f55db5b6b392278))
