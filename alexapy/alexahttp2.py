@@ -14,17 +14,10 @@ from collections.abc import Coroutine
 import datetime
 import json
 import logging
-import math
-import random
-import time
-from typing import Any, Union, cast
+from typing import Any
 from typing import Callable  # noqa pylint: disable=unused-import
-import uuid
 
-import aiohttp
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant  # noqa pylint: disable=import-error
 import httpx
 
 from alexapy.errors import AlexapyLoginError
@@ -103,7 +96,7 @@ class HTTP2EchoClient:
                 async for data in response.aiter_text():
                     await self.on_message(data)
         except httpx.RemoteProtocolError as exception_:
-            self.on_close("Disconnect detected")
+            self.on_close(f"Disconnect detected: {exception_}")
 
     async def on_message(self, message: str) -> None:
         # pylint: disable=too-many-statements
@@ -115,7 +108,7 @@ class HTTP2EchoClient:
                 if not self.boundary:  # set boundary character
                     self.boundary = line
             elif line.startswith(reauth_required):
-                raise AlexapyLoginError("HTTP2 message parsing error: %s", line)
+                raise AlexapyLoginError(f"HTTP2 message parsing error: {line}")
             elif line.startswith("Content-Type: application/json"):
                 continue
             elif line and not line.startswith(self.boundary):
@@ -134,13 +127,11 @@ class HTTP2EchoClient:
     def on_close(self, future="") -> None:
         """Handle HTTP2 Close."""
         _LOGGER.debug("HTTP2 Connection Closed.")
-        self._message_count = 0
         asyncio.run_coroutine_threadsafe(self.close_callback(), self._loop)
 
     async def async_on_open(self) -> None:
         """Handle Async WebSocket Open."""
-        if not self.websocket.closed:
-            await self.open_callback()
+        await self.open_callback()
 
     async def manage_pings(self) -> None:
         """Ping."""
@@ -165,4 +156,4 @@ class HTTP2EchoClient:
             response.text,
         )
         if response.status_code in [403]:
-            raise AlexapyLoginError("Ping detected 403: %s", response.text)
+            raise AlexapyLoginError(f"Ping detected 403: {response.text}")

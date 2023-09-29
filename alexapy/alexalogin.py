@@ -755,11 +755,6 @@ class AlexaLogin:
                 "Content-Type": "application/json",
             }
             cookies_list = []
-            for k, value in cookies.items():
-                # if k == "csrf":
-                #     continue
-                # cookies_list.append({"Value": value.value, "Name": k})
-                pass
             data = {
                 "requested_extensions": ["device_info", "customer_info"],
                 "cookies": {"website_cookies": cookies_list, "domain": f".{url}"},
