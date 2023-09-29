@@ -41,14 +41,14 @@ repos:
   - hooks:
       - id: black
     repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.9.1
   - repo: https://github.com/pre-commit/mirrors-prettier
     hooks:
       - id: prettier
         exclude: ^(docs|CHANGELOG.md)
     rev: v3.0.0-alpha.9-for-vscode
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.4.0
+    rev: v3.13.0
     hooks:
       - id: pyupgrade
         args: [--py39-plus]
@@ -70,14 +70,16 @@ repos:
   #        pass_filenames: false
   #        always_run: true
   - repo: https://github.com/floatingpurr/sync_with_poetry
-    rev: "0.4.0" # the revision or tag to clone at
+    rev: "1.1.0" # the revision or tag to clone at
     hooks:
       - id: sync_with_poetry
         args: [] # optional args
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+    rev: v2.2.5
     hooks:
       - id: codespell
+        args:
+          - --ignore-words-list=hass
         additional_dependencies:
           - tomli
         exclude_types: [csv, json]
@@ -87,6 +89,14 @@ repos:
   #   hooks:
   #     - id: prospector
   #       exclude: ^(tests)/.+\.py$
+  - repo: local
+    hooks:
+      - id: Lint
+        name: Lint
+        entry: make lint
+        language: system
+        always_run: true
+        pass_filenames: false
 
 ci:
   autofix_commit_msg: |
