@@ -26,7 +26,6 @@ backoff = ">=1.10"
 pyotp = ">=2.4"
 authcaptureproxy = "^1.2"
 cryptography = ">=35.0"
-homeassistant = ">=2022.11.0b0"
 aiohttp = "^3.8.4"
 httpx = { extras = ["http2"], version = ">=0.24.0" }
 
