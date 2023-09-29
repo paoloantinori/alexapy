@@ -89,6 +89,14 @@ repos:
   #   hooks:
   #     - id: prospector
   #       exclude: ^(tests)/.+\.py$
+  - repo: local
+    hooks:
+      - id: Lint
+        name: Lint
+        entry: make lint
+        language: system
+        always_run: true
+        pass_filenames: false
 
 ci:
   autofix_commit_msg: |
