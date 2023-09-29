@@ -48,7 +48,7 @@ repos:
         exclude: ^(docs|CHANGELOG.md)
     rev: v3.0.0-alpha.9-for-vscode
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.12.0
+    rev: v3.13.0
     hooks:
       - id: pyupgrade
         args: [--py39-plus]
