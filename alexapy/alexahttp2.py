@@ -77,9 +77,10 @@ class HTTP2EchoClient:
         task = self._loop.create_task(self.manage_pings())
         task.add_done_callback(self.on_close)
         self._tasks.add(task)
-        # task = self._loop.create_task(self.raise_exception())
+        # task = self._loop.create_task(self.test_close(raise_exception=True))
         # task.add_done_callback(self.on_close)
         # self._tasks.add(task)
+        await self.async_on_open()
 
     async def process_messages(self) -> None:
         """Start Async WebSocket Listener."""
@@ -148,9 +149,9 @@ class HTTP2EchoClient:
 
     async def manage_pings(self) -> None:
         """Manage Pings."""
-        await self.ping()
-        await asyncio.sleep(299)
-        asyncio.run_coroutine_threadsafe(self.manage_pings(), self._loop)
+        while True:
+            await self.ping()
+            await asyncio.sleep(299)
 
     async def ping(self) -> None:
         """Ping."""
@@ -171,7 +172,8 @@ class HTTP2EchoClient:
         if response.status_code in [403]:
             raise AlexapyLoginError(f"Ping detected 403: {response.text}")
 
-    async def raise_exception(self, delay: int = 30) -> None:
-        """Raise exception for testing."""
+    async def test_close(self, delay: int = 30, raise_exception: bool = False) -> None:
+        """Test close."""
         await asyncio.sleep(delay)
-        raise AlexapyLoginError(f"Raised exception after {delay}")
+        if raise_exception:
+            raise AlexapyLoginError(f"Raised exception after {delay}")
