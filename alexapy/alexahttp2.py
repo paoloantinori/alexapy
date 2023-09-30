@@ -49,7 +49,9 @@ class HTTP2EchoClient:
         self._options = {
             "method": "GET",
             "path": "/v20160207/directives",
-            "authority": HTTP2_AUTHORITY.get(login.url, HTTP2_DEFAULT),
+            "authority": HTTP2_AUTHORITY.get(
+                login.url.replace("amazon", ""), HTTP2_DEFAULT
+            ),
             "scheme": "https",
             "authorization": f"Bearer {login.access_token}",
         }
