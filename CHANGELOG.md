@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.2 (2023-09-30)
+### Fix
+* Catch None response for json.loads ([`2e2e671`](https://gitlab.com/keatontaylor/alexapy/-/commit/2e2e6712344c116ba1d230a62afe981b01f961a5))
+* Catch login exceptions from http2 ([`fe971e9`](https://gitlab.com/keatontaylor/alexapy/-/commit/fe971e99c5b1da33499f9a185a8f83a0eae07688))
+* Add non-NA domains for http2 ([`fa8a8ef`](https://gitlab.com/keatontaylor/alexapy/-/commit/fa8a8efd40c48b1cdeae21ff0a978643a9d1a654))
+
 ## v1.27.1 (2023-09-29)
 ### Fix
 * Remove dependency on ha ([`8cb0835`](https://gitlab.com/keatontaylor/alexapy/-/commit/8cb08354807eae835a8feb00564742ecb7895995))
