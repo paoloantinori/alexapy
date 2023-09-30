@@ -27,3 +27,10 @@ LOCALE_KEY = {
     ".co.jp": "ja_JP",
     ".com.br": "pt_BR",
 }
+HTTP2_AUTHORITY = {
+    "amazon.com": "bob-dispatch-prod-na.amazon.com",
+    "amazon.com.br": "bob-dispatch-prod-na.amazon.com",
+    "amazon.co.jp": "bob-dispatch-prod-fe.amazon.com",
+    "amazon.com.au": "bob-dispatch-prod-fe.amazon.com",
+}
+HTTP2_DEFAULT = "bob-dispatch-prod-eu.amazon.com"

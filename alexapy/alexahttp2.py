@@ -18,6 +18,7 @@ from typing import Any, Callable, Optional
 
 import httpx
 
+from alexapy.const import HTTP2_AUTHORITY, HTTP2_DEFAULT
 from alexapy.errors import AlexapyLoginError
 
 from .alexalogin import AlexaLogin  # noqa pylint
@@ -48,7 +49,7 @@ class HTTP2EchoClient:
         self._options = {
             "method": "GET",
             "path": "/v20160207/directives",
-            "authority": "bob-dispatch-prod-na.amazon.com",
+            "authority": HTTP2_AUTHORITY.get(login.url, HTTP2_DEFAULT),
             "scheme": "https",
             "authorization": f"Bearer {login.access_token}",
         }
