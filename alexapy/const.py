@@ -27,10 +27,18 @@ LOCALE_KEY = {
     ".co.jp": "ja_JP",
     ".com.br": "pt_BR",
 }
+# https://developer.amazon.com/en-US/docs/alexa/alexa-voice-service/api-overview.html#endpoints
+HTTP2_NA = "alexa.na.gateway.devices.a2z.com"
+HTTP2_EU = "alexa.eu.gateway.devices.a2z.com"
+HTTP2_FE = "alexa.fe.gateway.devices.a2z.com"
 HTTP2_AUTHORITY = {
-    "amazon.com": "bob-dispatch-prod-na.amazon.com",
-    "amazon.com.br": "bob-dispatch-prod-na.amazon.com",
-    "amazon.co.jp": "bob-dispatch-prod-fe.amazon.com",
-    "amazon.com.au": "bob-dispatch-prod-fe.amazon.com",
+    ".com": HTTP2_NA,
+    ".com.ca": HTTP2_NA,
+    ".com.mx": HTTP2_NA,
+    ".com.br": HTTP2_NA,
+    ".co.jp": HTTP2_FE,
+    ".com.au": HTTP2_FE,
+    ".com.in": HTTP2_FE,
+    ".co.nz": HTTP2_FE,
 }
-HTTP2_DEFAULT = "bob-dispatch-prod-eu.amazon.com"
+HTTP2_DEFAULT = HTTP2_EU
