@@ -18,6 +18,7 @@ from typing import Any, Callable, Optional
 
 import httpx
 
+from alexapy.const import HTTP2_AUTHORITY, HTTP2_DEFAULT
 from alexapy.errors import AlexapyLoginError
 
 from .alexalogin import AlexaLogin  # noqa pylint
@@ -48,7 +49,7 @@ class HTTP2EchoClient:
         self._options = {
             "method": "GET",
             "path": "/v20160207/directives",
-            "authority": "bob-dispatch-prod-na.amazon.com",
+            "authority": HTTP2_AUTHORITY.get(login.url, HTTP2_DEFAULT),
             "scheme": "https",
             "authorization": f"Bearer {login.access_token}",
         }
@@ -71,12 +72,14 @@ class HTTP2EchoClient:
     async def async_run(self) -> None:
         """Start Async WebSocket Listener."""
         task = self._loop.create_task(self.process_messages())
-        self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
         task.add_done_callback(self.on_close)
-        task = self._loop.create_task(self.manage_pings())
         self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
+        task = self._loop.create_task(self.manage_pings())
+        task.add_done_callback(self.on_close)
+        self._tasks.add(task)
+        # task = self._loop.create_task(self.raise_exception())
+        # task.add_done_callback(self.on_close)
+        # self._tasks.add(task)
 
     async def process_messages(self) -> None:
         """Start Async WebSocket Listener."""
@@ -125,6 +128,18 @@ class HTTP2EchoClient:
     def on_close(self, future="") -> None:
         """Handle HTTP2 Close."""
         _LOGGER.debug("HTTP2 Connection Closed.")
+        asyncio.gather(*self._tasks, return_exceptions=True)
+        try:
+            for task in self._tasks:
+                if task.done():
+                    exc = task.exception()
+                    if exc:
+                        self.on_error(exc)
+                else:
+                    task.remove_done_callback(self.on_close)
+                    task.cancel()
+        except BaseException:  # pylint: disable=broad-except
+            pass
         asyncio.run_coroutine_threadsafe(self.close_callback(), self._loop)
 
     async def async_on_open(self) -> None:
@@ -132,7 +147,7 @@ class HTTP2EchoClient:
         await self.open_callback()
 
     async def manage_pings(self) -> None:
-        """Ping."""
+        """Manage Pings."""
         await self.ping()
         await asyncio.sleep(299)
         asyncio.run_coroutine_threadsafe(self.manage_pings(), self._loop)
@@ -155,3 +170,8 @@ class HTTP2EchoClient:
         )
         if response.status_code in [403]:
             raise AlexapyLoginError(f"Ping detected 403: {response.text}")
+
+    async def raise_exception(self, delay: int = 30) -> None:
+        """Raise exception for testing."""
+        await asyncio.sleep(delay)
+        raise AlexapyLoginError(f"Raised exception after {delay}")
