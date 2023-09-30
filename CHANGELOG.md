@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.4 (2023-09-30)
+### Fix
+* Add additional http2 domains ([`f13b452`](https://gitlab.com/keatontaylor/alexapy/-/commit/f13b4520bdb7896d715101c8a6ad08ab70a482e9))
+
 ## v1.27.3 (2023-09-30)
 ### Fix
 * Fix manage ping loop to avoid false close ([`50ac5f9`](https://gitlab.com/keatontaylor/alexapy/-/commit/50ac5f90cd0b5faf122a944d372eda94cb2eb123))
