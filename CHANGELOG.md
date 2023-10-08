@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.5 (2023-10-08)
+### Fix
+* Attempt to refresh tokens before login error ([`2c9efa2`](https://gitlab.com/keatontaylor/alexapy/-/commit/2c9efa27a87e9a2f8413f3c3c3fc0986acf90ef6))
+
 ## v1.27.4 (2023-09-30)
 ### Fix
 * Add additional http2 domains ([`f13b452`](https://gitlab.com/keatontaylor/alexapy/-/commit/f13b4520bdb7896d715101c8a6ad08ab70a482e9))
