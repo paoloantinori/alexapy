@@ -64,7 +64,7 @@ class HTTP2EchoClient:
         )
         self.client = httpx.AsyncClient(http2=True)
         self.boundary: str = ""
-
+        self._login = login
         self._loop: asyncio.AbstractEventLoop = (
             loop if loop else asyncio.get_event_loop()
         )
@@ -112,8 +112,9 @@ class HTTP2EchoClient:
                 if not self.boundary:  # set boundary character
                     self.boundary = line
             elif line.startswith(reauth_required):
-                raise AlexapyLoginError(f"HTTP2 message parsing error: {line}")
-            elif line.startswith("Content-Type: application/json"):
+                _LOGGER.debug("HTTP2 login error: %s", message)
+                await self.handle_login_error("HTTP2 Message Parsing reauth")
+            elif line.startswith("Content-Type:"):
                 continue
             elif line and not line.startswith(self.boundary):
                 try:
@@ -172,7 +173,16 @@ class HTTP2EchoClient:
             response.text,
         )
         if response.status_code in [403]:
-            raise AlexapyLoginError(f"Ping detected 403: {response.text}")
+            _LOGGER.debug("Detected ping 403")
+            await self.handle_login_error(response.text)
+
+    async def handle_login_error(self, message: str = "") -> None:
+        """Handle login error.
+
+        Attempt to relogin otherwise raise login error.
+        """
+        if not await self._login.test_loggedin():
+            raise AlexapyLoginError(message)
 
     async def test_close(self, delay: int = 30, raise_exception: bool = False) -> None:
         """Test close."""
