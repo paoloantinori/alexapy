@@ -657,6 +657,8 @@ class AlexaLogin:
         # ) as myfile:
         #     html = await myfile.read()
         site = await self._process_page(html, site)
+        if site is None:
+            return
         if not self.status.get("ap_error"):
             missing_params = self._populate_data(site, data)
             if self._debug:
