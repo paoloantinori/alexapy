@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.6 (2023-10-08)
+### Fix
+* Exit login attempt if no urls to submit to ([`e276f1e`](https://gitlab.com/keatontaylor/alexapy/-/commit/e276f1e03d3b2ef74147f6b1b611ee5365f9472b))
+
 ## v1.27.5 (2023-10-08)
 ### Fix
 * Attempt to refresh tokens before login error ([`2c9efa2`](https://gitlab.com/keatontaylor/alexapy/-/commit/2c9efa27a87e9a2f8413f3c3c3fc0986acf90ef6))
