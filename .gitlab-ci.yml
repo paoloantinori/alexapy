@@ -71,7 +71,7 @@ bump_and_publish:
   script:
     - git config --global user.name "semantic-release (via GitLabCI)"
     - git config --global user.email "semantic-release@GitLabCI"
-    - pip install python-semantic-release
+    - pip install python-semantic-release==7.34.6
     - semantic-release publish
     - poetry config http-basic.pypi $PYPI_USERNAME $PYPI_PASSWORD
     - poetry publish --build
