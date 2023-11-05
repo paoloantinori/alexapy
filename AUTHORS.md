@@ -13,3 +13,4 @@
 - Brian Hanifin [GitLab](https://gitlab.com/brianhanifin) [GitHub](https://github.com/brianhanifin)
 - Chris Nussbaum [GitHub](https://github.com/nuttytree)
 - Brady Mulhollem [GitHub](https://github.com/blm126)
+- Frederic Chastagnol [GitHub](https://github.com/Fredo70) [GitLab](https://gitlab.com/Fredo70)
