@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.8 (2023-11-05)
+
+### Fix
+
+* Fix start and end date for get_customer_history_records ([`481b567`](https://gitlab.com/keatontaylor/alexapy/-/commit/481b56778d1b89870983530eb1cef89fdc3b74d3))
+
 ## v1.27.7 (2023-11-05)
 
 ### Fix
