@@ -42,6 +42,7 @@ class AlexaAPI:
     """
 
     devices: dict[str, Any] = {}
+    wake_words: dict[str, Any] = {}
     _sequence_queue: dict[Any, list[dict[Any, Any]]] = {}
     _sequence_lock: dict[Any, asyncio.Lock] = {}
 
@@ -262,6 +263,7 @@ class AlexaAPI:
         uri: str,
         data: Optional[dict[str, str]] = None,
         query: Optional[dict[str, str]] = None,
+        sub_domain: Optional[str] = "alexa",
     ) -> ClientResponse:
         async with login._oauth_lock:
             if login.expires_in and (login.expires_in - time.time() < 0):
@@ -286,7 +288,9 @@ class AlexaAPI:
                     login.refresh_token = None
                     login.expires_in = None
         session = login.session
-        url: URL = URL("https://alexa." + login.url + uri).update_query(query)
+        url: URL = URL("https://" + sub_domain + "." + login.url + uri).update_query(
+            query
+        )
         # _LOGGER.debug("%s: %s: Trying static %s: %s : with uri: %s data %s query %s", hide_email(login.email)
         #               method,
         #               url,
@@ -1221,6 +1225,41 @@ class AlexaAPI:
 
     @staticmethod
     @_catch_all_exceptions
+    async def get_wake_words(login: AlexaLogin) -> Optional[dict[str, Any]]:
+        """Get the wake words for the devices."""
+        response = await AlexaAPI._static_request(
+            "get", login, "/api/wake-word", query={"cached": "true"}
+        )
+        AlexaAPI.wake_words[login.email] = (
+            (await response.json(content_type=None))["wakeWords"]
+            if response
+            else AlexaAPI.wake_words[login.email]
+        )
+        return AlexaAPI.wake_words[login.email]
+
+    @staticmethod
+    @_catch_all_exceptions
+    async def find_wake_word(login: AlexaLogin, serial: str) -> Optional[str]:
+        """Find the wake word associated to a device."""
+        wake_words = (
+            AlexaAPI.wake_words[login.email]
+            if login.email in AlexaAPI.wake_words
+            else await AlexaAPI.get_wake_words(login)
+        )
+        if wake_words:
+            found = next(
+                filter(
+                    lambda wake_word: serial == wake_word["deviceSerialNumber"],
+                    wake_words,
+                ),
+                None,
+            )
+            if found is not None:
+                return found["wakeWord"].lower()
+        return None
+
+    @staticmethod
+    @_catch_all_exceptions
     async def get_authentication(login: AlexaLogin) -> Optional[dict[str, Any]]:
         """Get authentication json."""
         response = await AlexaAPI._static_request(
@@ -1231,6 +1270,101 @@ class AlexaAPI:
             if response
             else None
         )
+
+    @staticmethod
+    @_catch_all_exceptions
+    async def get_customer_history_records(
+        login: AlexaLogin,
+        start_time: Optional[int] = int((time.time() - 24 * 3600) * 1000),
+        end_time: Optional[int] = int((time.time() + 24 * 3600) * 1000),
+        max_record_size: Optional[int] = 1,
+    ) -> Optional[dict[str, Any]]:
+        """Get customer history records."""
+        response = await AlexaAPI._static_request(
+            "get",
+            login,
+            "/alexa-privacy/apd/rvh/customer-history-records",
+            query={
+                "startTime": start_time,
+                "endTime": end_time,
+                "recordType": "VOICE_HISTORY",
+                "maxRecordSize": max_record_size,
+            },
+            sub_domain="www",
+        )
+        result = await response.json(content_type=None) if response else None
+        if result is None:
+            return None
+        ret = []
+        if result["customerHistoryRecords"] is None:
+            return ret
+
+        for record in result["customerHistoryRecords"]:
+            o = {}
+            conv_parts = {}
+            if record["voiceHistoryRecordItems"]:
+                for item in record["voiceHistoryRecordItems"]:
+                    conv_parts[item["recordItemType"]] = (
+                        conv_parts[item["recordItemType"]]
+                        if item["recordItemType"] in conv_parts
+                        else []
+                    )
+                    conv_parts[item["recordItemType"]].append(item)
+
+                o["conversionDetails"] = conv_parts
+
+            record_key = record["recordKey"].split("#")
+            o["deviceType"] = record_key[2] if record_key[2] else None
+            o["creationTimestamp"] = (
+                record["timestamp"] if "timestamp" in record else None
+            )
+            o["deviceSerialNumber"] = record_key[3]
+            o["description"] = {"summary": ""}
+            o["utteranceType"] = record["utteranceType"]
+            wake_word = await AlexaAPI.find_wake_word(login, record_key[3])
+            if (
+                "CUSTOMER_TRANSCRIPT" in conv_parts
+                or "ASR_REPLACEMENT_TEXT" in conv_parts
+            ):
+                if "CUSTOMER_TRANSCRIPT" in conv_parts:
+                    for trans in conv_parts["CUSTOMER_TRANSCRIPT"]:
+                        text = trans["transcriptText"]
+                        if wake_word and text.startswith(wake_word):
+                            text = text[len(wake_word) :].strip()
+                        elif text.startswith("alexa"):
+                            text = text[5:].strip()
+                        o["description"]["summary"] += text + ", "
+
+                if "ASR_REPLACEMENT_TEXT" in conv_parts:
+                    for trans in conv_parts["ASR_REPLACEMENT_TEXT"]:
+                        text = trans["transcriptText"]
+                        if wake_word and text.startswith(wake_word):
+                            text = text[len(wake_word) :].strip()
+                        elif text.startswith("alexa"):
+                            text = text[5:].strip()
+                        o["description"]["summary"] += text + ", "
+                o["description"]["summary"] = o["description"]["summary"][
+                    0 : len(o["description"]["summary"]) - 2
+                ].strip()
+
+                o["alexaResponse"] = ""
+                if (
+                    "ALEXA_RESPONSE" in conv_parts
+                    or "TTS_REPLACEMENT_TEXT" in conv_parts
+                ):
+                    if "ALEXA_RESPONSE" in conv_parts:
+                        for trans in conv_parts["ALEXA_RESPONSE"]:
+                            o["alexaResponse"] += trans["transcriptText"] + ", "
+
+                    if "TTS_REPLACEMENT_TEXT" in conv_parts:
+                        for trans in conv_parts["TTS_REPLACEMENT_TEXT"]:
+                            o["alexaResponse"] += trans["transcriptText"] + ", "
+                    o["alexaResponse"] = o["alexaResponse"][
+                        0 : len(o["alexaResponse"]) - 2
+                    ].strip()
+
+            ret.append(o)
+        return ret
 
     @staticmethod
     @_catch_all_exceptions
@@ -1277,54 +1411,29 @@ class AlexaAPI:
         This will search the [last items] activity records and find the latest
         entry where Echo successfully responded.
         """
-        response = await AlexaAPI.get_activities(login, items)
+        response = await AlexaAPI.get_customer_history_records(
+            login, max_record_size=items
+        )
         if response is not None:
             for last_activity in response:
-                # Ignore discarded activity records
-                # Ignore empty description and summary
                 summary = ""
+                # Ignore empty description and summary
+                # Ignore utterance type DEVICE_ARBITRATION
                 if (
-                    last_activity["activityStatus"]
-                    != "DISCARDED_NON_DEVICE_DIRECTED_INTENT"
-                    and last_activity["description"]
+                    last_activity["description"]
+                    and last_activity["description"]["summary"]
+                    and last_activity["utteranceType"] != "DEVICE_ARBITRATION"
                 ):
                     try:
-                        summary = json.loads(last_activity["description"]).get(
-                            "summary", ""
-                        )
+                        summary = last_activity["description"]["summary"]
                     except (AttributeError, JSONDecodeError):
                         pass
                     return {
-                        "serialNumber": (
-                            last_activity["sourceDeviceIds"][0]["serialNumber"]
-                        ),
+                        "serialNumber": (last_activity["deviceSerialNumber"]),
                         "timestamp": last_activity["creationTimestamp"],
                         "summary": summary,
                     }
-                if (
-                    last_activity["activityStatus"]
-                    != "DISCARDED_NON_DEVICE_DIRECTED_INTENT"
-                    and last_activity["domainAttributes"]
-                ):
-                    try:
-                        domain_attributes = json.loads(
-                            last_activity["domainAttributes"]
-                        ).get("nBestList", "")
-                        domain_attributes = domain_attributes[0]
-                        if isinstance(domain_attributes, dict):
-                            summary = f'{domain_attributes.get("entryType")} {domain_attributes.get("bookTitle")}'
-                    except (AttributeError, IndexError, JSONDecodeError, TypeError):
-                        pass
-                    if domain_attributes.get("entryType") and domain_attributes.get(
-                        "bookTitle"
-                    ):
-                        return {
-                            "serialNumber": (
-                                last_activity["sourceDeviceIds"][0]["serialNumber"]
-                            ),
-                            "timestamp": last_activity["creationTimestamp"],
-                            "summary": summary,
-                        }
+
         return None
 
     @_catch_all_exceptions
