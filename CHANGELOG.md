@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.7 (2023-11-05)
+
+### Fix
+
+* Fix get_last_device_serial ([`ccbb17e`](https://gitlab.com/keatontaylor/alexapy/-/commit/ccbb17ecbbfd710f9e6c8f1c3cae487d11611491))
+
 ## v1.27.6 (2023-10-08)
 ### Fix
 * Exit login attempt if no urls to submit to ([`e276f1e`](https://gitlab.com/keatontaylor/alexapy/-/commit/e276f1e03d3b2ef74147f6b1b611ee5365f9472b))
