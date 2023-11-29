@@ -208,13 +208,13 @@ tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pyte
 
 [[package]]
 name = "authcaptureproxy"
-version = "1.3.1"
+version = "1.3.2"
 description = "A Python project to create a proxy to capture authentication information from a webpage. This is useful to capture oauth login details without access to a third-party oauth."
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "authcaptureproxy-1.3.1-py3-none-any.whl", hash = "sha256:cea8037f80c9d02bcd84e774a0638e1ae2bf81857f28aedf40e77b4d6cff3aca"},
-    {file = "authcaptureproxy-1.3.1.tar.gz", hash = "sha256:20dcf222d8bf3bbc011fd823a37760757f717c2687d7d211c47f7bcc37a38195"},
+    {file = "authcaptureproxy-1.3.2-py3-none-any.whl", hash = "sha256:7c458784fd778fe08d2bf6e2fbe7f8422cfa4ee8a4fc27a3fce9f75165ec8c31"},
+    {file = "authcaptureproxy-1.3.2.tar.gz", hash = "sha256:42ba5d4e27965ad04298050d8dc067e19ffeb6c53f347b5f478aab116f0fe52d"},
 ]
 
 [package.dependencies]
@@ -2859,4 +2859,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11, <4"
-content-hash = "05c9fa912d1b94904120984b74792abdb97f7de3905ac580a27ba550822760ae"
+content-hash = "3067cf123bce7a532700fb770f4baee53826d294134057f59f1bc97635f3362a"
