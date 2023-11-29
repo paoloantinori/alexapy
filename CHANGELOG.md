@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.9 (2023-11-29)
+
+### Fix
+
+* Bump authcaptureproxy to 1.3.1 ([`e3af0ff`](https://gitlab.com/keatontaylor/alexapy/-/commit/e3af0ffeda69c4d971f11888c5844280c9005c94))
+
 ## v1.27.8 (2023-11-05)
 
 ### Fix
