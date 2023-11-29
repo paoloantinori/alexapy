@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.10 (2023-11-29)
+
+### Fix
+
+* Bump authcaptureproxy ([`d04dc04`](https://gitlab.com/keatontaylor/alexapy/-/commit/d04dc042757fad40cb865e2732f636ca9bfc4b21))
+
 ## v1.27.9 (2023-11-29)
 
 ### Fix
