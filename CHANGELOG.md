@@ -2,6 +2,26 @@
 
 <!--next-version-placeholder-->
 
+## v1.27.8 (2023-11-05)
+
+### Fix
+
+* Fix start and end date for get_customer_history_records ([`481b567`](https://gitlab.com/keatontaylor/alexapy/-/commit/481b56778d1b89870983530eb1cef89fdc3b74d3))
+
+## v1.27.7 (2023-11-05)
+
+### Fix
+
+* Fix get_last_device_serial ([`ccbb17e`](https://gitlab.com/keatontaylor/alexapy/-/commit/ccbb17ecbbfd710f9e6c8f1c3cae487d11611491))
+
+## v1.27.6 (2023-10-08)
+### Fix
+* Exit login attempt if no urls to submit to ([`e276f1e`](https://gitlab.com/keatontaylor/alexapy/-/commit/e276f1e03d3b2ef74147f6b1b611ee5365f9472b))
+
+## v1.27.5 (2023-10-08)
+### Fix
+* Attempt to refresh tokens before login error ([`2c9efa2`](https://gitlab.com/keatontaylor/alexapy/-/commit/2c9efa27a87e9a2f8413f3c3c3fc0986acf90ef6))
+
 ## v1.27.4 (2023-09-30)
 ### Fix
 * Add additional http2 domains ([`f13b452`](https://gitlab.com/keatontaylor/alexapy/-/commit/f13b4520bdb7896d715101c8a6ad08ab70a482e9))
