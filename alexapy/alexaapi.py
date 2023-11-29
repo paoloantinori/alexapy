@@ -1275,11 +1275,17 @@ class AlexaAPI:
     @_catch_all_exceptions
     async def get_customer_history_records(
         login: AlexaLogin,
-        start_time: Optional[int] = int((time.time() - 24 * 3600) * 1000),
-        end_time: Optional[int] = int((time.time() + 24 * 3600) * 1000),
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
         max_record_size: Optional[int] = 1,
     ) -> Optional[dict[str, Any]]:
         """Get customer history records."""
+        start_time = (
+            int((time.time() - 24 * 3600) * 1000) if start_time is None else start_time
+        )
+        end_time = (
+            int((time.time() + 24 * 3600) * 1000) if end_time is None else end_time
+        )
         response = await AlexaAPI._static_request(
             "get",
             login,
